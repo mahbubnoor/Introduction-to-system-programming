@@ -1,7 +1,7 @@
 # CSE 4105 System Programming
 
 Course materials for **CSE 4105 System Programming**, Department of Computer Science and Engineering, University of Barishal.
-Course teacher: **Md Mahbub E Noor**, Assistant Professor.
+Course teacher: **Md Mahbub E Noor**, Faculty member.
 
 The course follows one C program, `hello.c`, all the way down: how an assembler, a macro processor and a loader turn
 source code into a running program, how the ELF format describes it, how the Linux kernel boots and runs it, and how the
