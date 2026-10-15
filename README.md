@@ -23,7 +23,25 @@ Every terminal output on the slides is **real**: it was produced by running the 
 QEMU virtual machine running Ubuntu's Linux 6.8 kernel. On your PC, addresses, process IDs and timings will be different.
 That is expected; the shape of the output is what matters.
 
-## Lectures
+## Short course (this semester): 10 classes
+
+The most important ideas of the course in 10 classes, made from the same slides. Each class ends with its key ideas,
+three homework questions and a tool to try in the browser.
+
+| Class | Topic | Present | Slides | Try it |
+|---|---|---|---|---|
+| 1 | What System Programming Is | [animated](short/class_01.html) | [PDF](short/class_01.pdf) | [lab01.html](labs/lab01.html#try) |
+| 2 | Machine Language and the SIC Machine | [animated](short/class_02.html) | [PDF](short/class_02.pdf) | [lab02.html](labs/lab02.html#try) |
+| 3 | Assemblers | [animated](short/class_03.html) | [PDF](short/class_03.pdf) | [lab03.html](labs/lab03.html#try) |
+| 4 | Macros and Loaders | [animated](short/class_04.html) | [PDF](short/class_04.pdf) | [lab05.html](labs/lab05.html#try) |
+| 5 | Linking and the ELF Format | [animated](short/class_05.html) | [PDF](short/class_05.pdf) | [lab06.html](labs/lab06.html#try) |
+| 6 | The Linux Kernel and Booting | [animated](short/class_06.html) | [PDF](short/class_06.pdf) | [lab07.html](labs/lab07.html#try) |
+| 7 | Processes and Scheduling | [animated](short/class_07.html) | [PDF](short/class_07.pdf) | [lab08.html](labs/lab08.html#try) |
+| 8 | System Calls, Pipes and Signals | [animated](short/class_08.html) | [PDF](short/class_08.pdf) | [lab09.html](labs/lab09.html#try) |
+| 9 | Memory and Files | [animated](short/class_09.html) | [PDF](short/class_09.pdf) | [lab11.html](labs/lab11.html#try) |
+| 10 | Interrupts, Modules and Drivers | [animated](short/class_10.html) | [PDF](short/class_10.pdf) | [lab13.html](labs/lab13.html#try) |
+
+## Lectures (full course)
 
 | Lecture | Topic | Present | Slides | PowerPoint | Video |
 |---|---|---|---|---|---|

@@ -23,7 +23,10 @@ h2{font-size:24px;margin:0 0 4px} h3{font-size:18px;margin:0;line-height:1.3}
 .intro{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:32px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
 .card h2{font-size:17px;margin-bottom:6px} .card p,.card ul{margin:0;color:var(--ink)} .card ul{padding-left:18px}
-.part{margin-top:48px} .parthead p{margin:0;color:var(--dim);max-width:70ch}
+.part{margin-top:48px} .short{margin-top:36px;border:2px solid var(--accent);border-radius:12px;padding:20px 20px 22px;background:var(--tint)} .short .lec{background:var(--surface)}
+.now{display:inline-block;font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:#fff;border-radius:4px;padding:5px 8px} .short h2{margin-top:10px}
+.from{margin:10px 0 0;font-size:14px;color:var(--dim)} .fullhead{margin:56px 0 0;font-size:26px}
+@media (max-width:520px){.short{padding:14px 12px}} .parthead p{margin:0;color:var(--dim);max-width:70ch}
 .lecs{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:12px}
 .lec{display:grid;grid-template-columns:64px 1fr;gap:16px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
 .num{font:600 22px/1.2 var(--mono);color:var(--accent);font-variant-numeric:tabular-nums}
@@ -48,11 +51,35 @@ footer{border-top:1px solid var(--line);padding-block:24px;color:var(--dim);font
 <div class="prompt"><b>$</b> gcc hello.c &amp;&amp; ./a.out &nbsp;→&nbsp; assembler · linker · loader · ELF · kernel · system calls · memory · files · interrupts · drivers</div>
 </div></header>
 <main class="wrap">
+<section class="part short" id="short"><div class="parthead"><span class="now">This semester</span><h2>Short course · 10 classes</h2>
+<p>The most important ideas of the course, one class at a time. The slides are the same as in the full course, chosen so that each class fits one meeting; every class ends with its key ideas, three homework questions and a tool to try in the browser. The full course below has every detail and all the labs.</p></div>
+<ol class="lecs"><li class="lec"><div class="num">1</div><div class="body"><h3>What System Programming Is</h3><p class="sub">from hello.c to a running program, and the machine underneath</p>
+<div class="links"><a class="btn primary" href="short/class_01.html">Present (animated)</a><a class="btn" href="short/class_01.pdf">Slides (PDF, 1.4 MB)</a><a class="btn" href="labs/lab01.html#try">Try it: Bytes in memory</a></div>
+<p class="from">From lecture 1 of the full course</p></div></li><li class="lec"><div class="num">2</div><div class="body"><h3>Machine Language and the SIC Machine</h3><p class="sub">instructions, formats and addressing, seen through C</p>
+<div class="links"><a class="btn primary" href="short/class_02.html">Present (animated)</a><a class="btn" href="short/class_02.pdf">Slides (PDF, 1.6 MB)</a><a class="btn" href="labs/lab02.html#try">Try it: SIC simulator</a></div>
+<p class="from">From lecture 2 of the full course</p></div></li><li class="lec"><div class="num">3</div><div class="body"><h3>Assemblers</h3><p class="sub">two passes, the symbol table, the object program, relocation</p>
+<div class="links"><a class="btn primary" href="short/class_03.html">Present (animated)</a><a class="btn" href="short/class_03.pdf">Slides (PDF, 2.4 MB)</a><a class="btn" href="labs/lab03.html#try">Try it: Two-pass assembler</a></div>
+<p class="from">From lectures 3.1, 3.2 of the full course</p></div></li><li class="lec"><div class="num">4</div><div class="body"><h3>Macros and Loaders</h3><p class="sub">text substitution before assembly; loading and relocating after it</p>
+<div class="links"><a class="btn primary" href="short/class_04.html">Present (animated)</a><a class="btn" href="short/class_04.pdf">Slides (PDF, 3.1 MB)</a><a class="btn" href="labs/lab05.html#try">Try it: sicload</a></div>
+<p class="from">From lectures 4, 5.1 of the full course</p></div></li><li class="lec"><div class="num">5</div><div class="body"><h3>Linking and the ELF Format</h3><p class="sub">shared libraries, and what is inside an object file</p>
+<div class="links"><a class="btn primary" href="short/class_05.html">Present (animated)</a><a class="btn" href="short/class_05.pdf">Slides (PDF, 3.5 MB)</a><a class="btn" href="labs/lab06.html#try">Try it: ELF explorer</a></div>
+<p class="from">From lectures 5.2, 6 of the full course</p></div></li><li class="lec"><div class="num">6</div><div class="body"><h3>The Linux Kernel and Booting</h3><p class="sub">what a kernel is, and how it gets started</p>
+<div class="links"><a class="btn primary" href="short/class_06.html">Present (animated)</a><a class="btn" href="short/class_06.pdf">Slides (PDF, 2.6 MB)</a><a class="btn" href="labs/lab07.html#try">Try it: /proc decoder</a></div>
+<p class="from">From lectures 7.1, 7.2 of the full course</p></div></li><li class="lec"><div class="num">7</div><div class="body"><h3>Processes and Scheduling</h3><p class="sub">fork, exec, exit, wait, and who gets the CPU</p>
+<div class="links"><a class="btn primary" href="short/class_07.html">Present (animated)</a><a class="btn" href="short/class_07.pdf">Slides (PDF, 2.3 MB)</a><a class="btn" href="labs/lab08.html#try">Try it: fork() trees and CFS shares</a></div>
+<p class="from">From lectures 8.1, 8.2 of the full course</p></div></li><li class="lec"><div class="num">8</div><div class="body"><h3>System Calls, Pipes and Signals</h3><p class="sub">how a program asks the kernel, and how processes talk</p>
+<div class="links"><a class="btn primary" href="short/class_08.html">Present (animated)</a><a class="btn" href="short/class_08.pdf">Slides (PDF, 3.4 MB)</a><a class="btn" href="labs/lab09.html#try">Try it: strace line → registers</a></div>
+<p class="from">From lectures 9, 10.1, 10.2 of the full course</p></div></li><li class="lec"><div class="num">9</div><div class="body"><h3>Memory and Files</h3><p class="sub">virtual memory, page faults, malloc, and the file system</p>
+<div class="links"><a class="btn primary" href="short/class_09.html">Present (animated)</a><a class="btn" href="short/class_09.pdf">Slides (PDF, 3.3 MB)</a><a class="btn" href="labs/lab11.html#try">Try it: Address → page tables, and a malloc heap</a></div>
+<p class="from">From lectures 11.1, 11.2, 12.1 of the full course</p></div></li><li class="lec"><div class="num">10</div><div class="body"><h3>Interrupts, Modules and Drivers</h3><p class="sub">how hardware gets the kernel&#x27;s attention, and your own code inside the kernel</p>
+<div class="links"><a class="btn primary" href="short/class_10.html">Present (animated)</a><a class="btn" href="short/class_10.pdf">Slides (PDF, 4.0 MB)</a><a class="btn" href="labs/lab13.html#try">Try it: Page-fault error codes and interrupt counts</a></div>
+<p class="from">From lectures 13, 14.1, 15.1, 15.3 of the full course</p></div></li></ol></section>
 <div class="intro">
 <div class="card"><h2>How to use this page</h2><ul><li><b>Present</b> plays the slides in your browser with every animation step: click, tap or use the arrow keys. The PDF shows each slide in its final state.</li><li>Watch the short video for each lecture; there is no sound, the captions explain each step.</li><li>Before each lab, open its <b>interactive lab</b> page: the tasks, the files, and tools to try in the browser. Then do the lab on Linux.</li></ul></div>
 <div class="card"><h2>What you need for the labs</h2><p>A Linux PC (Ubuntu 24.04 in our lab) with <code>gcc</code>, <code>make</code>, <code>gdb</code>, <code>strace</code>, <code>nasm</code>; from Lecture 7 on also <code>qemu-system-x86</code>, and for Lectures 14–15 the kernel headers. See the <a href="README.md">README</a>.</p></div>
 <div class="card"><h2>Homework</h2><p>Each lecture ends with a homework slide. Submit your answers to the course teacher; solutions are discussed in class and are not published here.</p></div>
 </div>
+<h2 class="fullhead" id="full">Full course · 15 lectures and labs</h2>
 <section class="part" id="part-a"><div class="parthead"><h2>Part A · System software</h2><p>From a source file to an executable: machines, assemblers, macro processors, loaders and the ELF format.</p></div><ol class="lecs"><li class="lec" id="l1">
 <div class="num">1</div>
 <div class="body"><h3>Introduction to System Programming and Machine Structures</h3>
