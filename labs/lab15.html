@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 15 · Character, block and USB drivers</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 15: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part{scroll-margin-top:12px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 15</div>
+<h1>Character, block and USB drivers</h1>
+<p>A character device, a RAM disk and a USB keyboard driver, in a virtual machine.</p>
+<nav class="navlinks" aria-label="Lab links"><a href="../index.html">All lectures</a><a href="../present/lecture_15.1.html">Present 15.1</a><a href="../present/lecture_15.2.html">Present 15.2</a><a href="../present/lecture_15.3.html">Present 15.3</a><a href="lab15_files.zip">Download the lab files (1.1 MB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-15-1">
+<div class="phead"><h3>Lab 15.1 <span class="dim">· Character Device Drivers</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_15.1.html">Present lecture 15.1</a>
+<a class="btn" href="../slides/lecture_15.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>cd lab15_1; make builds sysbuf_starter.ko and the static test program sbtest</li>
+<li>TODO 1 init: alloc_chrdev_region, cdev_init/cdev_add, class_create, device_create (with the goto ladder)</li>
+<li>TODO 2 read: EOF, min, copy_to_user, *pos += n</li>
+<li>TODO 3 write: −ENOSPC, copy_from_user, update used</li>
+<li>TODO 4 ioctl: CLEAR, GETSIZE with put_user, default −ENOTTY</li>
+<li>../guest/run_guest.sh . then insmod, echo, cat, dd, ./sbtest</li>
+</ol>
+<p class="cap">the starter, before TODO 1  (real)</p><pre>$ insmod sysbuf_starter.ko; echo status $?
+insmod: can&#x27;t insert &#x27;sysbuf_starter.ko&#x27;: No such device
+status 19
+$ dmesg | grep sysbuf
+sysbuf: not registered yet: TODO 1</pre>
+<p class="cap">the finished lab  (real)</p><pre>$ ./sbtest
+write: 22 bytes, size now 22
+read at offset 14: 8 bytes &quot;Barishal&quot;
+read again: 0 (end of file)
+ioctl 0x1234: Inappropriate ioctl for device
+SYSBUF_GETSIZE = 0x80045302  (_IOR(&#x27;S&#x27;, 2, int))</pre>
+</section>
+<section class="card part" id="part-15-2">
+<div class="phead"><h3>Lab 15.2 <span class="dim">· Block Device Drivers</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_15.2.html">Present lecture 15.2</a>
+<a class="btn" href="../slides/lecture_15.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>cd lab15_2; make builds sbd_starter.ko</li>
+<li>TODO 2 tag set and disk: blk_mq_alloc_sq_tag_set, sbd_alloc_disk, fill major, minors, fops, name</li>
+<li>TODO 3 set_capacity in sectors, add_disk; jump to the right undo label on error</li>
+<li>TODO 1 queue_rq: rq_for_each_segment, bvec_kmap_local, memcpy in the right direction</li>
+<li>test: mke2fs -q /dev/sbd0; mount /dev/sbd0 /mnt, write a file, umount, mount again, read it</li>
+<li>echo 1 &gt; /sys/module/sbd_starter/parameters/trace and watch your requests in dmesg</li>
+</ol>
+<p class="cap">the starter, before TODO 2–3  (real)</p><pre>$ insmod sbd_starter.ko; echo status $?
+insmod: can&#x27;t insert &#x27;sbd_starter.ko&#x27;: No such device
+status 19
+$ dmesg | grep sbd | tail -1
+sbd: no disk yet: TODO 2 and 3</pre>
+<p class="cap">the finished lab  (real)</p><pre>$ insmod sbd.ko
+$ mke2fs -q /dev/sbd0 &amp;&amp; mount /dev/sbd0 /mnt
+$ echo hi &gt; /mnt/f &amp;&amp; cat /mnt/f &amp;&amp; umount /mnt
+Filesystem label=   …
+4096 inodes, 16384 blocks
+2 block groups
+hi</pre>
+</section>
+<section class="card part" id="part-15-3">
+<div class="phead"><h3>Lab 15.3 <span class="dim">· USB Device Drivers</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_15.3.html">Present lecture 15.3</a>
+<a class="btn" href="../slides/lecture_15.3.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>cd lab15_3; make builds sysprog_kbd_starter.ko and mylsusb</li>
+<li>USB=1 ../guest/run_guest.sh . adds a UHCI controller, a USB keyboard and a mouse; run mylsusb</li>
+<li>TODO 1 id_table; TODO 2 find the interrupt IN endpoint</li>
+<li>TODO 3 usb_fill_int_urb, usb_set_intfdata, usb_submit_urb</li>
+<li>TODO 4 decode the report and resubmit with GFP_ATOMIC</li>
+<li>Ctrl-A then C: QEMU monitor. sendkey h, Ctrl-A C back, dmesg | tail</li>
+</ol>
+<p class="cap">the starter, before TODO 1  (real)</p><pre>$ insmod sysprog_kbd_starter.ko; echo status $?
+status 0
+$ dmesg | tail -2
+# nothing: no probe, the id_table is empty
+$ ls /sys/bus/usb/drivers
+hub  sysprog_kbd  usb  usbfs</pre>
+<p class="cap">the finished lab  (real)</p><pre>(qemu) sendkey h
+(qemu) sendkey shift-b
+$ dmesg | grep report
+usb 1-1: report 1: 00 00 0b 00 …  key 0x0b &#x27;h&#x27;
+usb 1-1: report 2: 00 00 00 00 …  (all keys up)
+usb 1-1: report 3: 02 00 00 00 …  (all keys up)
+usb 1-1: report 4: 02 00 05 00 …  key 0x05 &#x27;b&#x27; +shift</pre>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab15_files.zip">lab15_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab15_files.zip">Download lab15_files.zip (1.1 MB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab14.html">← Lab 14</a><a class="btn" href="../index.html">All lectures</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 15, "readme": "CSE 4105 System Programming - Lab 15 (Lectures 15.1-15.3): character, block and USB device drivers\n====================================================================================================\nWorks offline. Needs: gcc, make, the kernel headers of this PC (/lib/modules/$(uname -r)/build must exist;\nUbuntu installs them with the kernel: package linux-headers-$(uname -r)), glibc's static library for the\ntest programs (package libc6-dev, normally installed with gcc) and qemu-system-x86_64.\n\nRULE: build on the PC, LOAD ONLY IN THE VIRTUAL MACHINE. A bug in a driver is a bug in the kernel.\n\nONCE PER PC (needs sudo, or the instructor does it): a readable copy of this PC's kernel for the VM\n  sudo cp /boot/vmlinuz-$(uname -r) guest/vmlinuz && sudo chmod a+r guest/vmlinuz\n\nguest/run_guest.sh DIR...   boots the VM; every .ko AND every executable program (sbtest, mylsusb) found in\n                            the DIRs is copied to /mod (also on PATH). Root shell. Leave with: poweroff -f\nUSB=1 guest/run_guest.sh …  also plugs in a USB host controller (UHCI), a USB keyboard (id kbd1) and a mouse.\nQEMU monitor (Lab 15.3):    press Ctrl-A, then C. Type commands, then Ctrl-A, C again to get back:\n                              sendkey h          sendkey shift-b        info usb\n                              device_del kbd1    device_add usb-kbd,id=kbd2,bus=uhci.0\n                            Wait a second after sendkey before dmesg: the reports arrive asynchronously.\n\nLAB 15.1  /dev/sysbuf, a character device            cd lab15_1 && make && ../guest/run_guest.sh .\n  (make also builds the static test program sbtest; gcc warns 'data' unused until TODO 2/3: expected)\n  Before TODO 1, insmod fails with \"No such device\" (status 19): the starter says \"TODO 1\" in dmesg.\n  TODO 1 init: alloc_chrdev_region, cdev_init + cdev_add, class_create, device_create (goto ladder on errors)\n  TODO 2 read (EOF, copy_to_user)   TODO 3 write (-ENOSPC, copy_from_user)   TODO 4 ioctl (CLEAR, GETSIZE, -ENOTTY)\n  Test: insmod sysbuf_starter.ko ; ls -l /dev/sysbuf ; echo hello > /dev/sysbuf ; cat /dev/sysbuf\n        dd if=/dev/zero of=/dev/sysbuf bs=1024 count=5   (the 5th block: No space left on device) ; ./sbtest\n\nLAB 15.2  /dev/sbd0, a RAM disk with blk-mq          cd lab15_2 && make && ../guest/run_guest.sh .\n  (gcc warns that labels undo_disk and undo_tags are unused until TODO 2-3: expected)\n  TODO 2 tag set + gendisk   TODO 3 set_capacity (in 512-byte SECTORS) + add_disk   TODO 1 the segment loop\n  Test: insmod sbd_starter.ko ; mke2fs -q /dev/sbd0 ; mount /dev/sbd0 /mnt ; echo hi > /mnt/f ; umount /mnt\n        mount /dev/sbd0 /mnt ; cat /mnt/f ; cat /sys/block/sbd0/stat\n        echo 1 > /sys/module/sbd_starter/parameters/trace   (every request in dmesg)\n  Without TODO 1, mke2fs \"works\" but mount fails with \"Invalid argument\": the data never reached the disk.\n\nLAB 15.3  a USB keyboard driver                      cd lab15_3 && make && USB=1 ../guest/run_guest.sh .\n  (make also builds mylsusb; gcc warns skbd_irq and usage_to_char unused until TODO 3-4: expected)\n  First: ./mylsusb   (the keyboard's interface 1-1:1.0 has no driver: our guest has no usbhid)\n  TODO 1 id_table (class 3, subclass 1, protocol 1)   TODO 2 find the interrupt IN endpoint\n  TODO 3 usb_fill_int_urb + usb_set_intfdata + usb_submit_urb   TODO 4 print the report, resubmit (GFP_ATOMIC)\n  Test: insmod sysprog_kbd_starter.ko ; dmesg ; Ctrl-A C ; sendkey h ; Ctrl-A C ; dmesg | grep report\n        unplug and plug in the monitor (device_del / device_add) and watch probe and disconnect\n\nWritten and tested on kernel 6.8 (Ubuntu 24.04). sbd_starter.c has two macros at the top (SBD_TAG_FLAGS,\nsbd_alloc_disk) that pick the right block-layer calls for 6.9+ and 6.14+ kernels: use them in TODO 2.\nIf the compiler names another function on a newer kernel, ask the instructor.\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 15 (Lectures 15.1-15.3): character, block and USB device drivers\n====================================================================================================\nWorks offline. Needs: gcc, make, the kernel headers of this PC (/lib/modules/$(uname -r)/build must exist;\nUbuntu installs them with the kernel: package linux-headers-$(uname -r)), glibc's static library for the\ntest programs (package libc6-dev, normally installed with gcc) and qemu-system-x86_64.\n\nRULE: build on the PC, LOAD ONLY IN THE VIRTUAL MACHINE. A bug in a driver is a bug in the kernel.\n\nONCE PER PC (needs sudo, or the instructor does it): a readable copy of this PC's kernel for the VM\n  sudo cp /boot/vmlinuz-$(uname -r) guest/vmlinuz && sudo chmod a+r guest/vmlinuz\n\nguest/run_guest.sh DIR...   boots the VM; every .ko AND every executable program (sbtest, mylsusb) found in\n                            the DIRs is copied to /mod (also on PATH). Root shell. Leave with: poweroff -f\nUSB=1 guest/run_guest.sh …  also plugs in a USB host controller (UHCI), a USB keyboard (id kbd1) and a mouse.\nQEMU monitor (Lab 15.3):    press Ctrl-A, then C. Type commands, then Ctrl-A, C again to get back:\n                              sendkey h          sendkey shift-b        info usb\n                              device_del kbd1    device_add usb-kbd,id=kbd2,bus=uhci.0\n                            Wait a second after sendkey before dmesg: the reports arrive asynchronously.\n\nLAB 15.1  /dev/sysbuf, a character device            cd lab15_1 && make && ../guest/run_guest.sh .\n  (make also builds the static test program sbtest; gcc warns 'data' unused until TODO 2/3: expected)\n  Before TODO 1, insmod fails with \"No such device\" (status 19): the starter says \"TODO 1\" in dmesg.\n  TODO 1 init: alloc_chrdev_region, cdev_init + cdev_add, class_create, device_create (goto ladder on errors)\n  TODO 2 read (EOF, copy_to_user)   TODO 3 write (-ENOSPC, copy_from_user)   TODO 4 ioctl (CLEAR, GETSIZE, -ENOTTY)\n  Test: insmod sysbuf_starter.ko ; ls -l /dev/sysbuf ; echo hello > /dev/sysbuf ; cat /dev/sysbuf\n        dd if=/dev/zero of=/dev/sysbuf bs=1024 count=5   (the 5th block: No space left on device) ; ./sbtest\n\nLAB 15.2  /dev/sbd0, a RAM disk with blk-mq          cd lab15_2 && make && ../guest/run_guest.sh .\n  (gcc warns that labels undo_disk and undo_tags are unused until TODO 2-3: expected)\n  TODO 2 tag set + gendisk   TODO 3 set_capacity (in 512-byte SECTORS) + add_disk   TODO 1 the segment loop\n  Test: insmod sbd_starter.ko ; mke2fs -q /dev/sbd0 ; mount /dev/sbd0 /mnt ; echo hi > /mnt/f ; umount /mnt\n        mount /dev/sbd0 /mnt ; cat /mnt/f ; cat /sys/block/sbd0/stat\n        echo 1 > /sys/module/sbd_starter/parameters/trace   (every request in dmesg)\n  Without TODO 1, mke2fs \"works\" but mount fails with \"Invalid argument\": the data never reached the disk.\n\nLAB 15.3  a USB keyboard driver                      cd lab15_3 && make && USB=1 ../guest/run_guest.sh .\n  (make also builds mylsusb; gcc warns skbd_irq and usage_to_char unused until TODO 3-4: expected)\n  First: ./mylsusb   (the keyboard's interface 1-1:1.0 has no driver: our guest has no usbhid)\n  TODO 1 id_table (class 3, subclass 1, protocol 1)   TODO 2 find the interrupt IN endpoint\n  TODO 3 usb_fill_int_urb + usb_set_intfdata + usb_submit_urb   TODO 4 print the report, resubmit (GFP_ATOMIC)\n  Test: insmod sysprog_kbd_starter.ko ; dmesg ; Ctrl-A C ; sendkey h ; Ctrl-A C ; dmesg | grep report\n        unplug and plug in the monitor (device_del / device_add) and watch probe and disconnect\n\nWritten and tested on kernel 6.8 (Ubuntu 24.04). sbd_starter.c has two macros at the top (SBD_TAG_FLAGS,\nsbd_alloc_disk) that pick the right block-layer calls for 6.9+ and 6.14+ kernels: use them in TODO 2.\nIf the compiler names another function on a newer kernel, ask the instructor.\n", "guest/run_guest.sh": "#!/bin/sh\n# run_guest.sh - boot the lab PC's own kernel in QEMU with busybox and your files, and give you a root shell.\n#   ./run_guest.sh DIR...          every *.ko and every executable file in the DIRs is copied to /mod in the guest\n#   USB=1 ./run_guest.sh DIR...    also plug in a USB host controller (UHCI) with a USB keyboard and a USB mouse\n# KERNEL: a readable copy of this PC's kernel (once, by the instructor or with sudo):\n#   sudo cp /boot/vmlinuz-$(uname -r) guest/vmlinuz && sudo chmod a+r guest/vmlinuz   (next to this script)\n# Leave the guest with:  poweroff -f      (or Ctrl-A then X)\n# QEMU monitor (Lab 15.3): Ctrl-A then C switches between the guest shell and the monitor. In the monitor:\n#   sendkey h          press and release the key h on the USB keyboard\n#   device_del kbd1    unplug the keyboard       device_add usb-kbd,id=kbd2,bus=uhci.0    plug a new one in\nset -e\nHERE=$(cd \"$(dirname \"$0\")\" && pwd)\nKERNEL=${KERNEL:-$HERE/vmlinuz}\nBB=${BUSYBOX:-$HERE/busybox}\n[ -r \"$KERNEL\" ] || { echo \"no readable kernel at $KERNEL (see the comment at the top)\"; exit 1; }\nR=$(mktemp -d)\nchmod 755 $R; mkdir -p $R/bin $R/proc $R/sys $R/dev $R/tmp $R/mod $R/mnt\ncp \"$BB\" $R/bin/busybox\nfor a in $($R/bin/busybox --list); do [ \"$a\" = busybox ] || ln -sf busybox $R/bin/$a; done\nfor d in \"$@\"; do\n  find \"$d\" -maxdepth 2 -name '*.ko' -exec cp {} $R/mod/ \\;\n  find \"$d\" -maxdepth 2 -type f -perm -u+x ! -name '*.ko' ! -name '*.sh' ! -name busybox ! -name vmlinuz -exec cp {} $R/mod/ \\;\ndone\ncat > $R/init <<'EOI'\n#!/bin/sh\nmount -t proc proc /proc\nmount -t sysfs sysfs /sys\nmount -t devtmpfs devtmpfs /dev\nexport PATH=/bin:/mod\ncd /mod\necho; echo \"guest $(uname -r): your files are in /mod:\"; ls /mod; echo \"(poweroff -f to leave)\"\nexec setsid cttyhack sh\nEOI\nchmod +x $R/init\n(cd $R && find . | cpio -o -H newc 2>/dev/null | gzip > \"$HERE/guest.cpio.gz\")\nrm -rf $R\nUSBDEV=\n[ -n \"$USB\" ] && USBDEV=\"-device piix3-usb-uhci,id=uhci -device usb-kbd,id=kbd1,bus=uhci.0 -device usb-mouse,id=mouse1,bus=uhci.0\"\nexec qemu-system-x86_64 -m 512 -nographic -no-reboot -kernel \"$KERNEL\" -initrd \"$HERE/guest.cpio.gz\" \\\n     -append \"console=ttyS0 quiet panic=-1\" $USBDEV $EXTRA_QEMU\n", "lab15_1/Makefile": "obj-m += sysbuf_starter.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall: sbtest\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nsbtest: sbtest.c sysbuf.h\n\tgcc -static -O2 -Wall -o sbtest sbtest.c      # static: the guest has no C library\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n\trm -f sbtest\n", "lab15_1/sbtest.c": "/* sbtest.c - use /dev/sysbuf from C: write, lseek, read, ioctl */\n#include <fcntl.h>\n#include <stdio.h>\n#include <string.h>\n#include <sys/ioctl.h>\n#include <unistd.h>\n#include \"sysbuf.h\"\nint main(void)\n{\n    int fd = open(\"/dev/sysbuf\", O_RDWR);\n    if (fd < 0) { perror(\"open /dev/sysbuf\"); return 1; }\n    int size;\n    ioctl(fd, SYSBUF_CLEAR);\n    ssize_t w = write(fd, \"University of Barishal\", 22);\n    ioctl(fd, SYSBUF_GETSIZE, &size);\n    printf(\"write: %zd bytes, size now %d\\n\", w, size);\n    lseek(fd, 14, SEEK_SET);                          /* jump to \"Barishal\" */\n    char buf[32] = {0};\n    ssize_t r = read(fd, buf, sizeof buf - 1);\n    printf(\"read at offset 14: %zd bytes \\\"%s\\\"\\n\", r, buf);\n    r = read(fd, buf, sizeof buf - 1);\n    printf(\"read again: %zd (end of file)\\n\", r);\n    if (ioctl(fd, 0x1234) < 0) perror(\"ioctl 0x1234\");\n    printf(\"SYSBUF_GETSIZE = 0x%lx  (_IOR('S', 2, int))\\n\", (unsigned long)SYSBUF_GETSIZE);\n    close(fd);\n    return 0;\n}\n", "lab15_1/sysbuf.h": "/* sysbuf.h - the ioctl commands of /dev/sysbuf, shared by the driver and user programs */\n#ifndef SYSBUF_H\n#define SYSBUF_H\n#include <linux/ioctl.h>\n#define SYSBUF_MAGIC 'S'\n#define SYSBUF_CLEAR    _IO(SYSBUF_MAGIC, 1)          /* empty the buffer          */\n#define SYSBUF_GETSIZE  _IOR(SYSBUF_MAGIC, 2, int)    /* how many bytes are stored */\n#endif\n", "lab15_1/sysbuf_starter.c": "// SPDX-License-Identifier: GPL-2.0\n/*\n * sysbuf.c - a character device: /dev/sysbuf is a 4 KiB buffer in the kernel that you can write, read and seek\n * CSE 4105 System Programming, Lab 15.1   (STARTER: fill in TODO 1-4)\n *\n * In the QEMU guest:  insmod sysbuf.ko ; echo hello > /dev/sysbuf ; cat /dev/sysbuf ; ./sbtest\n */\n#include <linux/cdev.h>\n#include <linux/device.h>\n#include <linux/fs.h>\n#include <linux/module.h>\n#include <linux/mutex.h>\n#include <linux/uaccess.h>\n#include \"sysbuf.h\"\n\n#define SYSBUF_SIZE 4096\n\nstatic char data[SYSBUF_SIZE];            /* the device's \"hardware\": a buffer */\nstatic size_t used;                       /* bytes stored */\nstatic DEFINE_MUTEX(lock);\n\nstatic dev_t devno;                       /* major + minor, from alloc_chrdev_region */\nstatic struct cdev cdev;\nstatic struct class *cls;\n\nstatic int sysbuf_open(struct inode *inode, struct file *f)\n{\n    pr_info(\"sysbuf: open by %s (pid %d), minor %d, flags 0x%x\\n\", current->comm, current->pid, iminor(inode), f->f_flags);\n    if ((f->f_flags & O_ACCMODE) != O_RDONLY && (f->f_flags & O_TRUNC)) {   /* echo > /dev/sysbuf truncates */\n        mutex_lock(&lock);\n        used = 0;\n        mutex_unlock(&lock);\n    }\n    return 0;\n}\n\nstatic ssize_t sysbuf_read(struct file *f, char __user *buf, size_t count, loff_t *pos)\n{\n    /* TODO 2: under the mutex:\n     *   - if *pos >= used: return 0 (end of file)\n     *   - n = min(count, used - *pos)\n     *   - copy_to_user(buf, data + *pos, n); if it fails return -EFAULT   (buf is a USER pointer!)\n     *   - *pos += n; return n\n     * Do not forget mutex_unlock on every return path. */\n    return 0;\n}\n\nstatic ssize_t sysbuf_write(struct file *f, const char __user *buf, size_t count, loff_t *pos)\n{\n    /* TODO 3: under the mutex:\n     *   - if *pos >= SYSBUF_SIZE: return -ENOSPC  (\"No space left on device\")\n     *   - n = min(count, SYSBUF_SIZE - *pos)\n     *   - copy_from_user(data + *pos, buf, n); if it fails return -EFAULT\n     *   - *pos += n; if *pos > used then used = *pos; return n */\n    pr_info(\"sysbuf: write is TODO 3\\n\");\n    return -EINVAL;\n}\n\nstatic long sysbuf_ioctl(struct file *f, unsigned int cmd, unsigned long arg)\n{\n    /* TODO 4: switch (cmd)\n     *   SYSBUF_CLEAR:   used = 0 (under the mutex), return 0\n     *   SYSBUF_GETSIZE: put_user((int)used, (int __user *)arg)   -- arg is a user address\n     *   default:        return -ENOTTY  (\"Inappropriate ioctl for device\") */\n    return -ENOTTY;\n}\n\nstatic const struct file_operations sysbuf_fops = {\n    .owner = THIS_MODULE,\n    .open = sysbuf_open,\n    .read = sysbuf_read,\n    .write = sysbuf_write,\n    .llseek = default_llseek,\n    .unlocked_ioctl = sysbuf_ioctl,\n};\n\nstatic int __init sysbuf_init(void)\n{\n    /* TODO 1: register the device, in this order, undoing everything on failure (goto, reverse order):\n     *   alloc_chrdev_region(&devno, 0, 1, \"sysbuf\")     a free major, minor 0\n     *   cdev_init(&cdev, &sysbuf_fops); cdev_add(&cdev, devno, 1)\n     *   cls = class_create(\"sysbuf\")                     check with IS_ERR / PTR_ERR\n     *   device_create(cls, NULL, devno, NULL, \"sysbuf\")  makes /dev/sysbuf (devtmpfs)\n     *   pr_info(\"sysbuf: ready as /dev/sysbuf, major %d minor %d\\n\", MAJOR(devno), MINOR(devno));\n     * sysbuf_exit below already undoes all four. */\n    pr_info(\"sysbuf: not registered yet: TODO 1\\n\");\n    return -ENODEV;\n}\n\nstatic void __exit sysbuf_exit(void)\n{\n    device_destroy(cls, devno);\n    class_destroy(cls);\n    cdev_del(&cdev);\n    unregister_chrdev_region(devno, 1);\n    pr_info(\"sysbuf: removed\\n\");\n}\n\nmodule_init(sysbuf_init);\nmodule_exit(sysbuf_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 15.1 lab: a character device\");\n", "lab15_2/Makefile": "obj-m += sbd_starter.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "lab15_2/sbd_starter.c": "// SPDX-License-Identifier: GPL-2.0\n/*\n * sbd.c - a simple block device: a RAM disk /dev/sbd0, using blk-mq (Linux 6.8)\n * CSE 4105 System Programming, Lab 15.2   (STARTER: fill in TODO 1-3)\n *\n * In the QEMU guest:  insmod sbd.ko size_mb=16 ; mkfs.ext2 /dev/sbd0 ; mount /dev/sbd0 /mnt ; ...\n */\n#include <linux/blk-mq.h>\n#include <linux/blkdev.h>\n#include <linux/highmem.h>\n#include <linux/module.h>\n#include <linux/vmalloc.h>\n#include <linux/version.h>\n\n/* API differences between kernel versions (this file was written and tested on 6.8) */\n#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 14, 0)\n#define SBD_TAG_FLAGS 0                          /* 6.14+: BLK_MQ_F_SHOULD_MERGE is gone, merging is always on */\n#else\n#define SBD_TAG_FLAGS BLK_MQ_F_SHOULD_MERGE\n#endif\n#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)\n#define sbd_alloc_disk(set) blk_mq_alloc_disk(set, NULL, NULL)   /* 6.9+: (set, queue limits, queuedata) */\n#else\n#define sbd_alloc_disk(set) blk_mq_alloc_disk(set, NULL)         /* 6.8: (set, queuedata) */\n#endif\n\nstatic int size_mb = 16;\nmodule_param(size_mb, int, 0444);\nMODULE_PARM_DESC(size_mb, \"disk size in MiB\");\nstatic bool trace;                           /* print every request (echo 1 > /sys/module/sbd/parameters/trace) */\nmodule_param(trace, bool, 0644);\n\nstatic int major;                            /* from register_blkdev */\nstatic u8 *store;                            /* the \"platters\": size_mb MiB of kernel memory */\nstatic struct blk_mq_tag_set tag_set;\nstatic struct gendisk *disk;\nstatic atomic_t nreq = ATOMIC_INIT(0);\n\n/* the heart of the driver: called by the block layer for every request */\nstatic blk_status_t sbd_queue_rq(struct blk_mq_hw_ctx *hctx, const struct blk_mq_queue_data *bd)\n{\n    struct request *rq = bd->rq;\n    loff_t pos = (loff_t)blk_rq_pos(rq) << SECTOR_SHIFT;  /* first byte: sector number * 512 */\n    struct req_iterator iter;\n    struct bio_vec bv;\n\n    blk_mq_start_request(rq);\n    if (pos + blk_rq_bytes(rq) > (loff_t)size_mb << 20) {\n        blk_mq_end_request(rq, BLK_STS_IOERR);              /* beyond the end of the disk */\n        return BLK_STS_OK;\n    }\n    if (trace)\n        pr_info(\"sbd: %s sector %llu, %u bytes\\n\", rq_data_dir(rq) == WRITE ? \"WRITE\" : \"READ \",\n                (unsigned long long)blk_rq_pos(rq), blk_rq_bytes(rq));\n    atomic_inc(&nreq);\n\n    /* TODO 1: copy the data. A request is a list of memory pieces (segments):\n     *   rq_for_each_segment(bv, rq, iter) {\n     *       void *buf = bvec_kmap_local(&bv);            map the page-cache page\n     *       WRITE: memcpy(store + pos, buf, bv.bv_len)   READ: memcpy(buf, store + pos, bv.bv_len)\n     *       kunmap_local(buf); pos += bv.bv_len;\n     *   }\n     * Until then every write is lost and every read returns zeros. */\n    (void)iter; (void)bv;\n\n    blk_mq_end_request(rq, BLK_STS_OK);                    /* done: wake up whoever waits */\n    return BLK_STS_OK;\n}\n\nstatic const struct blk_mq_ops sbd_mq_ops = {\n    .queue_rq = sbd_queue_rq,\n};\n\nstatic const struct block_device_operations sbd_fops = {\n    .owner = THIS_MODULE,\n};\n\nstatic int __init sbd_init(void)\n{\n    int err;\n    if (size_mb < 1 || size_mb > 256)\n        return -EINVAL;\n    store = vzalloc((size_t)size_mb << 20);\n    if (!store)\n        return -ENOMEM;\n    major = register_blkdev(0, \"sbd\");                     /* 0: give me a free major */\n    if (major < 0) {\n        err = major;\n        goto undo_store;\n    }\n    /* TODO 2: the request queue and the disk\n     *   err = blk_mq_alloc_sq_tag_set(&tag_set, &sbd_mq_ops, 16, SBD_TAG_FLAGS);   1 queue, 16 deep\n     *   disk = sbd_alloc_disk(&tag_set);           check with IS_ERR / PTR_ERR\n     *   disk->major = major; disk->first_minor = 0; disk->minors = 1; disk->fops = &sbd_fops;\n     *   snprintf(disk->disk_name, DISK_NAME_LEN, \"sbd0\");\n     * TODO 3: make it visible\n     *   set_capacity(disk, size in 512-byte SECTORS);   (size_mb << 20) bytes = (size_mb << 11) sectors\n     *   err = add_disk(disk);                           now /dev/sbd0 exists and I/O can start\n     * On every failure, jump to the right undo label below (reverse order). */\n    pr_info(\"sbd: no disk yet: TODO 2 and 3\\n\");\n    err = -ENODEV;\n    goto undo_major;\n\n    pr_info(\"sbd: /dev/sbd0 ready, %d MiB, major %d\\n\", size_mb, major);\n    return 0;\nundo_disk:\n    put_disk(disk);\nundo_tags:\n    blk_mq_free_tag_set(&tag_set);\nundo_major:\n    unregister_blkdev(major, \"sbd\");\nundo_store:\n    vfree(store);\n    return err;\n}\n\nstatic void __exit sbd_exit(void)\n{\n    del_gendisk(disk);\n    put_disk(disk);\n    blk_mq_free_tag_set(&tag_set);\n    unregister_blkdev(major, \"sbd\");\n    vfree(store);\n    pr_info(\"sbd: removed after %d requests\\n\", atomic_read(&nreq));\n}\n\nmodule_init(sbd_init);\nmodule_exit(sbd_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 15.2 lab: a RAM block device with blk-mq\");\n", "lab15_3/Makefile": "obj-m += sysprog_kbd_starter.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall: mylsusb\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nmylsusb: mylsusb.c\n\tgcc -static -O2 -Wall -o mylsusb mylsusb.c      # static: the guest has no C library\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n\trm -f mylsusb\n", "lab15_3/mylsusb.c": "/* mylsusb.c - a small lsusb: list USB devices and their interfaces from /sys/bus/usb/devices */\n#include <dirent.h>\n#include <limits.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n\nstatic void attr(const char *dir, const char *name, char *out, size_t n)\n{\n    char path[PATH_MAX];\n    snprintf(path, sizeof path, \"/sys/bus/usb/devices/%s/%s\", dir, name);\n    FILE *f = fopen(path, \"r\");\n    out[0] = '\\0';\n    if (!f) { snprintf(out, n, \"-\"); return; }\n    if (fgets(out, n, f)) out[strcspn(out, \"\\n\")] = '\\0';\n    fclose(f);\n}\n\nstatic int by_name(const struct dirent **a, const struct dirent **b) { return strcmp((*a)->d_name, (*b)->d_name); }\n\nint main(void)\n{\n    struct dirent **e;\n    int n = scandir(\"/sys/bus/usb/devices\", &e, NULL, by_name);\n    if (n < 0) { perror(\"/sys/bus/usb/devices\"); return 1; }\n    for (int i = 0; i < n; i++) {\n        const char *d = e[i]->d_name;\n        char a[128], b[128], c[128], p[128], m[128], drv[PATH_MAX] = \"-\", path[PATH_MAX];\n        if (d[0] == '.') continue;\n        snprintf(path, sizeof path, \"/sys/bus/usb/devices/%s/driver\", d);\n        ssize_t k = readlink(path, drv, sizeof drv - 1);\n        if (k > 0) { drv[k] = '\\0'; memmove(drv, strrchr(drv, '/') + 1, strlen(strrchr(drv, '/'))); }\n        if (strchr(d, ':')) {                               /* an interface, e.g. 1-1:1.0 */\n            attr(d, \"bInterfaceClass\", a, sizeof a);\n            attr(d, \"bInterfaceSubClass\", b, sizeof b);\n            attr(d, \"bInterfaceProtocol\", c, sizeof c);\n            attr(d, \"bNumEndpoints\", p, sizeof p);\n            printf(\"    %-10s interface class %s/%s/%s, %s endpoints, driver %s\\n\", d, a, b, c, p, drv);\n        } else {                                            /* a device, e.g. 1-1 or usb1 (a root hub) */\n            attr(d, \"idVendor\", a, sizeof a);\n            attr(d, \"idProduct\", b, sizeof b);\n            attr(d, \"speed\", c, sizeof c);\n            attr(d, \"manufacturer\", m, sizeof m);\n            attr(d, \"product\", p, sizeof p);\n            printf(\"%-10s %s:%s  %s Mbit/s  %s / %s  (driver %s)\\n\", d, a, b, c, m, p, drv);\n        }\n        free(e[i]);\n    }\n    free(e);\n    return 0;\n}\n", "lab15_3/sysprog_kbd_starter.c": "// SPDX-License-Identifier: GPL-2.0\n/*\n * sysprog_kbd.c - a USB driver for a boot-protocol keyboard (QEMU's usb-kbd):\n *                 find the interrupt IN endpoint, keep one URB in flight, print every key report.\n * CSE 4105 System Programming, Lab 15.3   (STARTER: fill in TODO 1-4)\n *\n * QEMU:   -device piix3-usb-uhci,id=uhci -device usb-kbd,bus=uhci.0   (usbhid is a module that is not in our guest,\n *         so our driver gets the keyboard)\n * Guest:  insmod sysprog_kbd.ko ; dmesg            (keys typed into the QEMU monitor with \"sendkey\" arrive as reports)\n */\n#include <linux/module.h>\n#include <linux/slab.h>\n#include <linux/usb.h>\n\nstruct skbd {                                   /* one per keyboard (per interface) */\n    struct usb_device *udev;\n    struct urb *urb;\n    u8 *buf;                                    /* 8-byte boot report: modifiers, reserved, 6 key codes */\n    dma_addr_t dma;\n    int maxp, reports;\n};\n\n/* HID usage codes 0x04..0x1d are the letters a..z (USB HID Usage Tables, keyboard page) */\nstatic char usage_to_char(u8 u)\n{\n    if (u >= 0x04 && u <= 0x1d) return 'a' + (u - 0x04);\n    if (u >= 0x1e && u <= 0x26) return '1' + (u - 0x1e);\n    if (u == 0x27) return '0';\n    if (u == 0x2c) return ' ';\n    return '?';\n}\n\n/* called in interrupt context when the host controller finished our URB */\nstatic void skbd_irq(struct urb *urb)\n{\n    struct skbd *k = urb->context;\n    u8 *r = k->buf;\n    switch (urb->status) {\n    case 0:\n        break;\n    case -ECONNRESET: case -ENOENT: case -ESHUTDOWN:   /* unlinked or device gone: stop */\n        return;\n    default:\n        goto resubmit;\n    }\n    k->reports++;\n    /* TODO 4a: print the report. r[0] = modifier bits (0x02 left shift, 0x20 right shift), r[2] = first key's usage code.\n     *   dev_info(&k->udev->dev, \"report %d: %8ph  key 0x%02x '%c'%s\\n\", k->reports, r, r[2], usage_to_char(r[2]), ...);\n     *   r[2] == 0 means all keys are up. */\n    (void)r;\nresubmit:\n    /* TODO 4b: give the URB back to the host controller, or this is the last report you ever get:\n     *   usb_submit_urb(urb, GFP_ATOMIC)      we are in interrupt context: no sleeping allocation */\n    ;\n}\n\nstatic int skbd_probe(struct usb_interface *intf, const struct usb_device_id *id)\n{\n    struct usb_device *udev = interface_to_usbdev(intf);\n    struct usb_host_interface *alt = intf->cur_altsetting;\n    struct usb_endpoint_descriptor *ep = NULL;\n    struct skbd *k;\n    int i, err;\n\n    dev_info(&intf->dev, \"probe: %04x:%04x \\\"%s\\\" \\\"%s\\\", interface %d class %d/%d/%d, %d endpoint(s)\\n\",\n             le16_to_cpu(udev->descriptor.idVendor), le16_to_cpu(udev->descriptor.idProduct),\n             udev->manufacturer ?: \"?\", udev->product ?: \"?\", alt->desc.bInterfaceNumber,\n             alt->desc.bInterfaceClass, alt->desc.bInterfaceSubClass, alt->desc.bInterfaceProtocol,\n             alt->desc.bNumEndpoints);\n\n    for (i = 0; i < alt->desc.bNumEndpoints; i++) {     /* find an interrupt IN endpoint */\n        struct usb_endpoint_descriptor *e = &alt->endpoint[i].desc;\n        dev_info(&intf->dev, \"  endpoint 0x%02x: %s %s, max packet %d, interval %d\\n\", e->bEndpointAddress,\n                 usb_endpoint_xfer_int(e) ? \"interrupt\" : usb_endpoint_xfer_bulk(e) ? \"bulk\" : \"other\",\n                 usb_endpoint_dir_in(e) ? \"IN\" : \"OUT\", usb_endpoint_maxp(e), e->bInterval);\n        /* TODO 2: remember the first INTERRUPT IN endpoint in ep (usb_endpoint_is_int_in(e)) */\n    }\n    if (!ep)\n        return -ENODEV;\n\n    k = kzalloc(sizeof(*k), GFP_KERNEL);\n    if (!k)\n        return -ENOMEM;\n    k->udev = udev;\n    k->maxp = usb_endpoint_maxp(ep);\n    k->buf = usb_alloc_coherent(udev, 8, GFP_KERNEL, &k->dma);   /* DMA-able: the controller writes here */\n    k->urb = usb_alloc_urb(0, GFP_KERNEL);\n    if (!k->buf || !k->urb) {\n        err = -ENOMEM;\n        goto fail;\n    }\n    /* TODO 3: describe the transfer and start it\n     *   usb_fill_int_urb(k->urb, udev, usb_rcvintpipe(udev, ep->bEndpointAddress), k->buf, min(k->maxp, 8),\n     *                    skbd_irq, k, ep->bInterval);\n     *   k->urb->transfer_dma = k->dma;  k->urb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;\n     *   usb_set_intfdata(intf, k);       (disconnect gets k back with usb_get_intfdata)\n     *   err = usb_submit_urb(k->urb, GFP_KERNEL);  if (err) goto fail;                         */\n    err = -ENODEV;\n    dev_info(&intf->dev, \"probe: no URB yet: TODO 3\\n\");\n    goto fail;\n    dev_info(&intf->dev, \"listening on endpoint 0x%02x\\n\", ep->bEndpointAddress);\n    return 0;\nfail:\n    usb_free_urb(k->urb);\n    if (k->buf)\n        usb_free_coherent(udev, 8, k->buf, k->dma);\n    kfree(k);\n    return err;\n}\n\nstatic void skbd_disconnect(struct usb_interface *intf)\n{\n    struct skbd *k = usb_get_intfdata(intf);\n    usb_kill_urb(k->urb);                                /* wait until it is no longer in flight */\n    usb_free_urb(k->urb);\n    usb_free_coherent(k->udev, 8, k->buf, k->dma);\n    dev_info(&intf->dev, \"disconnect after %d reports\\n\", k->reports);\n    kfree(k);\n}\n\nstatic const struct usb_device_id skbd_ids[] = {\n    /* TODO 1: which interfaces do we want?  class 3 (HID), subclass 1 (boot), protocol 1 (keyboard):\n     *   { USB_INTERFACE_INFO(USB_CLASS_HID, 1, 1) },\n     * With an empty table probe is never called. Compare with the MODALIAS in the uevent. */\n    { }\n};\nMODULE_DEVICE_TABLE(usb, skbd_ids);                     /* -> modules.alias, so udev can load us */\n\nstatic struct usb_driver skbd_driver = {\n    .name = \"sysprog_kbd\",\n    .id_table = skbd_ids,\n    .probe = skbd_probe,\n    .disconnect = skbd_disconnect,\n};\nmodule_usb_driver(skbd_driver);\n\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 15.3 lab: a USB keyboard driver with an interrupt URB\");\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* tools.js - small, tested calculators used by the interactive labs (Lectures 1, 7-15).
+   Every constant comes from the Linux v6.8 source or the C/x86-64 ABI; see the lab pages for the files. */
+(function (root) {
+"use strict";
+const T = {};
+const hx = (v, w = 0) => (typeof v === "bigint" ? BigInt.asUintN(64, v) : BigInt(v >>> 0)).toString(16).padStart(w, "0");
+T.hx = hx;
+
+/* ---------------- Lecture 1: C types in memory (x86-64, LP64, little-endian) ---------------- */
+T.CTYPES = {
+  "char": { size: 1, signed: true, int: true }, "unsigned char": { size: 1, signed: false, int: true },
+  "short": { size: 2, signed: true, int: true }, "unsigned short": { size: 2, signed: false, int: true },
+  "int": { size: 4, signed: true, int: true }, "unsigned int": { size: 4, signed: false, int: true },
+  "long": { size: 8, signed: true, int: true }, "unsigned long": { size: 8, signed: false, int: true },
+  "float": { size: 4, int: false }, "double": { size: 8, int: false }, "pointer (void *)": { size: 8, signed: false, int: true }
+};
+/* bytes as C would store the value (integers wrap modulo 2^bits, like a conversion to that type) */
+T.cBytes = function (text, type) {
+  const t = T.CTYPES[type]; const n = t.size; const bytes = new Uint8Array(n);
+  let note = "";
+  if (t.int) {
+    let v;
+    const s = String(text).trim();
+    if (/^'.'$/.test(s)) v = BigInt(s.charCodeAt(1));
+    else if (/^[-+]?(0x[0-9a-f]+|\d+)$/i.test(s)) { const neg = s.startsWith("-"); v = BigInt(s.replace(/^[-+]/, "")); if (neg) v = -v; }
+    else throw new Error("type an integer, e.g. 1000, -1, 0x7f or 'A'");
+    const bits = BigInt(8 * n);
+    const u = BigInt.asUintN(8 * n, v);
+    const back = t.signed ? BigInt.asIntN(8 * n, v) : u;
+    if (back !== v) note = `does not fit in ${type}: C keeps the low ${8 * n} bits, so the variable holds ${back}`;
+    for (let i = 0; i < n; i++) bytes[i] = Number((u >> BigInt(8 * i)) & 0xffn);
+    return { bytes, value: back.toString(), note, bits: Number(bits) };
+  }
+  const x = Number(text);
+  if (String(text).trim() === "" || Number.isNaN(x) && !/^nan$/i.test(String(text).trim())) throw new Error("type a number, e.g. 3.5 or -0.1");
+  const dv = new DataView(new ArrayBuffer(8));
+  if (n === 4) { dv.setFloat32(0, x, true); for (let i = 0; i < 4; i++) bytes[i] = dv.getUint8(i); const back = dv.getFloat32(0, true); if (back !== x && !Number.isNaN(x)) note = `float cannot hold ${x} exactly: it stores ${back}`; return { bytes, value: String(back), note, bits: 32 }; }
+  dv.setFloat64(0, x, true); for (let i = 0; i < 8; i++) bytes[i] = dv.getUint8(i); return { bytes, value: String(dv.getFloat64(0, true)), note, bits: 64 };
+};
+T.ieee = function (bytes) {   // little-endian bytes of a float (4) or double (8)
+  const n = bytes.length; let bits = 0n;
+  for (let i = n - 1; i >= 0; i--) bits = (bits << 8n) | BigInt(bytes[i]);
+  const eb = n === 4 ? 8 : 11, mb = n === 4 ? 23 : 52, bias = n === 4 ? 127 : 1023;
+  const sign = Number(bits >> BigInt(eb + mb)), exp = Number((bits >> BigInt(mb)) & ((1n << BigInt(eb)) - 1n)), man = bits & ((1n << BigInt(mb)) - 1n);
+  return { sign, exp, expUnbiased: exp - bias, man, eb, mb, bias, kind: exp === 0 ? (man === 0n ? "zero" : "subnormal") : (exp === (1 << eb) - 1 ? (man === 0n ? "infinity" : "NaN") : "normal") };
+};
+
+/* ---------------- Lecture 7: /proc/<pid>/stat and process flags ---------------- */
+T.STAT_FIELDS = ["pid", "comm", "state", "ppid", "pgrp", "session", "tty_nr", "tpgid", "flags", "minflt", "cminflt", "majflt", "cmajflt", "utime", "stime", "cutime", "cstime", "priority", "nice", "num_threads", "itrealvalue", "starttime", "vsize", "rss", "rsslim", "startcode", "endcode", "startstack", "kstkesp", "kstkeip", "signal", "blocked", "sigignore", "sigcatch", "wchan", "nswap", "cnswap", "exit_signal", "processor", "rt_priority", "policy", "delayacct_blkio_ticks", "guest_time", "cguest_time", "start_data", "end_data", "start_brk", "arg_start", "arg_end", "env_start", "env_end", "exit_code"];
+T.STAT_HELP = { pid: "process ID", comm: "program name (in parentheses; may contain spaces)", state: "R running, S sleeping, D disk sleep, Z zombie, T stopped, I idle kernel thread", ppid: "parent's PID",
+  flags: "PF_* bits from include/linux/sched.h (decoded below)", minflt: "minor page faults", majflt: "major page faults (needed the disk)", utime: "CPU time in user mode, in clock ticks (usually 1/100 s)",
+  stime: "CPU time in kernel mode, in clock ticks", priority: "kernel priority (20 + nice for normal tasks)", nice: "nice value, -20 .. 19", num_threads: "threads in this process", starttime: "start time after boot, in clock ticks",
+  vsize: "virtual memory size in bytes", rss: "resident set size in pages", processor: "CPU it last ran on", policy: "0 SCHED_OTHER (CFS), 1 FIFO, 2 RR, 3 BATCH, 5 IDLE" };
+T.PF = [[0x1, "PF_VCPU"], [0x2, "PF_IDLE"], [0x4, "PF_EXITING"], [0x8, "PF_POSTCOREDUMP"], [0x10, "PF_IO_WORKER"], [0x20, "PF_WQ_WORKER"], [0x40, "PF_FORKNOEXEC"], [0x80, "PF_MCE_PROCESS"], [0x100, "PF_SUPERPRIV"], [0x200, "PF_DUMPCORE"], [0x400, "PF_SIGNALED"], [0x800, "PF_MEMALLOC"], [0x1000, "PF_NPROC_EXCEEDED"], [0x2000, "PF_USED_MATH"], [0x4000, "PF_USER_WORKER"], [0x8000, "PF_NOFREEZE"], [0x20000, "PF_KSWAPD"], [0x40000, "PF_MEMALLOC_NOFS"], [0x80000, "PF_MEMALLOC_NOIO"], [0x100000, "PF_LOCAL_THROTTLE"], [0x200000, "PF_KTHREAD"], [0x400000, "PF_RANDOMIZE"], [0x4000000, "PF_NO_SETAFFINITY"], [0x8000000, "PF_MCE_EARLY"], [0x10000000, "PF_MEMALLOC_PIN"], [0x80000000, "PF_SUSPEND_TASK"]];
+T.parseStat = function (line) {
+  line = line.trim();
+  const a = line.indexOf("("), b = line.lastIndexOf(")");
+  if (a < 0 || b < a) throw new Error("a /proc/<pid>/stat line looks like: 1 (systemd) S 0 1 1 0 -1 4194560 …");
+  const head = line.slice(0, a).trim(), comm = line.slice(a + 1, b), rest = line.slice(b + 1).trim().split(/\s+/);
+  const vals = [head, comm, ...rest];
+  const fields = vals.map((v, i) => ({ n: i + 1, name: T.STAT_FIELDS[i] || "field " + (i + 1), value: v, help: T.STAT_HELP[T.STAT_FIELDS[i]] || "" }));
+  const flags = Number(vals[8] || 0) >>> 0;
+  return { fields, flags, flagNames: T.PF.filter(([bit]) => (flags & bit) >>> 0).map(([, n]) => n), kthread: !!(flags & 0x200000) };
+};
+T.parseMeminfo = function (text) {
+  const m = {}; for (const l of text.split(/\n/)) { const r = l.match(/^(\w[\w()]*):\s+(\d+)/); if (r) m[r[1]] = Number(r[2]); }
+  return m;
+};
+
+/* ---------------- Lecture 8: fork trees and the CFS share ---------------- */
+T.forkTree = function (pattern, n) {
+  // pattern "loop": for (i = 0; i < n; i++) fork();     every process continues the loop
+  // "child": for (...) if (fork() != 0) break;   only the child goes on: a chain
+  // "parent": for (...) if (fork() == 0) break;  only the parent goes on: a fan
+  let next = 1; const nodes = [{ id: 1, parent: 0, born: -1 }];
+  function run(id, from) {
+    for (let i = from; i < n; i++) {
+      const child = ++next; nodes.push({ id: child, parent: id, born: i });
+      if (pattern === "loop") run(child, i + 1);
+      else if (pattern === "child") { run(child, i + 1); return; }
+      else if (pattern === "parent") { /* child breaks out of the loop */ }
+    }
+  }
+  run(1, 0);
+  return nodes;
+};
+T.WEIGHT = [88761, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916, 9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 1024, 820, 655, 526, 423, 335, 272, 215, 172, 137, 110, 87, 70, 56, 45, 36, 29, 23, 18, 15];
+T.weightOf = nice => T.WEIGHT[nice + 20];
+/* a simplified CFS on one CPU: run the task with the smallest vruntime for one tick (ms);
+   vruntime grows by tick * 1024 / weight. Returns the timeline and CPU shares. */
+T.cfs = function (tasks, ms) {
+  const st = tasks.map((t, i) => ({ ...t, i, vr: 0, ran: 0 }));
+  const timeline = [];
+  for (let t = 0; t < ms; t++) {
+    const ready = st.filter(x => (x.arrive || 0) <= t && (x.work === undefined || x.ran < x.work));
+    if (!ready.length) { timeline.push(-1); continue; }
+    const minv = Math.min(...ready.map(x => x.vr));
+    for (const x of st) if ((x.arrive || 0) === t && t > 0) x.vr = Math.max(x.vr, minv);   // a newcomer starts at the current minimum
+    let best = ready[0]; for (const x of ready) if (x.vr < best.vr - 1e-12) best = x;
+    best.vr += 1024 / T.weightOf(best.nice); best.ran++; timeline.push(best.i);
+  }
+  const total = st.reduce((s, x) => s + x.ran, 0) || 1;
+  return { timeline, tasks: st.map(x => ({ name: x.name, nice: x.nice, weight: T.weightOf(x.nice), ran: x.ran, share: x.ran / total, vr: x.vr })) };
+};
+
+/* ---------------- Lecture 9: system calls ---------------- */
+T.parseTbl = function (text) {
+  const rows = [];
+  for (const l of text.split("\n")) { const m = l.match(/^(\d+)\s+(\w+)\s+(\w+)(?:\s+(\S+))?/); if (m) rows.push({ nr: Number(m[1]), abi: m[2], name: m[3], entry: m[4] || "" }); }
+  return rows;
+};
+T.ARGREGS = ["rdi", "rsi", "rdx", "r10", "r8", "r9"];
+T.splitArgs = function (s) { const out = []; let cur = "", q = false, d = 0; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '"' && s[i - 1] !== "\\") q = !q; if (!q && (c === "(" || c === "[" || c === "{")) d++; if (!q && (c === ")" || c === "]" || c === "}")) d--; if (c === "," && !q && d === 0) { out.push(cur.trim()); cur = ""; } else cur += c; } if (cur.trim()) out.push(cur.trim()); return out; };
+T.parseStrace = function (line, table, errnos) {
+  const m = line.trim().match(/^(?:\[pid\s+\d+\]\s+)?(?:\d+\s+)?(\w+)\((.*)\)\s*=\s*(-?\w+|\?)(?:\s+(\w+)\s+\((.*)\))?/);
+  if (!m) throw new Error('paste one strace line, e.g.  write(1, "hi\\n", 3) = 3');
+  const [, name, args, ret, errName, errText] = m;
+  const row = table.find(r => r.name === name && r.abi !== "x32");
+  const a = T.splitArgs(args);
+  const regs = a.slice(0, 6).map((v, i) => ({ reg: T.ARGREGS[i], value: v }));
+  let rax;
+  if (ret === "?") rax = "(the call did not return)";
+  else if (ret === "-1" && errName) { const e = errnos.find(x => x.name === errName); rax = e ? `-${e.nr}  (the kernel returned −${errName}; libc stores ${e.nr} in errno and returns -1)` : "-1"; }
+  else rax = ret;
+  return { name, nr: row ? row.nr : null, abi: row ? row.abi : null, entry: row ? row.entry : "", regs, ret: rax, errName, errText };
+};
+
+/* ---------------- Lecture 10: pipes and signals ---------------- */
+T.SIGNALS = [[1, "SIGHUP", "terminate", "terminal hung up"], [2, "SIGINT", "terminate", "Ctrl-C"], [3, "SIGQUIT", "core", "Ctrl-\\"], [4, "SIGILL", "core", "illegal instruction"], [5, "SIGTRAP", "core", "breakpoint"], [6, "SIGABRT", "core", "abort()"], [7, "SIGBUS", "core", "bus error"], [8, "SIGFPE", "core", "divide by zero"], [9, "SIGKILL", "terminate", "cannot be caught, blocked or ignored"], [10, "SIGUSR1", "terminate", "for your programs"], [11, "SIGSEGV", "core", "bad memory access"], [12, "SIGUSR2", "terminate", "for your programs"], [13, "SIGPIPE", "terminate", "write to a pipe nobody reads"], [14, "SIGALRM", "terminate", "alarm()"], [15, "SIGTERM", "terminate", "kill's default"], [16, "SIGSTKFLT", "terminate", "unused"], [17, "SIGCHLD", "ignore", "a child stopped or exited"], [18, "SIGCONT", "continue", "continue a stopped process"], [19, "SIGSTOP", "stop", "cannot be caught, blocked or ignored"], [20, "SIGTSTP", "stop", "Ctrl-Z"], [21, "SIGTTIN", "stop", "background read from terminal"], [22, "SIGTTOU", "stop", "background write to terminal"], [23, "SIGURG", "ignore", "urgent socket data"], [24, "SIGXCPU", "core", "CPU time limit"], [25, "SIGXFSZ", "core", "file size limit"], [26, "SIGVTALRM", "terminate", "virtual timer"], [27, "SIGPROF", "terminate", "profiling timer"], [28, "SIGWINCH", "ignore", "window size changed"], [29, "SIGIO", "terminate", "I/O possible"], [30, "SIGPWR", "terminate", "power failure"], [31, "SIGSYS", "core", "bad system call"]];
+/* one step-based pipe: capacity bytes, a writer that wants `write` bytes per step, a reader `read` per step */
+T.pipeSim = function ({ capacity = 65536, total = 200000, wchunk = 4096, rchunk = 1024, rdelay = 0, closeReader = -1, steps = 400 }) {
+  let inPipe = 0, written = 0, readBytes = 0, wDone = false, rClosed = false; const log = [];
+  for (let t = 0; t < steps; t++) {
+    let w = "", r = "";
+    if (t === closeReader) { rClosed = true; r = "reader closes its end"; }
+    if (!wDone) {
+      if (rClosed) { w = "write() → SIGPIPE: the writer is killed (or gets EPIPE)"; wDone = true; }
+      else { const want = Math.min(wchunk, total - written), room = capacity - inPipe; if (room === 0) w = "write() blocks: pipe full"; else { const n = Math.min(want, room); inPipe += n; written += n; w = n < want ? `wrote ${n} of ${want} (pipe filled up)` : `wrote ${n}`; if (written >= total) { wDone = true; w += "; writer closes its end"; } } }
+    }
+    if (!rClosed && t >= rdelay) {
+      if (inPipe > 0) { const n = Math.min(rchunk, inPipe); inPipe -= n; readBytes += n; r = `read ${n}`; }
+      else if (wDone) { r = "read() returns 0: end of file"; rClosed = true; }
+      else r = "read() blocks: pipe empty";
+    }
+    log.push({ t, inPipe, written, read: readBytes, w, r });
+    if (wDone && rClosed) break;
+  }
+  return log;
+};
+
+/* ---------------- Lecture 11: addresses, pagemap, a heap ---------------- */
+T.splitVA = function (vaText) {
+  const s = vaText.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type a hex address, e.g. 0x7ffd3c2a1b40");
+  const va = BigInt("0x" + s);
+  if (va >> 64n) throw new Error("more than 64 bits");
+  const top = va >> 47n; const canonical = top === 0n || top === (1n << 17n) - 1n;
+  const idx = k => Number((va >> BigInt(12 + 9 * k)) & 511n);
+  return { va, canonical, half: (va >> 63n) ? "kernel half" : "user half", pml4: idx(3), pdpt: idx(2), pd: idx(1), pt: idx(0), off: Number(va & 4095n), vpn: va >> 12n, pagemapOffset: (va >> 12n) * 8n };
+};
+T.pagemap = function (text) {
+  const s = text.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type the 64-bit entry in hex, e.g. 0x8600000000123456");
+  const e = BigInt("0x" + s);
+  const bit = n => Number((e >> BigInt(n)) & 1n);
+  return { present: bit(63), swapped: bit(62), filePage: bit(61), exclusive: bit(56), softDirty: bit(55), pfn: e & ((1n << 55n) - 1n) };
+};
+/* the Lab 11.2 allocator (header 32 bytes, first fit, split, merge with next), on a simulated sbrk heap */
+T.Heap = class {
+  constructor(base = 0x5000) { this.base = base; this.brk = base; this.blocks = []; this.log = []; }
+  align16(n) { return (n + 15) & ~15; }
+  malloc(n) {
+    if (n <= 0) return null; n = this.align16(n);
+    let h = this.blocks.find(b => b.free && b.size >= n);
+    if (h) { h.free = false; this.split(h, n); this.log.push(`malloc: first fit reuses the block at +${h.addr - this.base}`); }
+    else { h = { addr: this.brk, size: n, free: false }; this.brk += 32 + n; this.blocks.push(h); this.log.push(`malloc: nothing fits → sbrk(${32 + n}), program break now +${this.brk - this.base}`); }
+    return h.addr + 32;
+  }
+  split(h, n) { if (h.size >= n + 32 + 32) { const rest = { addr: h.addr + 32 + n, size: h.size - n - 32, free: true }; this.blocks.splice(this.blocks.indexOf(h) + 1, 0, rest); h.size = n; this.log.push(`split: the unused ${rest.size} bytes become a new free block`); } }
+  free(p) {
+    const h = this.blocks.find(b => b.addr + 32 === p); if (!h) throw new Error("free() of a pointer that malloc did not return"); if (h.free) throw new Error("double free");
+    h.free = true; let i = this.blocks.indexOf(h);
+    while (i + 1 < this.blocks.length) { const nx = this.blocks[i + 1]; if (nx.free && nx.addr === h.addr + 32 + h.size) { h.size += 32 + nx.size; this.blocks.splice(i + 1, 1); this.log.push(`free: merged with the next free block, now ${h.size} bytes`); } else break; }
+  }
+};
+
+/* ---------------- Lecture 12: ext2 ---------------- */
+T.modeString = function (mode) {
+  const t = { 0o140000: "s", 0o120000: "l", 0o100000: "-", 0o060000: "b", 0o040000: "d", 0o020000: "c", 0o010000: "p" }[mode & 0o170000] || "?";
+  const r = (m, s) => ((mode & m) ? s : "-");
+  let p = r(0o400, "r") + r(0o200, "w") + ((mode & 0o4000) ? ((mode & 0o100) ? "s" : "S") : r(0o100, "x"));
+  p += r(0o40, "r") + r(0o20, "w") + ((mode & 0o2000) ? ((mode & 0o10) ? "s" : "S") : r(0o10, "x"));
+  p += r(0o4, "r") + r(0o2, "w") + ((mode & 0o1000) ? ((mode & 0o1) ? "t" : "T") : r(0o1, "x"));
+  return t + p;
+};
+T.blockPath = function (lblock, blockSize) {   // which pointer of the inode holds logical block lblock
+  const P = blockSize / 4;
+  if (lblock < 12) return { level: 0, path: [lblock], text: `i_block[${lblock}] (direct)` };
+  lblock -= 12;
+  if (lblock < P) return { level: 1, path: [12, lblock], text: `i_block[12] (single indirect) → entry ${lblock}` };
+  lblock -= P;
+  if (lblock < P * P) return { level: 2, path: [13, Math.floor(lblock / P), lblock % P], text: `i_block[13] (double indirect) → entry ${Math.floor(lblock / P)} → entry ${lblock % P}` };
+  lblock -= P * P;
+  return { level: 3, path: [14, Math.floor(lblock / (P * P)), Math.floor(lblock / P) % P, lblock % P], text: `i_block[14] (triple indirect) → ${Math.floor(lblock / (P * P))} → ${Math.floor(lblock / P) % P} → ${lblock % P}` };
+};
+T.fileBlocks = function (size, blockSize) {   // data blocks and pointer blocks a file of `size` bytes needs
+  const P = blockSize / 4, n = Math.ceil(size / blockSize);
+  let ind = 0; let rest = n - 12;
+  if (rest > 0) { ind += 1; rest -= P; }
+  if (rest > 0) { const k = Math.min(Math.ceil(rest / P), P); ind += 1 + k; rest -= P * P; }
+  if (rest > 0) { const k2 = Math.ceil(rest / P); ind += 1 + Math.ceil(k2 / P) + k2; }
+  return { data: n, pointer: ind, total: n + ind, maxDirect: 12 * blockSize, maxSingle: (12 + P) * blockSize, maxDouble: (12 + P + P * P) * blockSize };
+};
+T.Ext2 = class {
+  constructor(bytes) {
+    this.b = bytes; this.dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const d = this.dv, o = 1024;
+    if (bytes.length < 2048 || d.getUint16(o + 56, true) !== 0xEF53) throw new Error("not an ext2/3/4 image (no magic EF53 at byte 1080)");
+    this.sb = { inodes: d.getUint32(o, true), blocks: d.getUint32(o + 4, true), firstData: d.getUint32(o + 20, true), logBlock: d.getUint32(o + 24, true), blocksPerGroup: d.getUint32(o + 32, true), inodesPerGroup: d.getUint32(o + 40, true), magic: 0xEF53, rev: d.getUint32(o + 76, true), inodeSize: d.getUint32(o + 76, true) >= 1 ? d.getUint16(o + 88, true) : 128, freeBlocks: d.getUint32(o + 12, true), freeInodes: d.getUint32(o + 16, true), featIncompat: d.getUint32(o + 96, true) };
+    this.bs = 1024 << this.sb.logBlock;
+    this.groups = Math.ceil((this.sb.blocks - this.sb.firstData) / this.sb.blocksPerGroup);
+    this.gdt = (this.sb.firstData + 1) * this.bs;
+  }
+  u32(o) { return this.dv.getUint32(o, true); } u16(o) { return this.dv.getUint16(o, true); }
+  group(g) { const o = this.gdt + 32 * g; return { blockBitmap: this.u32(o), inodeBitmap: this.u32(o + 4), inodeTable: this.u32(o + 8), freeBlocks: this.u16(o + 12), freeInodes: this.u16(o + 14), dirs: this.u16(o + 16) }; }
+  inodeLoc(ino) { const g = Math.floor((ino - 1) / this.sb.inodesPerGroup), idx = (ino - 1) % this.sb.inodesPerGroup; const gd = this.group(g); const off = gd.inodeTable * this.bs + idx * this.sb.inodeSize; return { group: g, index: idx, table: gd.inodeTable, block: gd.inodeTable + Math.floor(idx * this.sb.inodeSize / this.bs), offset: off }; }
+  inode(ino) {
+    const L = this.inodeLoc(ino), o = L.offset;
+    const blocks = []; for (let i = 0; i < 15; i++) blocks.push(this.u32(o + 40 + 4 * i));
+    return { ino, loc: L, mode: this.u16(o), uid: this.u16(o + 2), size: this.u32(o + 4), links: this.u16(o + 26), sectors: this.u32(o + 28), flags: this.u32(o + 32), block: blocks, mtime: this.u32(o + 16) };
+  }
+  dataBlocks(inode, limit = 1 << 20) {   // logical order, follows indirect blocks
+    if (this.isFastSymlink(inode)) return { data: [], meta: [] };
+    const P = this.bs / 4, out = [], meta = [];
+    const need = Math.ceil(inode.size / this.bs);
+    const walk = (blk, level) => { if (out.length >= need || out.length >= limit) return; if (!blk) { return; } if (level === 0) { out.push(blk); return; } meta.push({ blk, level }); for (let i = 0; i < P && out.length < need; i++) walk(this.u32(blk * this.bs + 4 * i), level - 1); };
+    for (let i = 0; i < 12 && out.length < need; i++) walk(inode.block[i], 0);
+    walk(inode.block[12], 1); walk(inode.block[13], 2); walk(inode.block[14], 3);
+    return { data: out, meta };
+  }
+  isFastSymlink(inode) { return (inode.mode & 0o170000) === 0o120000 && inode.sectors === 0 && inode.size < 60; }
+  readlink(inode) { const o = inode.loc.offset + 40; return String.fromCharCode(...this.b.subarray(o, o + inode.size)); }
+  read(inode) { if (this.isFastSymlink(inode)) return new TextEncoder().encode(this.readlink(inode)); const { data } = this.dataBlocks(inode); const res = new Uint8Array(inode.size); data.forEach((blk, i) => { const n = Math.min(this.bs, inode.size - i * this.bs); res.set(this.b.subarray(blk * this.bs, blk * this.bs + n), i * this.bs); }); return res; }
+  dir(inode) {
+    const bytes = this.read(inode), dv = new DataView(bytes.buffer), out = [];
+    for (let o = 0; o + 8 <= bytes.length;) { const ino = dv.getUint32(o, true), rec = dv.getUint16(o + 4, true), nl = bytes[o + 6], ft = bytes[o + 7]; if (rec < 8) break; if (ino) out.push({ ino, name: String.fromCharCode(...bytes.subarray(o + 8, o + 8 + nl)), type: ft, rec, at: o }); o += rec; }
+    return out;
+  }
+  lookup(path) {
+    let ino = 2; const steps = [{ name: "/", ino: 2 }];
+    for (const part of path.split("/").filter(Boolean)) {
+      const ent = this.dir(this.inode(ino)).find(e => e.name === part);
+      if (!ent) throw new Error(`"${part}" not found in directory inode ${ino}`);
+      ino = ent.ino; steps.push({ name: part, ino });
+    }
+    return { ino, steps };
+  }
+};
+
+/* ---------------- Lecture 13: page-fault error code, /proc/interrupts ---------------- */
+T.PF_BITS = [[0, "P", "1: protection violation on a present page / 0: the page is not present"], [1, "W", "1: write access / 0: read access"], [2, "U", "1: user mode / 0: kernel (supervisor) mode"], [3, "RSVD", "a reserved bit was set in a page-table entry"], [4, "I", "instruction fetch"], [5, "PK", "protection-key violation"], [6, "SS", "shadow-stack access"], [15, "SGX", "SGX violation"]];
+T.decodePF = function (code) { return T.PF_BITS.map(([b, n, d]) => ({ bit: b, name: n, on: !!(code & (1 << b)), help: d })); };
+T.describePF = function (code) {
+  const p = code & 1, w = code & 2, u = code & 4, i = code & 16;
+  return `${u ? "user" : "kernel (supervisor)"} ${i ? "instruction fetch" : (w ? "write" : "read")} of ${p ? "a present page it may not access (protection)" : "a page that is not present"}`;
+};
+T.VECTORS = ["#DE divide error", "#DB debug", "NMI non-maskable interrupt", "#BP breakpoint (int3)", "#OF overflow", "#BR bound range", "#UD invalid opcode", "#NM device not available (FPU)", "#DF double fault", "coprocessor segment overrun (old)", "#TS invalid TSS", "#NP segment not present", "#SS stack segment fault", "#GP general protection", "#PF page fault", "(reserved)", "#MF x87 floating-point error", "#AC alignment check", "#MC machine check", "#XM SIMD floating-point", "#VE virtualization exception", "#CP control protection"];
+T.parseInterrupts = function (text) {
+  const lines = text.split("\n").filter(l => l.trim()); if (!lines.length) return { cpus: 0, rows: [] };
+  const cpus = (lines[0].match(/CPU\d+/g) || []).length; const rows = [];
+  for (const l of lines.slice(1)) {
+    const m = l.match(/^\s*([^:]+):\s*(.*)$/); if (!m) continue;
+    const parts = m[2].trim().split(/\s+/); const nums = [];
+    while (nums.length < cpus && parts.length && /^\d+$/.test(parts[0])) nums.push(Number(parts.shift()));
+    rows.push({ id: m[1].trim(), sum: nums.reduce((a, b) => a + b, 0), name: parts.join(" ") });
+  }
+  return { cpus, rows };
+};
+T.diffInterrupts = function (a, b, seconds) {
+  const A = T.parseInterrupts(a), B = T.parseInterrupts(b); const map = new Map(A.rows.map(r => [r.id, r]));
+  return B.rows.map(r => ({ ...r, delta: r.sum - (map.get(r.id) ? map.get(r.id).sum : 0), rate: (r.sum - (map.get(r.id) ? map.get(r.id).sum : 0)) / seconds })).filter(r => r.delta > 0).sort((x, y) => y.delta - x.delta);
+};
+
+/* ---------------- Lecture 14: relocation and taint ---------------- */
+T.reloc = function (S, A, P) {   // R_X86_64_PC32 / PLT32: the 32-bit value S + A - P
+  const v = BigInt.asUintN(64, S + A - P); const signed = BigInt.asIntN(64, S + A - P);
+  const fits = signed >= -(1n << 31n) && signed < (1n << 31n);
+  const v32 = BigInt.asUintN(32, signed); const bytes = []; for (let i = 0; i < 4; i++) bytes.push(Number((v32 >> BigInt(8 * i)) & 0xffn));
+  return { value: signed, v32, bytes, fits, target: P + 4n + BigInt.asIntN(32, v32) };
+};
+T.TAINT = [["P", "proprietary module loaded (G if all GPL)"], ["F", "module force-loaded"], ["S", "CPU out of specification"], ["R", "module force-removed"], ["M", "machine check exception"], ["B", "bad page"], ["U", "user asked for taint"], ["D", "kernel died (oops)"], ["A", "ACPI table overridden"], ["W", "a WARN() happened"], ["C", "staging driver loaded"], ["I", "firmware workaround"], ["O", "out-of-tree module loaded"], ["E", "unsigned module loaded"], ["L", "soft lockup"], ["K", "live patched"], ["X", "auxiliary taint (distribution)"], ["T", "built with randstruct"], ["N", "test module loaded"]];
+T.decodeTaint = function (v) { v = Number(v); return T.TAINT.map(([c, d], bit) => ({ bit, letter: (bit === 0 && !(v & 1)) ? "G" : c, on: !!(Math.floor(v / Math.pow(2, bit)) % 2), help: d })); };
+
+/* ---------------- Lecture 15: ioctl numbers, dev_t, open flags, sectors, USB ---------------- */
+T.ioctl = function (dir, type, nr, size) { return (((dir << 30) | (size << 16) | (type << 8) | nr) >>> 0); };
+T.ioctlDecode = function (n) { n = n >>> 0; const dir = n >>> 30; return { dir, dirName: ["_IO (none)", "_IOW (write: user → driver)", "_IOR (read: driver → user)", "_IOWR (both)"][dir], size: (n >>> 16) & 0x3fff, type: (n >>> 8) & 0xff, nr: n & 0xff }; };
+T.mkdev = (ma, mi) => (((ma << 20) | mi) >>> 0);
+T.OFLAGS = [[0o100, "O_CREAT"], [0o200, "O_EXCL"], [0o400, "O_NOCTTY"], [0o1000, "O_TRUNC"], [0o2000, "O_APPEND"], [0o4000, "O_NONBLOCK"], [0o10000, "O_DSYNC"], [0o20000, "O_ASYNC"], [0o40000, "O_DIRECT"], [0o100000, "O_LARGEFILE"], [0o200000, "O_DIRECTORY"], [0o400000, "O_NOFOLLOW"], [0o1000000, "O_NOATIME"], [0o2000000, "O_CLOEXEC"], [0o4010000, "O_SYNC"], [0o10000000, "O_PATH"], [0o20200000, "O_TMPFILE"]];
+T.openFlags = function (v) {
+  v = v >>> 0; const acc = ["O_RDONLY", "O_WRONLY", "O_RDWR", "(3: invalid)"][v & 3]; const names = [acc]; let rest = v & ~3;
+  for (const [bit, n] of T.OFLAGS.slice().sort((a, b) => b[0] - a[0])) if ((rest & bit) === bit && bit) { names.push(n); rest &= ~bit; }
+  if (rest) names.push("0x" + rest.toString(16) + " (unknown)");
+  return names;
+};
+T.sectors = function (offset, length) { return { first: Math.floor(offset / 512), count: Math.ceil((offset % 512 + length) / 512), aligned: offset % 512 === 0 && length % 512 === 0, page: Math.floor(offset / 4096) }; };
+T.USAGE = (() => { const m = { 0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Space", 0x2d: "-", 0x2e: "=", 0x2f: "[", 0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock", 0x4f: "Right", 0x50: "Left", 0x51: "Down", 0x52: "Up" }; for (let i = 0; i < 26; i++) m[4 + i] = String.fromCharCode(97 + i); for (let i = 0; i < 9; i++) m[0x1e + i] = String(i + 1); m[0x27] = "0"; for (let i = 0; i < 12; i++) m[0x3a + i] = "F" + (i + 1); return m; })();
+T.MODS = ["Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", "Right GUI"];
+T.kbdReport = function (bytes) {
+  const mods = T.MODS.filter((_, i) => bytes[0] & (1 << i)); const keys = bytes.slice(2, 8).filter(k => k);
+  return { mods, keys: keys.map(k => ({ code: k, name: k === 1 ? "ErrorRollOver" : (T.USAGE[k] || "usage 0x" + k.toString(16)) })) };
+};
+T.mouseReport = function (bytes) { const s = v => (v & 0x80 ? v - 256 : v); return { left: !!(bytes[0] & 1), right: !!(bytes[0] & 2), middle: !!(bytes[0] & 4), dx: s(bytes[1] || 0), dy: s(bytes[2] || 0), wheel: s(bytes[3] || 0) }; };
+T.modalias = function (s) {
+  const m = s.trim().match(/^usb:v([0-9A-F]{4})p([0-9A-F]{4})d([0-9A-F]{4})dc([0-9A-F]{2})dsc([0-9A-F]{2})dp([0-9A-F]{2})ic([0-9A-F]{2})isc([0-9A-F]{2})ip([0-9A-F]{2})in([0-9A-F]{2})$/i);
+  if (!m) throw new Error("a USB modalias looks like usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00");
+  const k = ["vendor", "product", "bcdDevice", "devClass", "devSubClass", "devProtocol", "ifClass", "ifSubClass", "ifProtocol", "ifNumber"]; const o = {}; k.forEach((n, i) => { o[n] = m[i + 1].toUpperCase(); }); return o;
+};
+T.USBCLASS = { "00": "defined per interface", "01": "audio", "02": "communications", "03": "HID (keyboard, mouse …)", "07": "printer", "08": "mass storage", "09": "hub", "0A": "CDC data", "0E": "video", "E0": "wireless", "EF": "miscellaneous", "FF": "vendor specific" };
+
+if (typeof module !== "undefined" && module.exports) module.exports = T; else root.TOOLS = T;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 15: the numbers drivers live by: ioctl codes, dev_t, open flags, sectors, USB reports and modaliases */
+TOOLS_UI.push({
+  id: "ioctl", title: "ioctl and dev_t",
+  build(p) {
+    const { el, esc } = L, T = TOOLS;
+    p.innerHTML = `<div class="grid2"><div><h3>Build an ioctl number</h3>
+<div class="row"><label>macro <select id="d15"><option value="0">_IO</option><option value="1">_IOW</option><option value="2" selected>_IOR</option><option value="3">_IOWR</option></select></label>
+<label>type <input id="ty15" value="S" size="3" class="mono"></label><label>nr <input id="nr15" type="number" value="2" min="0" max="255" style="width:70px"></label>
+<label>size <select id="sz15"><option value="0">none</option><option value="1">char (1)</option><option value="4" selected>int (4)</option><option value="8">long (8)</option></select></label></div>
+<p id="io15" class="mono" style="font-size:18px"></p><div class="bits" id="iob15"></div>
+<p class="small dim">bits 31–30 direction · 29–16 size · 15–8 type · 7–0 number (include/uapi/asm-generic/ioctl.h)</p>
+<h3 style="margin-top:14px">…or take one apart</h3><label>number <input id="dc15" class="mono" value="0x80045302" size="12"></label><p id="dco15" class="small"></p></div>
+<div><h3>dev_t: major and minor</h3><div class="row"><label>major <input id="ma15" type="number" value="241" min="0" style="width:80px"></label><label>minor <input id="mi15" type="number" value="0" min="0" style="width:80px"></label></div>
+<p id="dv15" class="small"></p>
+<p class="note small">alloc_chrdev_region picks a free major; in our guest it was 241, so <code>ls -l /dev/sysbuf</code> shows <code>241, 0</code> where the size would be. Inside the kernel <code>MKDEV(ma, mi) = ma &lt;&lt; 20 | mi</code> (MINORBITS = 20); the user-space <code>makedev()</code> of glibc encodes it differently, so always use the macros.</p></div></div>`;
+    const $ = s => p.querySelector(s);
+    function enc() {
+      const ch = $("#ty15").value || "\0", type = ch.charCodeAt(0) & 255, nr = (+$("#nr15").value) & 255, dir = +$("#d15").value, size = dir === 0 ? 0 : +$("#sz15").value;
+      const n = T.ioctl(dir, type, nr, size);
+      $("#io15").textContent = `${["_IO", "_IOW", "_IOR", "_IOWR"][dir]}('${ch[0] || ""}', ${nr}${dir ? ", " + ({ 1: "char", 4: "int", 8: "long" }[size] || size) : ""}) = 0x${n.toString(16).padStart(8, "0").toUpperCase()}`;
+      const s = n.toString(2).padStart(32, "0");
+      $("#iob15").innerHTML = [...s].map((c, i) => `<span style="background:${i < 2 ? "var(--accent)" : i < 16 ? "var(--hl)" : i < 24 ? "var(--ttint)" : "var(--code)"};${i < 2 ? "color:var(--accent-ink)" : ""}">${c}</span>`).join("");
+    }
+    function dec() {
+      const n = parseInt($("#dc15").value, 16); if (isNaN(n)) { $("#dco15").textContent = "type a hex number"; return; }
+      const r = T.ioctlDecode(n);
+      $("#dco15").innerHTML = `direction <b>${esc(r.dirName)}</b> · size <b>${r.size}</b> · type <b>0x${r.type.toString(16)}</b>${r.type >= 32 && r.type < 127 ? ` ('${esc(String.fromCharCode(r.type))}')` : ""} · nr <b>${r.nr}</b>`;
+    }
+    function dv() { const ma = +$("#ma15").value, mi = +$("#mi15").value; $("#dv15").innerHTML = `MKDEV(${ma}, ${mi}) = <b class="mono">0x${T.mkdev(ma, mi).toString(16)}</b> = ${T.mkdev(ma, mi)} · MAJOR = dev &gt;&gt; 20 = ${T.mkdev(ma, mi) >>> 20} · MINOR = dev &amp; 0xfffff = ${T.mkdev(ma, mi) & 0xfffff}`; }
+    ["#d15", "#ty15", "#nr15", "#sz15"].forEach(s => $(s).addEventListener("input", enc)); $("#dc15").addEventListener("input", dec); ["#ma15", "#mi15"].forEach(s => $(s).addEventListener("input", dv));
+    enc(); dec(); dv();
+  }
+});
+TOOLS_UI.push({
+  id: "flags", title: "open() flags and sectors",
+  build(p) {
+    const { esc } = L, T = TOOLS;
+    p.innerHTML = `<div class="grid2"><div><h3>open() flags as the driver sees them</h3><p class="small">Your <code>open</code> method gets <code>file-&gt;f_flags</code>. strace prints names, the kernel stores a number (octal, like the constants in fcntl.h).</p>
+<label>f_flags (octal) <input id="of15" class="mono" value="0100001" size="12"></label><p id="ofo15"></p>
+<div class="chips"><button class="chip" data-o="0">O_RDONLY</button><button class="chip" data-o="01101">echo &gt; file (as asked)</button><button class="chip" data-o="0100001">echo &gt; file (as the driver sees it)</button><button class="chip" data-o="02101">echo &gt;&gt; file</button><button class="chip" data-o="0104002">O_RDWR|O_NONBLOCK, 64-bit</button></div><p class="small dim">After the open, the kernel removes O_CREAT, O_EXCL, O_NOCTTY and O_TRUNC from f_flags (fs/open.c, do_dentry_open), and on 64-bit it adds O_LARGEFILE to every open.</p><div></div></div>
+<div><h3>Bytes → sectors (Lab 15.2)</h3><p class="small">The block layer counts in 512-byte sectors, whatever the device's real block size.</p>
+<div class="row"><label>offset <input id="so15" type="number" value="4096" min="0" style="width:110px"></label><label>length <input id="sl15" type="number" value="1024" min="1" style="width:100px"></label></div><p id="seo15" class="small"></p></div></div>`;
+    const $ = s => p.querySelector(s);
+    function of() { const v = parseInt($("#of15").value, 8); if (isNaN(v)) { $("#ofo15").textContent = "type an octal number"; return; } $("#ofo15").innerHTML = `<b class="mono">${esc(T.openFlags(v).join(" | "))}</b> <span class="dim small">(0x${v.toString(16)})</span>`; }
+    function se() { const o = Math.max(0, +$("#so15").value), n = Math.max(1, +$("#sl15").value); const r = T.sectors(o, n); $("#seo15").innerHTML = `first sector <b>${r.first}</b> (offset / 512) · <b>${r.count}</b> sector${r.count > 1 ? "s" : ""} · ${r.aligned ? "aligned: no read-modify-write" : "not aligned to 512: the page cache reads whole sectors"} · in page ${r.page} of the page cache<br><span class="dim">blk_rq_pos(rq) = ${r.first}; your queue_rq copies to/from byte ${r.first} × 512 = ${r.first * 512} of the RAM disk</span>`; }
+    $("#of15").addEventListener("input", of); p.querySelectorAll("[data-o]").forEach(b => b.addEventListener("click", () => { $("#of15").value = b.dataset.o; of(); }));
+    ["#so15", "#sl15"].forEach(s => $(s).addEventListener("input", se)); of(); se();
+  }
+});
+TOOLS_UI.push({
+  id: "usb", title: "USB reports",
+  build(p) {
+    const { el, esc } = L, T = TOOLS;
+    p.innerHTML = `<div class="grid2"><div><h3>Boot keyboard report (8 bytes)</h3><p class="small">byte 0 modifiers, byte 1 reserved, bytes 2–7 up to six keys held down (HID usage IDs). These are the bytes TODO 4 decodes.</p>
+<input id="kb15" class="mono" value="02 00 05 00 00 00 00 00" style="width:100%" aria-label="keyboard report bytes"><div class="chips" style="margin-top:6px"><button class="chip" data-k="00 00 0b 00 00 00 00 00">h</button><button class="chip" data-k="02 00 05 00 00 00 00 00">shift-b</button><button class="chip" data-k="00 00 00 00 00 00 00 00">all keys up</button><button class="chip" data-k="01 00 06 00 00 00 00 00">ctrl-c</button><button class="chip" data-k="00 00 0b 0c 00 00 00 00">h and i together</button></div>
+<p id="kbo15"></p>
+<h3 style="margin-top:14px">Boot mouse report</h3><input id="ms15" class="mono" value="01 05 fe 00" style="width:100%" aria-label="mouse report bytes"><p id="mso15" class="small"></p></div>
+<div><h3>modalias: how the kernel picks your driver</h3><p class="small">udev runs <code>modprobe</code> with this string; your <code>id_table</code> (TODO 1) must match it. Read it with <code>cat /sys/bus/usb/devices/1-1:1.0/modalias</code>.</p>
+<input id="mo15" class="mono" value="usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00" style="width:100%" aria-label="modalias"><div class="scroll"><table class="t" id="moo15" style="margin-top:8px"></table></div>
+<p class="note small">ic03 isc01 ip01 = HID class, boot interface subclass, keyboard protocol: <code>USB_INTERFACE_INFO(3, 1, 1)</code>. QEMU's usb-kbd is vendor 0627 (Adomax). The usual driver for it, usbhid, is a module that the lab guest does not load, so your driver is the only one that matches. The mouse has the same string with ip02.</p></div></div>`;
+    const $ = s => p.querySelector(s);
+    const bytes = s => s.trim().split(/[\s,]+/).filter(Boolean).map(x => parseInt(x, 16) & 255);
+    function kb() { const b = bytes($("#kb15").value); while (b.length < 8) b.push(0); const r = T.kbdReport(b); $("#kbo15").innerHTML = `modifiers: <b>${r.mods.length ? esc(r.mods.join(" + ")) : "none"}</b> · keys: <b>${r.keys.length ? r.keys.map(k => `0x${k.code.toString(16).padStart(2, "0")} '${esc(k.name)}'`).join(", ") : "(all keys up)"}</b>`; }
+    function ms() { const r = T.mouseReport(bytes($("#ms15").value)); $("#mso15").textContent = `buttons: ${[r.left && "left", r.right && "right", r.middle && "middle"].filter(Boolean).join(", ") || "none"} · dx ${r.dx} · dy ${r.dy} (negative = up) · wheel ${r.wheel}`; }
+    function mo() { const t = $("#moo15"); t.innerHTML = ""; let r; try { r = T.modalias($("#mo15").value); } catch (x) { t.appendChild(el("tr", {}, el("td", { class: "err", text: x.message }))); return; }
+      t.appendChild(el("tr", {}, el("th", { text: "field" }), el("th", { text: "hex" }), el("th", { text: "meaning" })));
+      for (const [k, v] of Object.entries(r)) t.appendChild(el("tr", {}, el("td", { class: "mono", text: k }), el("td", { class: "mono", text: v }), el("td", { class: "small", text: /Class$/.test(k) ? (T.USBCLASS[v] || "") : "" }))); }
+    $("#kb15").addEventListener("input", kb); $("#ms15").addEventListener("input", ms); $("#mo15").addEventListener("input", mo);
+    p.querySelectorAll("[data-k]").forEach(b => b.addEventListener("click", () => { $("#kb15").value = b.dataset.k; kb(); }));
+    kb(); ms(); mo();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "guest/busybox";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

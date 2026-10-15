@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 7 · The Linux Kernel · Booting Linux</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 7: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part{scroll-margin-top:12px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 7</div>
+<h1>The Linux Kernel · Booting Linux</h1>
+<p>kinfo (ask the kernel through /proc); myinit, your own PID 1 booted in QEMU.</p>
+<nav class="navlinks" aria-label="Lab links"><a href="../index.html">All lectures</a><a href="../present/lecture_07.1.html">Present 7.1</a><a href="../present/lecture_07.2.html">Present 7.2</a><a href="lab07_files.zip">Download the lab files (16 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-7-1">
+<div class="phead"><h3>Lab 7.1 <span class="dim">· The Linux Kernel</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_07.1.html">Present lecture 7.1</a>
+<a class="btn" href="../slides/lecture_07.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>TODO 1: first_line</b><br>fopen, fgets, fclose, cut the &#x27;\n&#x27;. Kernel: and Command line: appear.</li>
+<li><b>TODO 2: field_kb</b><br>Find &quot;MemTotal:&quot; in /proc/meminfo and read the number with sscanf.</li>
+<li><b>TODO 3: read_stat</b><br>After the last &#x27;)&#x27; in /proc/&lt;pid&gt;/stat: state, ppid … flags. One sscanf.</li>
+<li><b>TODO 4: classify</b><br>flags &amp; PF_KTHREAD → kernel thread. Compare your counts with ps -ef.</li>
+<li><b>Explore the lab PC</b><br>uname -r; ls /boot; lsmod | wc -l; sudo dmesg | head; ulimit -s. Fill the table in the handout.</li>
+<li><b>Think</b><br>Why is cat /proc/uptime different every time, though no file changed? Write 3 sentences.</li>
+</ol>
+<p class="warn">Submit: kinfo.c, its output on the lab PC, and the filled table. Keep kinfo: Lab 7.2 runs it as a child of your own init.</p>
+</section>
+<section class="card part" id="part-7-2">
+<div class="phead"><h3>Lab 7.2 <span class="dim">· Booting Linux</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_07.2.html">Present lecture 7.2</a>
+<a class="btn" href="../slides/lecture_07.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>Get a kernel</b><br>sudo cp /boot/vmlinuz-$(uname -r) vmlinuz &amp;&amp; sudo chmod a+r vmlinuz: the lab PC&#x27;s own kernel.</li>
+<li><b>Boot the starter</b><br>gcc -Wall -static -o init myinit_starter.c, ./mkinitramfs.sh, ./boot.sh. Read the panic: why?</li>
+<li><b>TODO 1: mount</b><br>Mount /proc and /sys. Now the kernel version and command line appear.</li>
+<li><b>TODO 2: fork + exec</b><br>Build kinfo with -static, run it as a child of your init, print its exit status.</li>
+<li><b>TODO 3: never exit</b><br>sync() and reboot(RB_POWER_OFF): QEMU powers off cleanly, no panic.</li>
+<li><b>Experiments</b><br>EXTRA=rdinit=/bin/kinfo ./boot.sh; EXTRA=nokaslr; boot with -m 128. Note what changes.</li>
+</ol>
+<p class="note">Quit a stuck QEMU with Ctrl-A then X. Submit: myinit.c and the serial output of your final boot.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab07_files.zip">lab07_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab07_files.zip">Download lab07_files.zip (16 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab06.html">← Lab 6</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab08.html">Lab 8 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 7, "readme": "CSE 4105 System Programming - Lab 7 (Lectures 7.1 and 7.2): the Linux kernel and booting\n=========================================================================================\nWorks offline. Needs: gcc (with static libc: libc6-dev), cpio, gzip, qemu-system-x86 (install before the lab).\n\nLAB 7.1  kinfo.c: ask the running kernel about itself through /proc\n  gcc -Wall -o kinfo kinfo_starter.c && ./kinfo\n  TODO 1 first_line   TODO 2 field_kb   TODO 3 read_stat   TODO 4 classify (PF_KTHREAD)\n  Compare your process counts with:  ps -ef | wc -l    and    ps -ef | grep -c '\\['\n  Explore: uname -r; ls /boot; lsmod | wc -l; modinfo ext4; modinfo btrfs; sudo dmesg | head; ulimit -s; ls /sys/firmware\n\nLAB 7.2  myinit.c: your own PID 1, booted in QEMU\n  1. A kernel:   sudo cp /boot/vmlinuz-$(uname -r) vmlinuz && sudo chmod a+r vmlinuz\n                 (or use the vmlinuz your teacher put in the shared folder)\n  2. Build:      gcc -Wall -static -o init myinit_starter.c\n                 gcc -Wall -static -o kinfo_static kinfo_starter.c   (your finished kinfo from Lab 7.1)\n  3. Pack:       ./mkinitramfs.sh\n  4. Boot:       ./boot.sh                  (quit QEMU with Ctrl-A then X)\n     First boot the starter as it is: read the kernel panic. Then do TODO 1-3.\n  5. Experiments: EXTRA=rdinit=/bin/kinfo ./boot.sh      EXTRA=nokaslr ./boot.sh\n  Optional: ./make_iso.sh puts GRUB in front (needs grub-pc-bin and xorriso).\n\nboot1.log is one full boot of Ubuntu's 6.8 kernel in QEMU (all messages): homework 7.2 task 1.\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 7 (Lectures 7.1 and 7.2): the Linux kernel and booting\n=========================================================================================\nWorks offline. Needs: gcc (with static libc: libc6-dev), cpio, gzip, qemu-system-x86 (install before the lab).\n\nLAB 7.1  kinfo.c: ask the running kernel about itself through /proc\n  gcc -Wall -o kinfo kinfo_starter.c && ./kinfo\n  TODO 1 first_line   TODO 2 field_kb   TODO 3 read_stat   TODO 4 classify (PF_KTHREAD)\n  Compare your process counts with:  ps -ef | wc -l    and    ps -ef | grep -c '\\['\n  Explore: uname -r; ls /boot; lsmod | wc -l; modinfo ext4; modinfo btrfs; sudo dmesg | head; ulimit -s; ls /sys/firmware\n\nLAB 7.2  myinit.c: your own PID 1, booted in QEMU\n  1. A kernel:   sudo cp /boot/vmlinuz-$(uname -r) vmlinuz && sudo chmod a+r vmlinuz\n                 (or use the vmlinuz your teacher put in the shared folder)\n  2. Build:      gcc -Wall -static -o init myinit_starter.c\n                 gcc -Wall -static -o kinfo_static kinfo_starter.c   (your finished kinfo from Lab 7.1)\n  3. Pack:       ./mkinitramfs.sh\n  4. Boot:       ./boot.sh                  (quit QEMU with Ctrl-A then X)\n     First boot the starter as it is: read the kernel panic. Then do TODO 1-3.\n  5. Experiments: EXTRA=rdinit=/bin/kinfo ./boot.sh      EXTRA=nokaslr ./boot.sh\n  Optional: ./make_iso.sh puts GRUB in front (needs grub-pc-bin and xorriso).\n\nboot1.log is one full boot of Ubuntu's 6.8 kernel in QEMU (all messages): homework 7.2 task 1.\n", "boot.sh": "#!/bin/sh\n# boot.sh - boot a Linux kernel in QEMU with our initramfs. The output appears in this terminal.\n# KERNEL: a copy of the lab PC's own kernel:  sudo cp /boot/vmlinuz-$(uname -r) vmlinuz && sudo chmod a+r vmlinuz\nKERNEL=${KERNEL:-./vmlinuz}\nexec qemu-system-x86_64 -m 512 -nographic -no-reboot \\\n     -kernel \"$KERNEL\" -initrd initramfs.cpio.gz \\\n     -append \"console=ttyS0 quiet panic=-1 ${EXTRA}\"\n", "boot1.log": "\u001bc\u001b[?7l\u001b[2J\u001b[0mSeaBIOS (version 1.16.3-debian-1.16.3-2)\r\n\n\niPXE (https://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+1EFCAE00+1EF0AE00 CA00\r\nPress Ctrl-B to configure iPXE (PCI 00:03.0)...\r                                                                               \r\n\n\nBooting from ROM..\u001bc\u001b[?7l\u001b[2J[    0.000000] Linux version 6.8.0-146-generic (buildd@lcy02-amd64-111) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #146-Ubuntu SMP PREEMPT_DYNAMIC Thu Sep  3 16:12:30 UTC 2026 (Ubuntu 6.8.0-146.146-generic 6.8.12)\r\n[    0.000000] Command line: console=ttyS0 panic=-1\r\n[    0.000000] KERNEL supported cpus:\r\n[    0.000000]   Intel GenuineIntel\r\n[    0.000000]   AMD AuthenticAMD\r\n[    0.000000]   Hygon HygonGenuine\r\n[    0.000000]   Centaur CentaurHauls\r\n[    0.000000]   zhaoxin   Shanghai  \r\n[    0.000000] BIOS-provided physical RAM map:\r\n[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable\r\n[    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved\r\n[    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved\r\n[    0.000000] BIOS-e820: [mem 0x0000000000100000-0x000000001ffdffff] usable\r\n[    0.000000] BIOS-e820: [mem 0x000000001ffe0000-0x000000001fffffff] reserved\r\n[    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved\r\n[    0.000000] BIOS-e820: [mem 0x000000fd00000000-0x000000ffffffffff] reserved\r\n[    0.000000] NX (Execute Disable) protection: active\r\n[    0.000000] APIC: Static calls initialized\r\n[    0.000000] SMBIOS 3.0.0 present.\r\n[    0.000000] DMI: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014\r\n[    0.000000] tsc: Fast TSC calibration using PIT\r\n[    0.000000] tsc: Detected 2099.961 MHz processor\r\n[    0.018724] AGP: No AGP bridge found\r\n[    0.019107] last_pfn = 0x1ffe0 max_arch_pfn = 0x400000000\r\n[    0.020076] MTRR map: 4 entries (3 fixed + 1 variable; max 19), built from 8 variable MTRRs\r\n[    0.020508] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT  \r\n[    0.042276] found SMP MP-table at [mem 0x000f5480-0x000f548f]\r\n[    0.049179] RAMDISK: [mem 0x1ff8c000-0x1ffdffff]\r\n[    0.049855] ACPI: Early table checksum verification disabled\r\n[    0.050482] ACPI: RSDP 0x00000000000F5290 000014 (v00 BOCHS )\r\n[    0.050887] ACPI: RSDT 0x000000001FFE1C52 000034 (v01 BOCHS  BXPC     00000001 BXPC 00000001)\r\n[    0.051775] ACPI: FACP 0x000000001FFE1B06 000074 (v01 BOCHS  BXPC     00000001 BXPC 00000001)\r\n[    0.052722] ACPI: DSDT 0x000000001FFE0040 001AC6 (v01 BOCHS  BXPC     00000001 BXPC 00000001)\r\n[    0.052855] ACPI: FACS 0x000000001FFE0000 000040\r\n[    0.052940] ACPI: APIC 0x000000001FFE1B7A 000078 (v03 BOCHS  BXPC     00000001 BXPC 00000001)\r\n[    0.052987] ACPI: HPET 0x000000001FFE1BF2 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)\r\n[    0.053026] ACPI: WAET 0x000000001FFE1C2A 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)\r\n[    0.053160] ACPI: Reserving FACP table memory at [mem 0x1ffe1b06-0x1ffe1b79]\r\n[    0.053189] ACPI: Reserving DSDT table memory at [mem 0x1ffe0040-0x1ffe1b05]\r\n[    0.053203] ACPI: Reserving FACS table memory at [mem 0x1ffe0000-0x1ffe003f]\r\n[    0.053214] ACPI: Reserving APIC table memory at [mem 0x1ffe1b7a-0x1ffe1bf1]\r\n[    0.053223] ACPI: Reserving HPET table memory at [mem 0x1ffe1bf2-0x1ffe1c29]\r\n[    0.053232] ACPI: Reserving WAET table memory at [mem 0x1ffe1c2a-0x1ffe1c51]\r\n[    0.057082] No NUMA configuration found\r\n[    0.057127] Faking a node at [mem 0x0000000000000000-0x000000001ffdffff]\r\n[    0.058129] NODE_DATA(0) allocated [mem 0x1ff61000-0x1ff8bfff]\r\n[    0.062675] Zone ranges:\r\n[    0.062722]   DMA      [mem 0x0000000000001000-0x0000000000ffffff]\r\n[    0.062847]   DMA32    [mem 0x0000000001000000-0x000000001ffdffff]\r\n[    0.062868]   Normal   empty\r\n[    0.062894]   Device   empty\r\n[    0.062913] Movable zone start for each node\r\n[    0.062950] Early memory node ranges\r\n[    0.062984]   node   0: [mem 0x0000000000001000-0x000000000009efff]\r\n[    0.063180]   node   0: [mem 0x0000000000100000-0x000000001ffdffff]\r\n[    0.063525] Initmem setup node 0 [mem 0x0000000000001000-0x000000001ffdffff]\r\n[    0.065416] On node 0, zone DMA: 1 pages in unavailable ranges\r\n[    0.065717] On node 0, zone DMA: 97 pages in unavailable ranges\r\n[    0.069652] On node 0, zone DMA32: 32 pages in unavailable ranges\r\n[    0.070349] ACPI: PM-Timer IO Port: 0x608\r\n[    0.070976] ACPI: LAPIC_NMI (acpi_id[0xff] dfl dfl lint[0x1])\r\n[    0.071667] IOAPIC[0]: apic_id 0, version 32, address 0xfec00000, GSI 0-23\r\n[    0.071820] ACPI: INT_SRC_OVR (bus 0 bus_irq 0 global_irq 2 dfl dfl)\r\n[    0.072229] ACPI: INT_SRC_OVR (bus 0 bus_irq 5 global_irq 5 high level)\r\n[    0.072305] ACPI: INT_SRC_OVR (bus 0 bus_irq 9 global_irq 9 high level)\r\n[    0.072467] ACPI: INT_SRC_OVR (bus 0 bus_irq 10 global_irq 10 high level)\r\n[    0.072491] ACPI: INT_SRC_OVR (bus 0 bus_irq 11 global_irq 11 high level)\r\n[    0.072783] ACPI: Using ACPI (MADT) for SMP configuration information\r\n[    0.072842] ACPI: HPET id: 0x8086a201 base: 0xfed00000\r\n[    0.073192] smpboot: Allowing 1 CPUs, 0 hotplug CPUs\r\n[    0.074236] PM: hibernation: Registered nosave memory: [mem 0x00000000-0x00000fff]\r\n[    0.074295] PM: hibernation: Registered nosave memory: [mem 0x0009f000-0x000fffff]\r\n[    0.074503] [mem 0x20000000-0xfffbffff] available for PCI devices\r\n[    0.074589] Booting paravirtualized kernel on bare hardware\r\n[    0.074943] clocksource: refined-jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1910969940391419 ns\r\n[    0.075766] setup_percpu: NR_CPUS:8192 nr_cpumask_bits:1 nr_cpu_ids:1 nr_node_ids:1\r\n[    0.077767] percpu: Embedded 86 pages/cpu s229376 r8192 d114688 u2097152\r\n[    0.079827] Kernel command line: console=ttyS0 panic=-1\r\n[    0.081696] Dentry cache hash table entries: 65536 (order: 7, 524288 bytes, linear)\r\n[    0.081916] Inode-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)\r\n[    0.085988] Fallback order for Node 0: 0 \r\n[    0.086589] Built 1 zonelists, mobility grouping on.  Total pages: 128736\r\n[    0.086638] Policy zone: DMA32\r\n[    0.087325] mem auto-init: stack:all(zero), heap alloc:on, heap free:off\r\n[    0.087532] AGP: Checking aperture...\r\n[    0.088814] AGP: No AGP bridge found\r\n[    0.099079] Memory: 459696K/523768K available (22528K kernel code, 4442K rwdata, 14432K rodata, 4932K init, 4776K bss, 63812K reserved, 0K cma-reserved)\r\n[    0.335162] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1\r\n[    0.339330] ftrace: allocating 58343 entries in 228 pages\r\n[    0.427739] ftrace: allocated 228 pages with 4 groups\r\n[    0.450552] Dynamic Preempt: voluntary\r\n[    0.459064] rcu: Preemptible hierarchical RCU implementation.\r\n[    0.459137] rcu: \tRCU restricting CPUs from NR_CPUS=8192 to nr_cpu_ids=1.\r\n[    0.459320] \tTrampoline variant of Tasks RCU enabled.\r\n[    0.459338] \tRude variant of Tasks RCU enabled.\r\n[    0.459353] \tTracing variant of Tasks RCU enabled.\r\n[    0.459599] rcu: RCU calculated value of scheduler-enlistment delay is 100 jiffies.\r\n[    0.459669] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=1\r\n[    0.462331] RCU Tasks: Setting shift to 0 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=1.\r\n[    0.462458] RCU Tasks Rude: Setting shift to 0 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=1.\r\n[    0.462492] RCU Tasks Trace: Setting shift to 0 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=1.\r\n[    0.512130] NR_IRQS: 524544, nr_irqs: 256, preallocated irqs: 16\r\n[    0.525529] rcu: srcu_init: Setting srcu_struct sizes based on contention.\r\n[    0.534501] Console: colour VGA+ 80x25\r\n[    0.536630] printk: legacy console [ttyS0] enabled\r\n[    0.550521] ACPI: Core revision 20230628\r\n[    0.559470] clocksource: hpet: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 19112604467 ns\r\n[    0.567518] APIC: Switch to symmetric I/O mode setup\r\n[    0.575847] ..TIMER: vector=0x30 apic1=0 pin1=2 apic2=-1 pin2=-1\r\n[    0.582473] clocksource: tsc-early: mask: 0xffffffffffffffff max_cycles: 0x1e450bc08c3, max_idle_ns: 440795301537 ns\r\n[    0.583349] Calibrating delay loop (skipped), value calculated using timer frequency.. 4199.92 BogoMIPS (lpj=2099961)\r\n[    0.590207] process: using AMD E400 aware idle routine\r\n[    0.590616] Last level iTLB entries: 4KB 512, 2MB 255, 4MB 127\r\n[    0.590733] Last level dTLB entries: 4KB 512, 2MB 255, 4MB 127, 1GB 0\r\n[    0.591261] Spectre V1 : Mitigation: usercopy/swapgs barriers and __user pointer sanitization\r\n[    0.591648] Spectre V2 : Mitigation: Retpolines\r\n[    0.591748] Spectre V2 : Spectre v2 / SpectreRSB: Filling RSB on context switch and VMEXIT\r\n[    0.595353] x86/fpu: x87 FPU will use FXSAVE\r\n[    0.968146] Freeing SMP alternatives memory: 48K\r\n[    0.969633] pid_max: default: 32768 minimum: 301\r\n[    0.983650] LSM: initializing lsm=lockdown,capability,landlock,yama,apparmor,integrity\r\n[    0.987240] landlock: Up and running.\r\n[    0.987431] Yama: becoming mindful.\r\n[    0.993785] AppArmor: AppArmor initialized\r\n[    1.001239] Mount-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)\r\n[    1.001568] Mountpoint-cache hash table entries: 1024 (order: 1, 8192 bytes, linear)\r\n[    1.154871] smpboot: CPU0: AMD QEMU Virtual CPU version 2.5+ (family: 0xf, model: 0x6b, stepping: 0x1)\r\n[    1.169083] Performance Events: PMU not available due to virtualization, using software events only.\r\n[    1.170730] signal: max sigframe size: 1440\r\n[    1.172815] rcu: Hierarchical SRCU implementation.\r\n[    1.173007] rcu: \tMax phase no-delay instances is 400.\r\n[    1.186195] NMI watchdog: Perf NMI watchdog permanently disabled\r\n[    1.186871] smp: Bringing up secondary CPUs ...\r\n[    1.190188] smp: Brought up 1 node, 1 CPU\r\n[    1.190335] smpboot: Max logical packages: 1\r\n[    1.190537] smpboot: Total of 1 processors activated (4199.92 BogoMIPS)\r\n[    1.212470] devtmpfs: initialized\r\n[    1.217354] x86/mm: Memory block size: 128MB\r\n[    1.230223] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 1911260446275000 ns\r\n[    1.231065] futex hash table entries: 256 (order: 2, 16384 bytes, linear)\r\n[    1.239474] pinctrl core: initialized pinctrl subsystem\r\n[    1.249761] PM: RTC time: 15:35:36, date: 2026-10-10\r\n[    1.265788] NET: Registered PF_NETLINK/PF_ROUTE protocol family\r\n[    1.271658] DMA: preallocated 128 KiB GFP_KERNEL pool for atomic allocations\r\n[    1.272320] DMA: preallocated 128 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations\r\n[    1.272588] DMA: preallocated 128 KiB GFP_KERNEL|GFP_DMA32 pool for atomic allocations\r\n[    1.273196] audit: initializing netlink subsys (disabled)\r\n[    1.277451] audit: type=2000 audit(1791646536.707:1): state=initialized audit_enabled=0 res=1\r\n[    1.283516] thermal_sys: Registered thermal governor 'fair_share'\r\n[    1.283561] thermal_sys: Registered thermal governor 'bang_bang'\r\n[    1.283686] thermal_sys: Registered thermal governor 'step_wise'\r\n[    1.283774] thermal_sys: Registered thermal governor 'user_space'\r\n[    1.284016] thermal_sys: Registered thermal governor 'power_allocator'\r\n[    1.284615] cpuidle: using governor ladder\r\n[    1.284998] cpuidle: using governor menu\r\n[    1.287387] acpiphp: ACPI Hot Plug PCI Controller Driver version: 0.5\r\n[    1.292100] PCI: Using configuration type 1 for base access\r\n[    1.295388] kprobes: kprobe jump-optimization is enabled. All kprobes are optimized if possible.\r\n[    1.422357] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages\r\n[    1.422596] HugeTLB: 28 KiB vmemmap can be freed for a 2.00 MiB page\r\n[    1.462895] ACPI: Added _OSI(Module Device)\r\n[    1.464200] ACPI: Added _OSI(Processor Device)\r\n[    1.464295] ACPI: Added _OSI(Processor Aggregator Device)\r\n[    1.506883] ACPI: 1 ACPI AML tables successfully acquired and loaded\r\n[    1.529428] ACPI: _OSC evaluation for CPUs failed, trying _PDC\r\n[    1.534838] ACPI: Interpreter enabled\r\n[    1.536761] ACPI: PM: (supports S0 S3 S4 S5)\r\n[    1.536957] ACPI: Using IOAPIC for interrupt routing\r\n[    1.539035] PCI: Using host bridge windows from ACPI; if necessary, use \"pci=nocrs\" and report a bug\r\n[    1.539229] PCI: Using E820 reservations for host bridge windows\r\n[    1.541520] ACPI: Enabled 2 GPEs in block 00 to 0F\r\n[    1.614681] ACPI: PCI Root Bridge [PCI0] (domain 0000 [bus 00-ff])\r\n[    1.615641] acpi PNP0A03:00: _OSC: OS supports [ASPM ClockPM Segments MSI EDR HPX-Type3]\r\n[    1.616153] acpi PNP0A03:00: _OSC: not requesting OS control; OS requires [ExtendedConfig ASPM ClockPM MSI]\r\n[    1.617391] acpi PNP0A03:00: fail to add MMCONFIG information, can't access extended configuration space under this bridge\r\n[    1.630143] acpiphp: Slot [3] registered\r\n[    1.631420] acpiphp: Slot [4] registered\r\n[    1.631731] acpiphp: Slot [5] registered\r\n[    1.632074] acpiphp: Slot [6] registered\r\n[    1.632278] acpiphp: Slot [7] registered\r\n[    1.632427] acpiphp: Slot [8] registered\r\n[    1.632570] acpiphp: Slot [9] registered\r\n[    1.632723] acpiphp: Slot [10] registered\r\n[    1.632860] acpiphp: Slot [11] registered\r\n[    1.633054] acpiphp: Slot [12] registered\r\n[    1.633196] acpiphp: Slot [13] registered\r\n[    1.633362] acpiphp: Slot [14] registered\r\n[    1.633506] acpiphp: Slot [15] registered\r\n[    1.633893] acpiphp: Slot [16] registered\r\n[    1.634110] acpiphp: Slot [17] registered\r\n[    1.634287] acpiphp: Slot [18] registered\r\n[    1.634465] acpiphp: Slot [19] registered\r\n[    1.634649] acpiphp: Slot [20] registered\r\n[    1.634927] acpiphp: Slot [21] registered\r\n[    1.635277] acpiphp: Slot [22] registered\r\n[    1.635496] acpiphp: Slot [23] registered\r\n[    1.635729] acpiphp: Slot [24] registered\r\n[    1.636123] acpiphp: Slot [25] registered\r\n[    1.636366] acpiphp: Slot [26] registered\r\n[    1.636557] acpiphp: Slot [27] registered\r\n[    1.636911] acpiphp: Slot [28] registered\r\n[    1.637303] acpiphp: Slot [29] registered\r\n[    1.637467] acpiphp: Slot [30] registered\r\n[    1.637608] acpiphp: Slot [31] registered\r\n[    1.638349] PCI host bridge to bus 0000:00\r\n[    1.638781] pci_bus 0000:00: root bus resource [io  0x0000-0x0cf7 window]\r\n[    1.639106] pci_bus 0000:00: root bus resource [io  0x0d00-0xffff window]\r\n[    1.639250] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]\r\n[    1.639408] pci_bus 0000:00: root bus resource [mem 0x20000000-0xfebfffff window]\r\n[    1.639526] pci_bus 0000:00: root bus resource [mem 0x100000000-0x17fffffff window]\r\n[    1.640167] pci_bus 0000:00: root bus resource [bus 00-ff]\r\n[    1.643075] pci 0000:00:00.0: [8086:1237] type 00 class 0x060000 conventional PCI endpoint\r\n[    1.651531] pci 0000:00:01.0: [8086:7000] type 00 class 0x060100 conventional PCI endpoint\r\n[    1.653332] pci 0000:00:01.1: [8086:7010] type 00 class 0x010180 conventional PCI endpoint\r\n[    1.654405] pci 0000:00:01.1: BAR 4 [io  0xc040-0xc04f]\r\n[    1.655020] pci 0000:00:01.1: BAR 0 [io  0x01f0-0x01f7]: legacy IDE quirk\r\n[    1.655162] pci 0000:00:01.1: BAR 1 [io  0x03f6]: legacy IDE quirk\r\n[    1.655289] pci 0000:00:01.1: BAR 2 [io  0x0170-0x0177]: legacy IDE quirk\r\n[    1.655958] pci 0000:00:01.1: BAR 3 [io  0x0376]: legacy IDE quirk\r\n[    1.657602] pci 0000:00:01.3: [8086:7113] type 00 class 0x068000 conventional PCI endpoint\r\n[    1.658364] pci 0000:00:01.3: quirk: [io  0x0600-0x063f] claimed by PIIX4 ACPI\r\n[    1.658542] pci 0000:00:01.3: quirk: [io  0x0700-0x070f] claimed by PIIX4 SMB\r\n[    1.659995] pci 0000:00:02.0: [1234:1111] type 00 class 0x030000 conventional PCI endpoint\r\n[    1.660906] pci 0000:00:02.0: BAR 0 [mem 0xfd000000-0xfdffffff pref]\r\n[    1.661154] pci 0000:00:02.0: BAR 2 [mem 0xfebb0000-0xfebb0fff]\r\n[    1.661253] pci 0000:00:02.0: ROM [mem 0xfeba0000-0xfebaffff pref]\r\n[    1.661936] pci 0000:00:02.0: Video device with shadowed ROM at [mem 0x000c0000-0x000dffff]\r\n[    1.663065] pci 0000:00:03.0: [8086:100e] type 00 class 0x020000 conventional PCI endpoint\r\n[    1.663913] pci 0000:00:03.0: BAR 0 [mem 0xfeb80000-0xfeb9ffff]\r\n[    1.664067] pci 0000:00:03.0: BAR 1 [io  0xc000-0xc03f]\r\n[    1.664159] pci 0000:00:03.0: ROM [mem 0xfeb00000-0xfeb7ffff pref]\r\n[    1.688401] ACPI: PCI: Interrupt link LNKA configured for IRQ 10\r\n[    1.690681] ACPI: PCI: Interrupt link LNKB configured for IRQ 10\r\n[    1.692561] ACPI: PCI: Interrupt link LNKC configured for IRQ 11\r\n[    1.694378] ACPI: PCI: Interrupt link LNKD configured for IRQ 11\r\n[    1.695333] ACPI: PCI: Interrupt link LNKS configured for IRQ 9\r\n[    1.703140] iommu: Default domain type: Translated\r\n[    1.703298] iommu: DMA domain TLB invalidation policy: lazy mode\r\n[    1.708375] SCSI subsystem initialized\r\n[    1.710727] ACPI: bus type USB registered\r\n[    1.711377] usbcore: registered new interface driver usbfs\r\n[    1.711898] usbcore: registered new interface driver hub\r\n[    1.712205] usbcore: registered new device driver usb\r\n[    1.712735] pps_core: LinuxPPS API ver. 1 registered\r\n[    1.712826] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>\r\n[    1.712953] PTP clock support registered\r\n[    1.714476] EDAC MC: Ver: 3.0.0\r\n[    1.732426] NetLabel: Initializing\r\n[    1.732605] NetLabel:  domain hash size = 128\r\n[    1.732729] NetLabel:  protocols = UNLABELED CIPSOv4 CALIPSO\r\n[    1.734652] NetLabel:  unlabeled traffic allowed by default\r\n[    1.741937] mctp: management component transport protocol core\r\n[    1.742120] NET: Registered PF_MCTP protocol family\r\n[    1.742766] PCI: Using ACPI for IRQ routing\r\n[    1.746187] pci 0000:00:02.0: vgaarb: setting as boot VGA device\r\n[    1.746445] pci 0000:00:02.0: vgaarb: bridge control possible\r\n[    1.746647] pci 0000:00:02.0: vgaarb: VGA device added: decodes=io+mem,owns=io+mem,locks=none\r\n[    1.746987] vgaarb: loaded\r\n[    1.750148] hpet: 3 channels of 0 reserved for per-cpu timers\r\n[    1.750580] hpet0: at MMIO 0xfed00000, IRQs 2, 8, 0\r\n[    1.750780] hpet0: 3 comparators, 64-bit 100.000000 MHz counter\r\n[    1.756615] clocksource: Switched to clocksource tsc-early\r\n[    1.779225] VFS: Disk quotas dquot_6.6.0\r\n[    1.780005] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)\r\n[    1.786534] AppArmor: AppArmor Filesystem Enabled\r\n[    1.787320] pnp: PnP ACPI init\r\n[    1.794303] pnp: PnP ACPI: found 6 devices\r\n[    1.837079] clocksource: acpi_pm: mask: 0xffffff max_cycles: 0xffffff, max_idle_ns: 2085701024 ns\r\n[    1.839219] NET: Registered PF_INET protocol family\r\n[    1.840930] IP idents hash table entries: 8192 (order: 4, 65536 bytes, linear)\r\n[    1.934920] tcp_listen_portaddr_hash hash table entries: 256 (order: 0, 4096 bytes, linear)\r\n[    1.935427] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)\r\n[    1.935819] TCP established hash table entries: 4096 (order: 3, 32768 bytes, linear)\r\n[    1.936529] TCP bind hash table entries: 4096 (order: 5, 131072 bytes, linear)\r\n[    1.937097] TCP: Hash tables configured (established 4096 bind 4096)\r\n[    1.939840] MPTCP token hash table entries: 512 (order: 2, 12288 bytes, linear)\r\n[    1.940428] UDP hash table entries: 256 (order: 1, 8192 bytes, linear)\r\n[    1.940890] UDP-Lite hash table entries: 256 (order: 1, 8192 bytes, linear)\r\n[    1.942966] NET: Registered PF_UNIX/PF_LOCAL protocol family\r\n[    1.943594] NET: Registered PF_XDP protocol family\r\n[    1.944931] pci_bus 0000:00: resource 4 [io  0x0000-0x0cf7 window]\r\n[    1.945084] pci_bus 0000:00: resource 5 [io  0x0d00-0xffff window]\r\n[    1.945185] pci_bus 0000:00: resource 6 [mem 0x000a0000-0x000bffff window]\r\n[    1.945288] pci_bus 0000:00: resource 7 [mem 0x20000000-0xfebfffff window]\r\n[    1.945398] pci_bus 0000:00: resource 8 [mem 0x100000000-0x17fffffff window]\r\n[    1.946212] pci 0000:00:01.0: PIIX3: Enabling Passive Release\r\n[    1.946415] pci 0000:00:00.0: Limiting direct PCI/PCI transfers\r\n[    1.946656] PCI: CLS 0 bytes, default 64\r\n[    1.958338] Trying to unpack rootfs image as initramfs...\r\n[    1.967884] Initialise system trusted keyrings\r\n[    1.972003] Key type blacklist registered\r\n[    1.974277] workingset: timestamp_bits=36 max_order=17 bucket_order=0\r\n[    1.974609] zbud: loaded\r\n[    2.001757] squashfs: version 4.0 (2009/01/31) Phillip Lougher\r\n[    2.014225] fuse: init (API version 7.39)\r\n[    2.022376] Freeing initrd memory: 336K\r\n[    2.025196] integrity: Platform Keyring initialized\r\n[    2.025805] integrity: Machine keyring initialized\r\n[    2.095491] Key type asymmetric registered\r\n[    2.095886] Asymmetric key parser 'x509' registered\r\n[    2.096486] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 243)\r\n[    2.097948] io scheduler mq-deadline registered\r\n[    2.101636] shpchp: Standard Hot Plug PCI Controller Driver version: 0.4\r\n[    2.109491] input: Power Button as /devices/LNXSYSTM:00/LNXPWRBN:00/input/input0\r\n[    2.114956] ACPI: button: Power Button [PWRF]\r\n[    2.121396] Serial: 8250/16550 driver, 32 ports, IRQ sharing enabled\r\n[    2.148816] 00:04: ttyS0 at I/O 0x3f8 (irq = 4, base_baud = 115200) is a 16550A\r\n[    2.189294] Linux agpgart interface v0.103\r\n[    2.224807] loop: module loaded\r\n[    2.239873] scsi host0: ata_piix\r\n[    2.242794] scsi host1: ata_piix\r\n[    2.243563] ata1: PATA max MWDMA2 cmd 0x1f0 ctl 0x3f6 bmdma 0xc040 irq 14 lpm-pol 0\r\n[    2.243870] ata2: PATA max MWDMA2 cmd 0x170 ctl 0x376 bmdma 0xc048 irq 15 lpm-pol 0\r\n[    2.249663] ACPI: bus type drm_connector registered\r\n[    2.255690] tun: Universal TUN/TAP device driver, 1.6\r\n[    2.257176] PPP generic driver version 2.4.2\r\n[    2.262974] i8042: PNP: PS/2 Controller [PNP0303:KBD,PNP0f13:MOU] at 0x60,0x64 irq 1,12\r\n[    2.266744] serio: i8042 KBD port at 0x60,0x64 irq 1\r\n[    2.266744] serio: i8042 AUX port at 0x60,0x64 irq 12\r\n[    2.272277] mousedev: PS/2 mouse device common for all mice\r\n[    2.274386] rtc_cmos 00:05: RTC can wake from S4\r\n[    2.283099] input: AT Translated Set 2 keyboard as /devices/platform/i8042/serio0/input/input1\r\n[    2.284354] rtc_cmos 00:05: registered as rtc0\r\n[    2.286610] rtc_cmos 00:05: setting system clock to 2026-10-10T15:35:37 UTC (1791646537)\r\n[    2.289243] rtc_cmos 00:05: alarms up to one day, y3k, 242 bytes nvram, hpet irqs\r\n[    2.289561] i2c_dev: i2c /dev entries driver\r\n[    2.290307] device-mapper: core: CONFIG_IMA_DISABLE_HTABLE is disabled. Duplicate IMA measurements will not be recorded in the IMA log.\r\n[    2.290905] device-mapper: uevent: version 1.0.3\r\n[    2.294896] device-mapper: ioctl: 4.48.0-ioctl (2023-03-01) initialised: dm-devel@redhat.com\r\n[    2.295489] amd_pstate: the _CPC object is not present in SBIOS or ACPI disabled\r\n[    2.296176] ledtrig-cpu: registered to indicate activity on CPUs\r\n[    2.298136] drop_monitor: Initializing network drop monitor service\r\n[    2.300486] NET: Registered PF_INET6 protocol family\r\n[    2.327611] Segment Routing with IPv6\r\n[    2.328287] In-situ OAM (IOAM) with IPv6\r\n[    2.330295] NET: Registered PF_PACKET protocol family\r\n[    2.331132] Key type dns_resolver registered\r\n[    2.335488] IPI shorthand broadcast: enabled\r\n[    2.358653] sched_clock: Marking stable (2316097326, 41623042)->(2512129569, -154409201)\r\n[    2.362953] registered taskstats version 1\r\n[    2.366786] Loading compiled-in X.509 certificates\r\n[    2.381200] Loaded X.509 cert 'Build time autogenerated kernel key: 488f4e945f6a71d1e1e0279286757a5f72cef08b'\r\n[    2.383959] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing 2025 Kmod: d541cef61dc7e793b7eb7e899970a2eef0b5dc8c'\r\n[    2.385787] Loaded X.509 cert 'Canonical Ltd. Live Patch Signing: 14df34d1a87cf37625abec039ef2bf521249b969'\r\n[    2.388053] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing 2025 Kmod: 4627603d2357a2a3f81006370894c221175893e9'\r\n[    2.390529] Loaded X.509 cert 'Canonical Ltd. Kernel Module Signing: 88f752e560a1e0737e31163a466ad7b70a850c19'\r\n[    2.391099] blacklist: Loading compiled-in revocation X.509 certificates\r\n[    2.393969] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing: 61482aa2830d0ab2ad5af10b7250da9033ddcef0'\r\n[    2.394617] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2017): 242ade75ac4a15e50d50c84b0d45ff3eae707a03'\r\n[    2.395277] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (ESM 2018): 365188c1d374d6b07c3c8f240f8ef722433d6a8b'\r\n[    2.395628] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2019): c0746fd6c5da3ae827864651ad66ae47fe24b3e8'\r\n[    2.395902] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v1): a8d54bbb3825cfb94fa13c9f8a594a195c107b8d'\r\n[    2.396406] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v2): 4cf046892d6fd3c9a5b03f98d845f90851dc6a8c'\r\n[    2.396941] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (2021 v3): 100437bb6de6e469b581e61cd66bce3ef4ed53af'\r\n[    2.397244] Loaded X.509 cert 'Canonical Ltd. Secure Boot Signing (Ubuntu Core 2019): c1d57b8f6b743f23ee41f4f7ee292f06eecadfb9'\r\n[    2.406156] ata2: found unknown device (class 0)\r\n[    2.413830] ata2.00: ATAPI: QEMU DVD-ROM, 2.5+, max UDMA/100\r\n[    2.448248] scsi 1:0:0:0: CD-ROM            QEMU     QEMU DVD-ROM     2.5+ PQ: 0 ANSI: 5\r\n[    2.484485] sr 1:0:0:0: [sr0] scsi3-mmc drive: 4x/4x cd/rw xa/form2 tray\r\n[    2.496680] Key type .fscrypt registered\r\n[    2.497145] Key type fscrypt-provisioning registered\r\n[    2.499599] cdrom: Uniform CD-ROM driver Revision: 3.20\r\n[    2.521546] Key type encrypted registered\r\n[    2.522131] sr 1:0:0:0: Attached scsi generic sg0 type 5\r\n[    2.522838] AppArmor: AppArmor sha256 policy hashing enabled\r\n[    2.523663] ima: No TPM chip found, activating TPM-bypass!\r\n[    2.526120] Loading compiled-in module X.509 certificates\r\n[    2.529214] Loaded X.509 cert 'Build time autogenerated kernel key: 488f4e945f6a71d1e1e0279286757a5f72cef08b'\r\n[    2.529643] ima: Allocated hash algorithm: sha256\r\n[    2.537604] ima: No architecture policies found\r\n[    2.538571] evm: Initialising EVM extended attributes:\r\n[    2.538834] evm: security.selinux\r\n[    2.538964] evm: security.SMACK64\r\n[    2.539107] evm: security.SMACK64EXEC\r\n[    2.539192] evm: security.SMACK64TRANSMUTE\r\n[    2.539277] evm: security.SMACK64MMAP\r\n[    2.539363] evm: security.apparmor\r\n[    2.539443] evm: security.ima\r\n[    2.539510] evm: security.capability\r\n[    2.539612] evm: HMAC attrs: 0x1\r\n[    2.550492] PM:   Magic number: 14:396:588\r\n[    2.552703] powernow_k8: Power state transitions not supported\r\n[    2.642894] RAS: Correctable Errors collector initialized.\r\n[    2.646076] clk: Disabling unused clocks\r\n[    2.666942] Freeing unused decrypted memory: 2028K\r\n[    2.791451] Freeing unused kernel image (initmem) memory: 4932K\r\n[    2.792556] Write protecting the kernel read-only data: 38912k\r\n[    2.798404] Freeing unused kernel image (rodata/data gap) memory: 1952K\r\n[    3.055870] x86/mm: Checked W+X mappings: passed, no W+X pages found.\r\n[    3.056473] tsc: Refined TSC clocksource calibration: 2100.000 MHz\r\n[    3.057156] clocksource: tsc: mask: 0xffffffffffffffff max_cycles: 0x1e4530a99b6, max_idle_ns: 440795257976 ns\r\n[    3.057649] clocksource: Switched to clocksource tsc\r\n[    3.059268] Run /init as init process\r\n\r\n*** Hello from PID 1: the kernel started me as /init ***\r\nkernel command line: console=ttyS0 panic=-1\r\nseconds since boot: 3.10 0.00\r\nPID 1 must never exit, or the kernel panics. Powering off instead.\r\n[    3.153460] ACPI: PM: Preparing to enter system sleep state S5\r\n[    3.154575] reboot: Power down\r\n", "handout_table.txt": "Lab 7.1, task 5: explore the lab PC          Name: ______________   PC no.: ____\n\nCommand                          Your result\n-------------------------------  ------------------------------------------------\nuname -r                         \nls /boot | wc -l                 \nlsmod | wc -l                    \nmodinfo ext4 | grep filename     \nmodinfo btrfs | grep filename    \nsudo dmesg | head -1             \nulimit -s                        \nls /sys/firmware                 (does it contain efi? -> UEFI or BIOS boot?)\n./kinfo: user processes          \n./kinfo: kernel threads          \n", "kinfo_starter.c": "/*\n * kinfo.c - ask the running kernel about itself, through the /proc file system\n * CSE 4105 System Programming, Lab 7.1   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -o kinfo kinfo.c          (add -static to run it inside the QEMU guest of Lab 7.2)\n * Run:    ./kinfo\n *\n * Nothing here is a special API: the kernel shows its data as text files under /proc,\n * and we read them with fopen, fgets and sscanf, as in any C program.\n */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <ctype.h>\n#include <dirent.h>\n\n#define PF_KTHREAD 0x00200000   /* \"I am a kernel thread\" (include/linux/sched.h) */\n\n/* read the first line of a file into buf; return 0 on success */\nstatic int first_line(const char *path, char *buf, int size)\n{\n    /* TODO 1: open the file, read ONE line into buf with fgets, close it,\n     *         remove the '\\n' at the end (strcspn), return 0.  Return -1 if anything fails.\n     *         Test: Kernel: and Command line: should appear in the output.                 */\n    (void)path; (void)buf; (void)size;\n    return -1;\n}\n\n/* find \"Key:   123 kB\" in a file like /proc/meminfo and return 123 */\nstatic long field_kb(const char *path, const char *key)\n{\n    FILE *f = fopen(path, \"r\");\n    char line[256];\n    long v = -1;\n    if (!f) return -1;\n    /* TODO 2: read the file line by line; when a line starts with key (strncmp),\n     *         read the number after the key with sscanf(line + strlen(key), \" %ld\", &v).   */\n    (void)line; (void)key;\n    fclose(f);\n    return v;\n}\n\n/* one process: name, parent and flags, from /proc/<pid>/stat */\nstruct proc { int pid, ppid; char comm[64]; char state; unsigned long flags; };\n\nstatic int read_stat(int pid, struct proc *p)\n{\n    char path[64], line[1024];\n    snprintf(path, sizeof path, \"/proc/%d/stat\", pid);\n    if (first_line(path, line, sizeof line) != 0) return -1;\n    /* format: pid (comm) state ppid pgrp session tty_nr tpgid flags ...\n       comm may contain spaces and ')', so take the LAST ')' */\n    char *open = strchr(line, '('), *close = strrchr(line, ')');\n    if (!open || !close) return -1;\n    int n = close - open - 1;\n    if (n > 63) n = 63;\n    memcpy(p->comm, open + 1, n);\n    p->comm[n] = '\\0';\n    p->pid = pid;\n    int pgrp, session, tty, tpgid;\n    /* TODO 3: after \") \" come: state ppid pgrp session tty_nr tpgid flags  (man 5 proc).\n     *         One sscanf on close + 2 fills p->state, p->ppid and p->flags (return -1 unless 7 items). */\n    (void)pgrp; (void)session; (void)tty; (void)tpgid;\n    p->state = '?'; p->ppid = 0; p->flags = 0;\n    return 0;\n}\n\nint main(void)\n{\n    char buf[512];\n\n    /* ---- 1. who is the kernel? ---- */\n    if (first_line(\"/proc/version\", buf, sizeof buf) == 0) printf(\"Kernel:        %s\\n\", buf);\n    if (first_line(\"/proc/cmdline\", buf, sizeof buf) == 0) printf(\"Command line:  %s\\n\", buf);\n    if (first_line(\"/proc/uptime\", buf, sizeof buf) == 0) {\n        double up;\n        sscanf(buf, \"%lf\", &up);\n        printf(\"Up for:        %.1f seconds\\n\", up);\n    }\n\n    /* ---- 2. memory and CPUs ---- */\n    printf(\"Memory:        %ld kB total, %ld kB free\\n\", field_kb(\"/proc/meminfo\", \"MemTotal:\"), field_kb(\"/proc/meminfo\", \"MemFree:\"));\n    FILE *f = fopen(\"/proc/cpuinfo\", \"r\");\n    int cpus = 0;\n    char model[256] = \"?\";\n    while (f && fgets(buf, sizeof buf, f)) {\n        if (strncmp(buf, \"processor\", 9) == 0) cpus++;\n        if (strncmp(buf, \"model name\", 10) == 0 && model[0] == '?') {\n            char *c = strchr(buf, ':');\n            if (c) { strncpy(model, c + 2, sizeof model - 1); model[strcspn(model, \"\\n\")] = '\\0'; }\n        }\n    }\n    if (f) fclose(f);\n    printf(\"CPUs:          %d x %s\\n\", cpus, model);\n\n    /* ---- 3. every process: user program or kernel thread? ---- */\n    DIR *d = opendir(\"/proc\");\n    if (!d) { perror(\"/proc\"); return 1; }\n    struct dirent *e;\n    int users = 0, kthreads = 0, kchildren = 0;\n    struct proc first[8];\n    int nfirst = 0;\n    while ((e = readdir(d)) != NULL) {\n        if (!isdigit((unsigned char)e->d_name[0])) continue;      /* only the numbered folders are processes */\n        struct proc p;\n        if (read_stat(atoi(e->d_name), &p) != 0) continue;        /* it may have exited meanwhile */\n        /* TODO 4: a kernel thread has the PF_KTHREAD bit set in p.flags.\n         *         Count kernel threads (and those whose parent is PID 2) and user processes. */\n        users++;\n        if (nfirst < 8 && p.pid <= 8) first[nfirst++] = p;\n    }\n    closedir(d);\n    printf(\"Processes:     %d user processes, %d kernel threads (%d of them children of PID 2)\\n\", users, kthreads, kchildren);\n    for (int i = 0; i < nfirst; i++)                               /* readdir order is not sorted */\n        for (int j = i + 1; j < nfirst; j++)\n            if (first[j].pid < first[i].pid) { struct proc t = first[i]; first[i] = first[j]; first[j] = t; }\n    printf(\"\\n  PID  PPID  S  kind    name\\n\");\n    for (int i = 0; i < nfirst; i++)\n        printf(\"%5d %5d  %c  %-6s  %s\\n\", first[i].pid, first[i].ppid, first[i].state,\n               first[i].flags & PF_KTHREAD ? \"kernel\" : \"user\", first[i].comm);\n    return 0;\n}\n", "make_iso.sh": "#!/bin/sh\n# make_iso.sh - optional: put vmlinuz + initramfs.cpio.gz behind GRUB on a bootable CD image\n# needs grub-pc-bin and xorriso (apt), then: qemu-system-x86_64 -m 512 -nographic -no-reboot -cdrom cse4105.iso\nset -e\nrm -rf iso && mkdir -p iso/boot/grub\ncp vmlinuz iso/boot/vmlinuz && cp initramfs.cpio.gz iso/boot/initramfs.cpio.gz\ncat > iso/boot/grub/grub.cfg <<'CFG'\nserial --unit=0 --speed=115200\nterminal_input serial\nterminal_output serial\nset timeout=3\nmenuentry \"CSE 4105: Ubuntu kernel + our own init\" {\n    echo \"GRUB: loading the kernel...\"\n    linux  /boot/vmlinuz console=ttyS0 quiet panic=-1\n    echo \"GRUB: loading the initramfs...\"\n    initrd /boot/initramfs.cpio.gz\n}\nCFG\ngrub-mkrescue -o cse4105.iso iso\n", "mkinitramfs.sh": "#!/bin/sh\n# mkinitramfs.sh - pack ./init (and ./kinfo, if built with -static) into initramfs.cpio.gz\nset -e\nrm -rf rootfs && mkdir -p rootfs/proc rootfs/sys rootfs/dev rootfs/bin\ncp init rootfs/init\n[ -x kinfo_static ] && cp kinfo_static rootfs/bin/kinfo\ncd rootfs && find . | cpio -o -H newc 2>/dev/null | gzip > ../initramfs.cpio.gz\ncd .. && ls -l initramfs.cpio.gz\n", "myinit_starter.c": "/*\n * myinit.c - our own PID 1, the first user program the Linux kernel starts\n * CSE 4105 System Programming, Lab 7.2   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -static -o init myinit.c       (static: the initramfs has no C library to load)\n * Pack:   ./mkinitramfs.sh                          (puts init, and kinfo if present, into initramfs.cpio.gz)\n * Boot:   ./boot.sh                                 (QEMU with the Ubuntu kernel; output on this terminal)\n */\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/mount.h>\n#include <sys/reboot.h>\n#include <sys/wait.h>\n\nstatic void show(const char *label, const char *path)\n{\n    char line[512];\n    FILE *f = fopen(path, \"r\");\n    if (f && fgets(line, sizeof line, f)) printf(\"%-14s %s\", label, line);\n    if (f) fclose(f);\n}\n\nint main(int argc, char *argv[])\n{\n    (void)argc;\n    printf(\"\\n*** myinit: I am PID %d, started by the kernel as %s ***\\n\", getpid(), argv[0]);\n\n    /* 1. Nothing is mounted yet: /proc and /sys are empty folders until we mount them */\n    /* TODO 1: mount the proc file system on /proc and sysfs on /sys:\n     *         mount(\"proc\", \"/proc\", \"proc\", 0, NULL)   -- check the return value, perror on error.\n     *         Without it, the next lines print nothing: /proc is just an empty folder.            */\n\n    /* 2. Ask the kernel about this boot */\n    show(\"kernel:\", \"/proc/sys/kernel/osrelease\");\n    show(\"command line:\", \"/proc/cmdline\");\n    show(\"uptime (s):\", \"/proc/uptime\");\n\n    /* 3. Start another program, the way every process after PID 1 is born: fork, then exec */\n    /* TODO 2: if /bin/kinfo exists (access(..., X_OK) == 0):\n     *         fork(); in the child execv(\"/bin/kinfo\", args) and _exit(127) if execv returns;\n     *         in the parent waitpid() for the child and print its exit status (WEXITSTATUS).\n     *         (Lecture 8 explains fork and exec properly; here you just use them.)                 */\n\n    /* 4. PID 1 must never return: the kernel would panic (\"Attempted to kill init!\") */\n    printf(\"myinit: all done.\\n\");\n    /* TODO 3: first boot the starter as it is and read the kernel panic message.\n     *         Then: sync(); reboot(RB_POWER_OFF);  so PID 1 never returns.                      */\n    return 0;\n}\n"}, "stat": {"stat": [{"label": "PID 1 of the test machine", "line": "1 (process_api) S 0 0 0 0 -1 4194560 1935 263313 0 1249 29 145 228 166 20 0 7 0 25 23343104 1390 18446744073709551615 1 1 0 0 0 0 0 4096 1088 0 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0"}, {"label": "kthreadd, the parent of all kernel threads", "line": "2 (kthreadd) S 0 0 0 0 -1 2129984 0 0 0 0 0 0 0 0 20 0 1 0 25 0 0 18446744073709551615 0 0 0 0 0 0 0 2147483647 0 1 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0"}, {"label": "a kernel worker thread", "line": "10 (kworker/0:0H-events_highpri) I 2 0 0 0 -1 69238880 0 0 0 0 0 0 0 0 0 -20 1 0 26 0 0 18446744073709551615 0 0 0 0 0 0 0 2147483647 0 1 0 0 17 0 0 0 0 0 0 0 0 0 0 0 0 0 0"}, {"label": "cat reading its own stat", "line": "12286 (python3) R 12284 12286 12284 0 -1 4194560 1440 0 0 0 2 0 0 0 20 0 1 0 184961 17543168 2821 18446744073709551615 4325376 7450353 140737382213280 0 0 0 0 16781312 2 0 0 0 17 1 0 0 0 0 0 10137016 10728016 372023296 140737382220555 140737382220565 140737382220565 140737382244327 0"}], "meminfo": "MemTotal:        8222320 kB\nMemFree:         6743360 kB\nMemAvailable:    7641728 kB\nBuffers:          269588 kB\nCached:           802616 kB\nSwapCached:            0 kB\nActive:           354064 kB\nInactive:         950516 kB\nActive(anon):         28 kB\nInactive(anon):   246732 kB\nActive(file):     354036 kB\nInactive(file):   703784 kB\nUnevictable:        8612 kB\nMlocked:            8612 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:               144 kB\nWriteback:             0 kB\nAnonPages:        241196 kB\nMapped:           191388 kB\nShmem:             14392 kB\nKReclaimable:      98504 kB\nSlab:             123816 kB\nSReclaimable:      98504 kB\nSUnreclaim:        25312 kB\nKernelStack:        1516 kB\nPageTables:         2860 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:     4111160 kB\nCommitted_AS:     550100 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:        7576 kB\nVmallocChunk:          0 kB\nPercpu:              496 kB\nAnonHugePages:         0 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:     73728 kB\nFilePmdMapped:         0 kB\nBalloon:               0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:       20480 kB\nDirectMap2M:     2076672 kB\nDirectMap1G:     8388608 kB\n", "note": "recorded on a Linux 6.18 cloud test machine (2 CPUs, 8 GB RAM); its PID 1 is a small program called process_api, not systemd"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* tools.js - small, tested calculators used by the interactive labs (Lectures 1, 7-15).
+   Every constant comes from the Linux v6.8 source or the C/x86-64 ABI; see the lab pages for the files. */
+(function (root) {
+"use strict";
+const T = {};
+const hx = (v, w = 0) => (typeof v === "bigint" ? BigInt.asUintN(64, v) : BigInt(v >>> 0)).toString(16).padStart(w, "0");
+T.hx = hx;
+
+/* ---------------- Lecture 1: C types in memory (x86-64, LP64, little-endian) ---------------- */
+T.CTYPES = {
+  "char": { size: 1, signed: true, int: true }, "unsigned char": { size: 1, signed: false, int: true },
+  "short": { size: 2, signed: true, int: true }, "unsigned short": { size: 2, signed: false, int: true },
+  "int": { size: 4, signed: true, int: true }, "unsigned int": { size: 4, signed: false, int: true },
+  "long": { size: 8, signed: true, int: true }, "unsigned long": { size: 8, signed: false, int: true },
+  "float": { size: 4, int: false }, "double": { size: 8, int: false }, "pointer (void *)": { size: 8, signed: false, int: true }
+};
+/* bytes as C would store the value (integers wrap modulo 2^bits, like a conversion to that type) */
+T.cBytes = function (text, type) {
+  const t = T.CTYPES[type]; const n = t.size; const bytes = new Uint8Array(n);
+  let note = "";
+  if (t.int) {
+    let v;
+    const s = String(text).trim();
+    if (/^'.'$/.test(s)) v = BigInt(s.charCodeAt(1));
+    else if (/^[-+]?(0x[0-9a-f]+|\d+)$/i.test(s)) { const neg = s.startsWith("-"); v = BigInt(s.replace(/^[-+]/, "")); if (neg) v = -v; }
+    else throw new Error("type an integer, e.g. 1000, -1, 0x7f or 'A'");
+    const bits = BigInt(8 * n);
+    const u = BigInt.asUintN(8 * n, v);
+    const back = t.signed ? BigInt.asIntN(8 * n, v) : u;
+    if (back !== v) note = `does not fit in ${type}: C keeps the low ${8 * n} bits, so the variable holds ${back}`;
+    for (let i = 0; i < n; i++) bytes[i] = Number((u >> BigInt(8 * i)) & 0xffn);
+    return { bytes, value: back.toString(), note, bits: Number(bits) };
+  }
+  const x = Number(text);
+  if (String(text).trim() === "" || Number.isNaN(x) && !/^nan$/i.test(String(text).trim())) throw new Error("type a number, e.g. 3.5 or -0.1");
+  const dv = new DataView(new ArrayBuffer(8));
+  if (n === 4) { dv.setFloat32(0, x, true); for (let i = 0; i < 4; i++) bytes[i] = dv.getUint8(i); const back = dv.getFloat32(0, true); if (back !== x && !Number.isNaN(x)) note = `float cannot hold ${x} exactly: it stores ${back}`; return { bytes, value: String(back), note, bits: 32 }; }
+  dv.setFloat64(0, x, true); for (let i = 0; i < 8; i++) bytes[i] = dv.getUint8(i); return { bytes, value: String(dv.getFloat64(0, true)), note, bits: 64 };
+};
+T.ieee = function (bytes) {   // little-endian bytes of a float (4) or double (8)
+  const n = bytes.length; let bits = 0n;
+  for (let i = n - 1; i >= 0; i--) bits = (bits << 8n) | BigInt(bytes[i]);
+  const eb = n === 4 ? 8 : 11, mb = n === 4 ? 23 : 52, bias = n === 4 ? 127 : 1023;
+  const sign = Number(bits >> BigInt(eb + mb)), exp = Number((bits >> BigInt(mb)) & ((1n << BigInt(eb)) - 1n)), man = bits & ((1n << BigInt(mb)) - 1n);
+  return { sign, exp, expUnbiased: exp - bias, man, eb, mb, bias, kind: exp === 0 ? (man === 0n ? "zero" : "subnormal") : (exp === (1 << eb) - 1 ? (man === 0n ? "infinity" : "NaN") : "normal") };
+};
+
+/* ---------------- Lecture 7: /proc/<pid>/stat and process flags ---------------- */
+T.STAT_FIELDS = ["pid", "comm", "state", "ppid", "pgrp", "session", "tty_nr", "tpgid", "flags", "minflt", "cminflt", "majflt", "cmajflt", "utime", "stime", "cutime", "cstime", "priority", "nice", "num_threads", "itrealvalue", "starttime", "vsize", "rss", "rsslim", "startcode", "endcode", "startstack", "kstkesp", "kstkeip", "signal", "blocked", "sigignore", "sigcatch", "wchan", "nswap", "cnswap", "exit_signal", "processor", "rt_priority", "policy", "delayacct_blkio_ticks", "guest_time", "cguest_time", "start_data", "end_data", "start_brk", "arg_start", "arg_end", "env_start", "env_end", "exit_code"];
+T.STAT_HELP = { pid: "process ID", comm: "program name (in parentheses; may contain spaces)", state: "R running, S sleeping, D disk sleep, Z zombie, T stopped, I idle kernel thread", ppid: "parent's PID",
+  flags: "PF_* bits from include/linux/sched.h (decoded below)", minflt: "minor page faults", majflt: "major page faults (needed the disk)", utime: "CPU time in user mode, in clock ticks (usually 1/100 s)",
+  stime: "CPU time in kernel mode, in clock ticks", priority: "kernel priority (20 + nice for normal tasks)", nice: "nice value, -20 .. 19", num_threads: "threads in this process", starttime: "start time after boot, in clock ticks",
+  vsize: "virtual memory size in bytes", rss: "resident set size in pages", processor: "CPU it last ran on", policy: "0 SCHED_OTHER (CFS), 1 FIFO, 2 RR, 3 BATCH, 5 IDLE" };
+T.PF = [[0x1, "PF_VCPU"], [0x2, "PF_IDLE"], [0x4, "PF_EXITING"], [0x8, "PF_POSTCOREDUMP"], [0x10, "PF_IO_WORKER"], [0x20, "PF_WQ_WORKER"], [0x40, "PF_FORKNOEXEC"], [0x80, "PF_MCE_PROCESS"], [0x100, "PF_SUPERPRIV"], [0x200, "PF_DUMPCORE"], [0x400, "PF_SIGNALED"], [0x800, "PF_MEMALLOC"], [0x1000, "PF_NPROC_EXCEEDED"], [0x2000, "PF_USED_MATH"], [0x4000, "PF_USER_WORKER"], [0x8000, "PF_NOFREEZE"], [0x20000, "PF_KSWAPD"], [0x40000, "PF_MEMALLOC_NOFS"], [0x80000, "PF_MEMALLOC_NOIO"], [0x100000, "PF_LOCAL_THROTTLE"], [0x200000, "PF_KTHREAD"], [0x400000, "PF_RANDOMIZE"], [0x4000000, "PF_NO_SETAFFINITY"], [0x8000000, "PF_MCE_EARLY"], [0x10000000, "PF_MEMALLOC_PIN"], [0x80000000, "PF_SUSPEND_TASK"]];
+T.parseStat = function (line) {
+  line = line.trim();
+  const a = line.indexOf("("), b = line.lastIndexOf(")");
+  if (a < 0 || b < a) throw new Error("a /proc/<pid>/stat line looks like: 1 (systemd) S 0 1 1 0 -1 4194560 …");
+  const head = line.slice(0, a).trim(), comm = line.slice(a + 1, b), rest = line.slice(b + 1).trim().split(/\s+/);
+  const vals = [head, comm, ...rest];
+  const fields = vals.map((v, i) => ({ n: i + 1, name: T.STAT_FIELDS[i] || "field " + (i + 1), value: v, help: T.STAT_HELP[T.STAT_FIELDS[i]] || "" }));
+  const flags = Number(vals[8] || 0) >>> 0;
+  return { fields, flags, flagNames: T.PF.filter(([bit]) => (flags & bit) >>> 0).map(([, n]) => n), kthread: !!(flags & 0x200000) };
+};
+T.parseMeminfo = function (text) {
+  const m = {}; for (const l of text.split(/\n/)) { const r = l.match(/^(\w[\w()]*):\s+(\d+)/); if (r) m[r[1]] = Number(r[2]); }
+  return m;
+};
+
+/* ---------------- Lecture 8: fork trees and the CFS share ---------------- */
+T.forkTree = function (pattern, n) {
+  // pattern "loop": for (i = 0; i < n; i++) fork();     every process continues the loop
+  // "child": for (...) if (fork() != 0) break;   only the child goes on: a chain
+  // "parent": for (...) if (fork() == 0) break;  only the parent goes on: a fan
+  let next = 1; const nodes = [{ id: 1, parent: 0, born: -1 }];
+  function run(id, from) {
+    for (let i = from; i < n; i++) {
+      const child = ++next; nodes.push({ id: child, parent: id, born: i });
+      if (pattern === "loop") run(child, i + 1);
+      else if (pattern === "child") { run(child, i + 1); return; }
+      else if (pattern === "parent") { /* child breaks out of the loop */ }
+    }
+  }
+  run(1, 0);
+  return nodes;
+};
+T.WEIGHT = [88761, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916, 9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 1024, 820, 655, 526, 423, 335, 272, 215, 172, 137, 110, 87, 70, 56, 45, 36, 29, 23, 18, 15];
+T.weightOf = nice => T.WEIGHT[nice + 20];
+/* a simplified CFS on one CPU: run the task with the smallest vruntime for one tick (ms);
+   vruntime grows by tick * 1024 / weight. Returns the timeline and CPU shares. */
+T.cfs = function (tasks, ms) {
+  const st = tasks.map((t, i) => ({ ...t, i, vr: 0, ran: 0 }));
+  const timeline = [];
+  for (let t = 0; t < ms; t++) {
+    const ready = st.filter(x => (x.arrive || 0) <= t && (x.work === undefined || x.ran < x.work));
+    if (!ready.length) { timeline.push(-1); continue; }
+    const minv = Math.min(...ready.map(x => x.vr));
+    for (const x of st) if ((x.arrive || 0) === t && t > 0) x.vr = Math.max(x.vr, minv);   // a newcomer starts at the current minimum
+    let best = ready[0]; for (const x of ready) if (x.vr < best.vr - 1e-12) best = x;
+    best.vr += 1024 / T.weightOf(best.nice); best.ran++; timeline.push(best.i);
+  }
+  const total = st.reduce((s, x) => s + x.ran, 0) || 1;
+  return { timeline, tasks: st.map(x => ({ name: x.name, nice: x.nice, weight: T.weightOf(x.nice), ran: x.ran, share: x.ran / total, vr: x.vr })) };
+};
+
+/* ---------------- Lecture 9: system calls ---------------- */
+T.parseTbl = function (text) {
+  const rows = [];
+  for (const l of text.split("\n")) { const m = l.match(/^(\d+)\s+(\w+)\s+(\w+)(?:\s+(\S+))?/); if (m) rows.push({ nr: Number(m[1]), abi: m[2], name: m[3], entry: m[4] || "" }); }
+  return rows;
+};
+T.ARGREGS = ["rdi", "rsi", "rdx", "r10", "r8", "r9"];
+T.splitArgs = function (s) { const out = []; let cur = "", q = false, d = 0; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '"' && s[i - 1] !== "\\") q = !q; if (!q && (c === "(" || c === "[" || c === "{")) d++; if (!q && (c === ")" || c === "]" || c === "}")) d--; if (c === "," && !q && d === 0) { out.push(cur.trim()); cur = ""; } else cur += c; } if (cur.trim()) out.push(cur.trim()); return out; };
+T.parseStrace = function (line, table, errnos) {
+  const m = line.trim().match(/^(?:\[pid\s+\d+\]\s+)?(?:\d+\s+)?(\w+)\((.*)\)\s*=\s*(-?\w+|\?)(?:\s+(\w+)\s+\((.*)\))?/);
+  if (!m) throw new Error('paste one strace line, e.g.  write(1, "hi\\n", 3) = 3');
+  const [, name, args, ret, errName, errText] = m;
+  const row = table.find(r => r.name === name && r.abi !== "x32");
+  const a = T.splitArgs(args);
+  const regs = a.slice(0, 6).map((v, i) => ({ reg: T.ARGREGS[i], value: v }));
+  let rax;
+  if (ret === "?") rax = "(the call did not return)";
+  else if (ret === "-1" && errName) { const e = errnos.find(x => x.name === errName); rax = e ? `-${e.nr}  (the kernel returned −${errName}; libc stores ${e.nr} in errno and returns -1)` : "-1"; }
+  else rax = ret;
+  return { name, nr: row ? row.nr : null, abi: row ? row.abi : null, entry: row ? row.entry : "", regs, ret: rax, errName, errText };
+};
+
+/* ---------------- Lecture 10: pipes and signals ---------------- */
+T.SIGNALS = [[1, "SIGHUP", "terminate", "terminal hung up"], [2, "SIGINT", "terminate", "Ctrl-C"], [3, "SIGQUIT", "core", "Ctrl-\\"], [4, "SIGILL", "core", "illegal instruction"], [5, "SIGTRAP", "core", "breakpoint"], [6, "SIGABRT", "core", "abort()"], [7, "SIGBUS", "core", "bus error"], [8, "SIGFPE", "core", "divide by zero"], [9, "SIGKILL", "terminate", "cannot be caught, blocked or ignored"], [10, "SIGUSR1", "terminate", "for your programs"], [11, "SIGSEGV", "core", "bad memory access"], [12, "SIGUSR2", "terminate", "for your programs"], [13, "SIGPIPE", "terminate", "write to a pipe nobody reads"], [14, "SIGALRM", "terminate", "alarm()"], [15, "SIGTERM", "terminate", "kill's default"], [16, "SIGSTKFLT", "terminate", "unused"], [17, "SIGCHLD", "ignore", "a child stopped or exited"], [18, "SIGCONT", "continue", "continue a stopped process"], [19, "SIGSTOP", "stop", "cannot be caught, blocked or ignored"], [20, "SIGTSTP", "stop", "Ctrl-Z"], [21, "SIGTTIN", "stop", "background read from terminal"], [22, "SIGTTOU", "stop", "background write to terminal"], [23, "SIGURG", "ignore", "urgent socket data"], [24, "SIGXCPU", "core", "CPU time limit"], [25, "SIGXFSZ", "core", "file size limit"], [26, "SIGVTALRM", "terminate", "virtual timer"], [27, "SIGPROF", "terminate", "profiling timer"], [28, "SIGWINCH", "ignore", "window size changed"], [29, "SIGIO", "terminate", "I/O possible"], [30, "SIGPWR", "terminate", "power failure"], [31, "SIGSYS", "core", "bad system call"]];
+/* one step-based pipe: capacity bytes, a writer that wants `write` bytes per step, a reader `read` per step */
+T.pipeSim = function ({ capacity = 65536, total = 200000, wchunk = 4096, rchunk = 1024, rdelay = 0, closeReader = -1, steps = 400 }) {
+  let inPipe = 0, written = 0, readBytes = 0, wDone = false, rClosed = false; const log = [];
+  for (let t = 0; t < steps; t++) {
+    let w = "", r = "";
+    if (t === closeReader) { rClosed = true; r = "reader closes its end"; }
+    if (!wDone) {
+      if (rClosed) { w = "write() → SIGPIPE: the writer is killed (or gets EPIPE)"; wDone = true; }
+      else { const want = Math.min(wchunk, total - written), room = capacity - inPipe; if (room === 0) w = "write() blocks: pipe full"; else { const n = Math.min(want, room); inPipe += n; written += n; w = n < want ? `wrote ${n} of ${want} (pipe filled up)` : `wrote ${n}`; if (written >= total) { wDone = true; w += "; writer closes its end"; } } }
+    }
+    if (!rClosed && t >= rdelay) {
+      if (inPipe > 0) { const n = Math.min(rchunk, inPipe); inPipe -= n; readBytes += n; r = `read ${n}`; }
+      else if (wDone) { r = "read() returns 0: end of file"; rClosed = true; }
+      else r = "read() blocks: pipe empty";
+    }
+    log.push({ t, inPipe, written, read: readBytes, w, r });
+    if (wDone && rClosed) break;
+  }
+  return log;
+};
+
+/* ---------------- Lecture 11: addresses, pagemap, a heap ---------------- */
+T.splitVA = function (vaText) {
+  const s = vaText.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type a hex address, e.g. 0x7ffd3c2a1b40");
+  const va = BigInt("0x" + s);
+  if (va >> 64n) throw new Error("more than 64 bits");
+  const top = va >> 47n; const canonical = top === 0n || top === (1n << 17n) - 1n;
+  const idx = k => Number((va >> BigInt(12 + 9 * k)) & 511n);
+  return { va, canonical, half: (va >> 63n) ? "kernel half" : "user half", pml4: idx(3), pdpt: idx(2), pd: idx(1), pt: idx(0), off: Number(va & 4095n), vpn: va >> 12n, pagemapOffset: (va >> 12n) * 8n };
+};
+T.pagemap = function (text) {
+  const s = text.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type the 64-bit entry in hex, e.g. 0x8600000000123456");
+  const e = BigInt("0x" + s);
+  const bit = n => Number((e >> BigInt(n)) & 1n);
+  return { present: bit(63), swapped: bit(62), filePage: bit(61), exclusive: bit(56), softDirty: bit(55), pfn: e & ((1n << 55n) - 1n) };
+};
+/* the Lab 11.2 allocator (header 32 bytes, first fit, split, merge with next), on a simulated sbrk heap */
+T.Heap = class {
+  constructor(base = 0x5000) { this.base = base; this.brk = base; this.blocks = []; this.log = []; }
+  align16(n) { return (n + 15) & ~15; }
+  malloc(n) {
+    if (n <= 0) return null; n = this.align16(n);
+    let h = this.blocks.find(b => b.free && b.size >= n);
+    if (h) { h.free = false; this.split(h, n); this.log.push(`malloc: first fit reuses the block at +${h.addr - this.base}`); }
+    else { h = { addr: this.brk, size: n, free: false }; this.brk += 32 + n; this.blocks.push(h); this.log.push(`malloc: nothing fits → sbrk(${32 + n}), program break now +${this.brk - this.base}`); }
+    return h.addr + 32;
+  }
+  split(h, n) { if (h.size >= n + 32 + 32) { const rest = { addr: h.addr + 32 + n, size: h.size - n - 32, free: true }; this.blocks.splice(this.blocks.indexOf(h) + 1, 0, rest); h.size = n; this.log.push(`split: the unused ${rest.size} bytes become a new free block`); } }
+  free(p) {
+    const h = this.blocks.find(b => b.addr + 32 === p); if (!h) throw new Error("free() of a pointer that malloc did not return"); if (h.free) throw new Error("double free");
+    h.free = true; let i = this.blocks.indexOf(h);
+    while (i + 1 < this.blocks.length) { const nx = this.blocks[i + 1]; if (nx.free && nx.addr === h.addr + 32 + h.size) { h.size += 32 + nx.size; this.blocks.splice(i + 1, 1); this.log.push(`free: merged with the next free block, now ${h.size} bytes`); } else break; }
+  }
+};
+
+/* ---------------- Lecture 12: ext2 ---------------- */
+T.modeString = function (mode) {
+  const t = { 0o140000: "s", 0o120000: "l", 0o100000: "-", 0o060000: "b", 0o040000: "d", 0o020000: "c", 0o010000: "p" }[mode & 0o170000] || "?";
+  const r = (m, s) => ((mode & m) ? s : "-");
+  let p = r(0o400, "r") + r(0o200, "w") + ((mode & 0o4000) ? ((mode & 0o100) ? "s" : "S") : r(0o100, "x"));
+  p += r(0o40, "r") + r(0o20, "w") + ((mode & 0o2000) ? ((mode & 0o10) ? "s" : "S") : r(0o10, "x"));
+  p += r(0o4, "r") + r(0o2, "w") + ((mode & 0o1000) ? ((mode & 0o1) ? "t" : "T") : r(0o1, "x"));
+  return t + p;
+};
+T.blockPath = function (lblock, blockSize) {   // which pointer of the inode holds logical block lblock
+  const P = blockSize / 4;
+  if (lblock < 12) return { level: 0, path: [lblock], text: `i_block[${lblock}] (direct)` };
+  lblock -= 12;
+  if (lblock < P) return { level: 1, path: [12, lblock], text: `i_block[12] (single indirect) → entry ${lblock}` };
+  lblock -= P;
+  if (lblock < P * P) return { level: 2, path: [13, Math.floor(lblock / P), lblock % P], text: `i_block[13] (double indirect) → entry ${Math.floor(lblock / P)} → entry ${lblock % P}` };
+  lblock -= P * P;
+  return { level: 3, path: [14, Math.floor(lblock / (P * P)), Math.floor(lblock / P) % P, lblock % P], text: `i_block[14] (triple indirect) → ${Math.floor(lblock / (P * P))} → ${Math.floor(lblock / P) % P} → ${lblock % P}` };
+};
+T.fileBlocks = function (size, blockSize) {   // data blocks and pointer blocks a file of `size` bytes needs
+  const P = blockSize / 4, n = Math.ceil(size / blockSize);
+  let ind = 0; let rest = n - 12;
+  if (rest > 0) { ind += 1; rest -= P; }
+  if (rest > 0) { const k = Math.min(Math.ceil(rest / P), P); ind += 1 + k; rest -= P * P; }
+  if (rest > 0) { const k2 = Math.ceil(rest / P); ind += 1 + Math.ceil(k2 / P) + k2; }
+  return { data: n, pointer: ind, total: n + ind, maxDirect: 12 * blockSize, maxSingle: (12 + P) * blockSize, maxDouble: (12 + P + P * P) * blockSize };
+};
+T.Ext2 = class {
+  constructor(bytes) {
+    this.b = bytes; this.dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const d = this.dv, o = 1024;
+    if (bytes.length < 2048 || d.getUint16(o + 56, true) !== 0xEF53) throw new Error("not an ext2/3/4 image (no magic EF53 at byte 1080)");
+    this.sb = { inodes: d.getUint32(o, true), blocks: d.getUint32(o + 4, true), firstData: d.getUint32(o + 20, true), logBlock: d.getUint32(o + 24, true), blocksPerGroup: d.getUint32(o + 32, true), inodesPerGroup: d.getUint32(o + 40, true), magic: 0xEF53, rev: d.getUint32(o + 76, true), inodeSize: d.getUint32(o + 76, true) >= 1 ? d.getUint16(o + 88, true) : 128, freeBlocks: d.getUint32(o + 12, true), freeInodes: d.getUint32(o + 16, true), featIncompat: d.getUint32(o + 96, true) };
+    this.bs = 1024 << this.sb.logBlock;
+    this.groups = Math.ceil((this.sb.blocks - this.sb.firstData) / this.sb.blocksPerGroup);
+    this.gdt = (this.sb.firstData + 1) * this.bs;
+  }
+  u32(o) { return this.dv.getUint32(o, true); } u16(o) { return this.dv.getUint16(o, true); }
+  group(g) { const o = this.gdt + 32 * g; return { blockBitmap: this.u32(o), inodeBitmap: this.u32(o + 4), inodeTable: this.u32(o + 8), freeBlocks: this.u16(o + 12), freeInodes: this.u16(o + 14), dirs: this.u16(o + 16) }; }
+  inodeLoc(ino) { const g = Math.floor((ino - 1) / this.sb.inodesPerGroup), idx = (ino - 1) % this.sb.inodesPerGroup; const gd = this.group(g); const off = gd.inodeTable * this.bs + idx * this.sb.inodeSize; return { group: g, index: idx, table: gd.inodeTable, block: gd.inodeTable + Math.floor(idx * this.sb.inodeSize / this.bs), offset: off }; }
+  inode(ino) {
+    const L = this.inodeLoc(ino), o = L.offset;
+    const blocks = []; for (let i = 0; i < 15; i++) blocks.push(this.u32(o + 40 + 4 * i));
+    return { ino, loc: L, mode: this.u16(o), uid: this.u16(o + 2), size: this.u32(o + 4), links: this.u16(o + 26), sectors: this.u32(o + 28), flags: this.u32(o + 32), block: blocks, mtime: this.u32(o + 16) };
+  }
+  dataBlocks(inode, limit = 1 << 20) {   // logical order, follows indirect blocks
+    if (this.isFastSymlink(inode)) return { data: [], meta: [] };
+    const P = this.bs / 4, out = [], meta = [];
+    const need = Math.ceil(inode.size / this.bs);
+    const walk = (blk, level) => { if (out.length >= need || out.length >= limit) return; if (!blk) { return; } if (level === 0) { out.push(blk); return; } meta.push({ blk, level }); for (let i = 0; i < P && out.length < need; i++) walk(this.u32(blk * this.bs + 4 * i), level - 1); };
+    for (let i = 0; i < 12 && out.length < need; i++) walk(inode.block[i], 0);
+    walk(inode.block[12], 1); walk(inode.block[13], 2); walk(inode.block[14], 3);
+    return { data: out, meta };
+  }
+  isFastSymlink(inode) { return (inode.mode & 0o170000) === 0o120000 && inode.sectors === 0 && inode.size < 60; }
+  readlink(inode) { const o = inode.loc.offset + 40; return String.fromCharCode(...this.b.subarray(o, o + inode.size)); }
+  read(inode) { if (this.isFastSymlink(inode)) return new TextEncoder().encode(this.readlink(inode)); const { data } = this.dataBlocks(inode); const res = new Uint8Array(inode.size); data.forEach((blk, i) => { const n = Math.min(this.bs, inode.size - i * this.bs); res.set(this.b.subarray(blk * this.bs, blk * this.bs + n), i * this.bs); }); return res; }
+  dir(inode) {
+    const bytes = this.read(inode), dv = new DataView(bytes.buffer), out = [];
+    for (let o = 0; o + 8 <= bytes.length;) { const ino = dv.getUint32(o, true), rec = dv.getUint16(o + 4, true), nl = bytes[o + 6], ft = bytes[o + 7]; if (rec < 8) break; if (ino) out.push({ ino, name: String.fromCharCode(...bytes.subarray(o + 8, o + 8 + nl)), type: ft, rec, at: o }); o += rec; }
+    return out;
+  }
+  lookup(path) {
+    let ino = 2; const steps = [{ name: "/", ino: 2 }];
+    for (const part of path.split("/").filter(Boolean)) {
+      const ent = this.dir(this.inode(ino)).find(e => e.name === part);
+      if (!ent) throw new Error(`"${part}" not found in directory inode ${ino}`);
+      ino = ent.ino; steps.push({ name: part, ino });
+    }
+    return { ino, steps };
+  }
+};
+
+/* ---------------- Lecture 13: page-fault error code, /proc/interrupts ---------------- */
+T.PF_BITS = [[0, "P", "1: protection violation on a present page / 0: the page is not present"], [1, "W", "1: write access / 0: read access"], [2, "U", "1: user mode / 0: kernel (supervisor) mode"], [3, "RSVD", "a reserved bit was set in a page-table entry"], [4, "I", "instruction fetch"], [5, "PK", "protection-key violation"], [6, "SS", "shadow-stack access"], [15, "SGX", "SGX violation"]];
+T.decodePF = function (code) { return T.PF_BITS.map(([b, n, d]) => ({ bit: b, name: n, on: !!(code & (1 << b)), help: d })); };
+T.describePF = function (code) {
+  const p = code & 1, w = code & 2, u = code & 4, i = code & 16;
+  return `${u ? "user" : "kernel (supervisor)"} ${i ? "instruction fetch" : (w ? "write" : "read")} of ${p ? "a present page it may not access (protection)" : "a page that is not present"}`;
+};
+T.VECTORS = ["#DE divide error", "#DB debug", "NMI non-maskable interrupt", "#BP breakpoint (int3)", "#OF overflow", "#BR bound range", "#UD invalid opcode", "#NM device not available (FPU)", "#DF double fault", "coprocessor segment overrun (old)", "#TS invalid TSS", "#NP segment not present", "#SS stack segment fault", "#GP general protection", "#PF page fault", "(reserved)", "#MF x87 floating-point error", "#AC alignment check", "#MC machine check", "#XM SIMD floating-point", "#VE virtualization exception", "#CP control protection"];
+T.parseInterrupts = function (text) {
+  const lines = text.split("\n").filter(l => l.trim()); if (!lines.length) return { cpus: 0, rows: [] };
+  const cpus = (lines[0].match(/CPU\d+/g) || []).length; const rows = [];
+  for (const l of lines.slice(1)) {
+    const m = l.match(/^\s*([^:]+):\s*(.*)$/); if (!m) continue;
+    const parts = m[2].trim().split(/\s+/); const nums = [];
+    while (nums.length < cpus && parts.length && /^\d+$/.test(parts[0])) nums.push(Number(parts.shift()));
+    rows.push({ id: m[1].trim(), sum: nums.reduce((a, b) => a + b, 0), name: parts.join(" ") });
+  }
+  return { cpus, rows };
+};
+T.diffInterrupts = function (a, b, seconds) {
+  const A = T.parseInterrupts(a), B = T.parseInterrupts(b); const map = new Map(A.rows.map(r => [r.id, r]));
+  return B.rows.map(r => ({ ...r, delta: r.sum - (map.get(r.id) ? map.get(r.id).sum : 0), rate: (r.sum - (map.get(r.id) ? map.get(r.id).sum : 0)) / seconds })).filter(r => r.delta > 0).sort((x, y) => y.delta - x.delta);
+};
+
+/* ---------------- Lecture 14: relocation and taint ---------------- */
+T.reloc = function (S, A, P) {   // R_X86_64_PC32 / PLT32: the 32-bit value S + A - P
+  const v = BigInt.asUintN(64, S + A - P); const signed = BigInt.asIntN(64, S + A - P);
+  const fits = signed >= -(1n << 31n) && signed < (1n << 31n);
+  const v32 = BigInt.asUintN(32, signed); const bytes = []; for (let i = 0; i < 4; i++) bytes.push(Number((v32 >> BigInt(8 * i)) & 0xffn));
+  return { value: signed, v32, bytes, fits, target: P + 4n + BigInt.asIntN(32, v32) };
+};
+T.TAINT = [["P", "proprietary module loaded (G if all GPL)"], ["F", "module force-loaded"], ["S", "CPU out of specification"], ["R", "module force-removed"], ["M", "machine check exception"], ["B", "bad page"], ["U", "user asked for taint"], ["D", "kernel died (oops)"], ["A", "ACPI table overridden"], ["W", "a WARN() happened"], ["C", "staging driver loaded"], ["I", "firmware workaround"], ["O", "out-of-tree module loaded"], ["E", "unsigned module loaded"], ["L", "soft lockup"], ["K", "live patched"], ["X", "auxiliary taint (distribution)"], ["T", "built with randstruct"], ["N", "test module loaded"]];
+T.decodeTaint = function (v) { v = Number(v); return T.TAINT.map(([c, d], bit) => ({ bit, letter: (bit === 0 && !(v & 1)) ? "G" : c, on: !!(Math.floor(v / Math.pow(2, bit)) % 2), help: d })); };
+
+/* ---------------- Lecture 15: ioctl numbers, dev_t, open flags, sectors, USB ---------------- */
+T.ioctl = function (dir, type, nr, size) { return (((dir << 30) | (size << 16) | (type << 8) | nr) >>> 0); };
+T.ioctlDecode = function (n) { n = n >>> 0; const dir = n >>> 30; return { dir, dirName: ["_IO (none)", "_IOW (write: user → driver)", "_IOR (read: driver → user)", "_IOWR (both)"][dir], size: (n >>> 16) & 0x3fff, type: (n >>> 8) & 0xff, nr: n & 0xff }; };
+T.mkdev = (ma, mi) => (((ma << 20) | mi) >>> 0);
+T.OFLAGS = [[0o100, "O_CREAT"], [0o200, "O_EXCL"], [0o400, "O_NOCTTY"], [0o1000, "O_TRUNC"], [0o2000, "O_APPEND"], [0o4000, "O_NONBLOCK"], [0o10000, "O_DSYNC"], [0o20000, "O_ASYNC"], [0o40000, "O_DIRECT"], [0o100000, "O_LARGEFILE"], [0o200000, "O_DIRECTORY"], [0o400000, "O_NOFOLLOW"], [0o1000000, "O_NOATIME"], [0o2000000, "O_CLOEXEC"], [0o4010000, "O_SYNC"], [0o10000000, "O_PATH"], [0o20200000, "O_TMPFILE"]];
+T.openFlags = function (v) {
+  v = v >>> 0; const acc = ["O_RDONLY", "O_WRONLY", "O_RDWR", "(3: invalid)"][v & 3]; const names = [acc]; let rest = v & ~3;
+  for (const [bit, n] of T.OFLAGS.slice().sort((a, b) => b[0] - a[0])) if ((rest & bit) === bit && bit) { names.push(n); rest &= ~bit; }
+  if (rest) names.push("0x" + rest.toString(16) + " (unknown)");
+  return names;
+};
+T.sectors = function (offset, length) { return { first: Math.floor(offset / 512), count: Math.ceil((offset % 512 + length) / 512), aligned: offset % 512 === 0 && length % 512 === 0, page: Math.floor(offset / 4096) }; };
+T.USAGE = (() => { const m = { 0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Space", 0x2d: "-", 0x2e: "=", 0x2f: "[", 0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock", 0x4f: "Right", 0x50: "Left", 0x51: "Down", 0x52: "Up" }; for (let i = 0; i < 26; i++) m[4 + i] = String.fromCharCode(97 + i); for (let i = 0; i < 9; i++) m[0x1e + i] = String(i + 1); m[0x27] = "0"; for (let i = 0; i < 12; i++) m[0x3a + i] = "F" + (i + 1); return m; })();
+T.MODS = ["Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", "Right GUI"];
+T.kbdReport = function (bytes) {
+  const mods = T.MODS.filter((_, i) => bytes[0] & (1 << i)); const keys = bytes.slice(2, 8).filter(k => k);
+  return { mods, keys: keys.map(k => ({ code: k, name: k === 1 ? "ErrorRollOver" : (T.USAGE[k] || "usage 0x" + k.toString(16)) })) };
+};
+T.mouseReport = function (bytes) { const s = v => (v & 0x80 ? v - 256 : v); return { left: !!(bytes[0] & 1), right: !!(bytes[0] & 2), middle: !!(bytes[0] & 4), dx: s(bytes[1] || 0), dy: s(bytes[2] || 0), wheel: s(bytes[3] || 0) }; };
+T.modalias = function (s) {
+  const m = s.trim().match(/^usb:v([0-9A-F]{4})p([0-9A-F]{4})d([0-9A-F]{4})dc([0-9A-F]{2})dsc([0-9A-F]{2})dp([0-9A-F]{2})ic([0-9A-F]{2})isc([0-9A-F]{2})ip([0-9A-F]{2})in([0-9A-F]{2})$/i);
+  if (!m) throw new Error("a USB modalias looks like usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00");
+  const k = ["vendor", "product", "bcdDevice", "devClass", "devSubClass", "devProtocol", "ifClass", "ifSubClass", "ifProtocol", "ifNumber"]; const o = {}; k.forEach((n, i) => { o[n] = m[i + 1].toUpperCase(); }); return o;
+};
+T.USBCLASS = { "00": "defined per interface", "01": "audio", "02": "communications", "03": "HID (keyboard, mouse …)", "07": "printer", "08": "mass storage", "09": "hub", "0A": "CDC data", "0E": "video", "E0": "wireless", "EF": "miscellaneous", "FF": "vendor specific" };
+
+if (typeof module !== "undefined" && module.exports) module.exports = T; else root.TOOLS = T;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 7: decode what kinfo reads: /proc/<pid>/stat (with the PF_* flags) and /proc/meminfo */
+TOOLS_UI.push({
+  id: "stat", title: "/proc/<pid>/stat",
+  build(p, D) {
+    const { el, esc } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">Paste a line from <code>cat /proc/PID/stat</code> on your PC, or pick a real sample (${esc(D.stat.note)}).</p>
+<div class="chips" id="smp7"></div>
+<textarea id="t7" style="min-height:70px;margin-top:8px" spellcheck="false" aria-label="stat line"></textarea>
+<p id="e7" class="err"></p>
+<div class="grid2"><div><h3>What TODO 3 and TODO 4 need</h3><div id="sum7"></div><h3 style="margin-top:12px">flags, bit by bit</h3><div class="chips" id="pf7"></div></div>
+<div><h3>All fields</h3><div class="scroll" style="max-height:440px;overflow:auto"><table class="t" id="all7"></table></div></div></div>
+<p class="note small">Why kinfo cuts after the <b>last</b> <code>')'</code>: the program name can contain spaces and even ')' (try <code>cp /bin/sleep './a) b' &amp;&amp; './a) b' 100 &amp;</code>). Everything after it is separated by single spaces.</p>`;
+    const $ = s => p.querySelector(s);
+    D.stat.stat.forEach(s => { const b = el("button", { class: "chip", type: "button", text: s.label }); b.addEventListener("click", () => { $("#t7").value = s.line; go(); }); $("#smp7").appendChild(b); });
+    function go() {
+      $("#e7").textContent = ""; let r;
+      try { r = T.parseStat($("#t7").value); } catch (x) { $("#e7").textContent = x.message; return; }
+      const f = n => (r.fields.find(x => x.name === n) || {}).value;
+      $("#sum7").innerHTML = `<table class="t"><tr><th>field</th><th>value</th><th>meaning</th></tr>
+${["pid", "comm", "state", "ppid", "flags", "nice", "num_threads", "utime", "stime", "vsize", "rss"].map(n => `<tr><td class="mono">${n}</td><td class="mono">${esc(f(n) || "")}</td><td class="small">${esc(T.STAT_HELP[n] || "")}</td></tr>`).join("")}</table>
+<p class="${r.kthread ? "ok" : ""}" style="margin-top:8px">flags = ${r.flags} = 0x${r.flags.toString(16)} → ${r.kthread ? "<b>kernel thread</b> (PF_KTHREAD 0x200000 is set)" : "<b>user process</b> (PF_KTHREAD is not set)"}${f("vsize") === "0" ? "; vsize 0: a kernel thread has no user address space" : ""}</p>`;
+      $("#pf7").innerHTML = "";
+      T.PF.forEach(([bit, name]) => $("#pf7").appendChild(el("span", { class: "chip" + ((r.flags & bit) >>> 0 ? " on" : ""), title: "0x" + bit.toString(16), text: `${name} 0x${bit.toString(16)}` })));
+      const t = $("#all7"); t.innerHTML = "<tr><th>#</th><th>name</th><th>value</th></tr>";
+      r.fields.forEach(x => t.appendChild(el("tr", {}, el("td", { text: String(x.n) }), el("td", { class: "mono", text: x.name, title: x.help }), el("td", { class: "mono", text: x.value }))));
+    }
+    $("#t7").addEventListener("input", go);
+    $("#t7").value = D.stat.stat[1].line; go();
+  }
+});
+TOOLS_UI.push({
+  id: "meminfo", title: "/proc/meminfo",
+  build(p, D) {
+    const { el } = L, T = TOOLS;
+    const HELP = { MemTotal: "all RAM the kernel can use (a little less than installed: the kernel image and reserved memory are not counted)", MemFree: "RAM nobody uses at all", MemAvailable: "what a new program could get without swapping: free + caches that can be dropped (the number to watch)", Buffers: "cache of raw disk blocks (metadata)", Cached: "page cache: file contents kept in RAM", SwapTotal: "swap space", SwapFree: "unused swap", AnonPages: "memory of processes not backed by a file (heap, stack)", Mapped: "files mapped into processes (programs, libraries)", Shmem: "shared memory and tmpfs", Slab: "the kernel's own object caches (Lecture 11.2)", KernelStack: "one kernel stack per thread", PageTables: "the page tables themselves (Lecture 11.1)", Dirty: "cached file data changed but not yet written to disk", Committed_AS: "memory promised to processes (overcommit)", HugePages_Total: "reserved huge pages" };
+    p.innerHTML = `<p class="small">This is what TODO 2 reads with <code>sscanf</code>. Paste <code>cat /proc/meminfo</code> from your PC, or use the real sample.</p>
+<textarea id="t7m" spellcheck="false" aria-label="meminfo text"></textarea>
+<div id="bar7" style="margin-top:12px"></div>
+<div class="scroll" style="margin-top:12px"><table class="t" id="m7"></table></div>`;
+    const $ = s => p.querySelector(s);
+    function go() {
+      const m = T.parseMeminfo($("#t7m").value);
+      const t = $("#m7"); t.innerHTML = "<tr><th>line</th><th>kB</th><th>MiB</th><th>meaning</th></tr>";
+      Object.keys(HELP).filter(k => k in m).forEach(k => t.appendChild(el("tr", {}, el("td", { class: "mono", text: k + ":" }), el("td", { class: "mono", text: String(m[k]) }), el("td", { class: "mono", text: (m[k] / 1024).toFixed(1) }), el("td", { class: "small", text: HELP[k] }))));
+      const b = $("#bar7"); b.innerHTML = "";
+      if (m.MemTotal) {
+        const used = m.MemTotal - m.MemFree - (m.Buffers || 0) - (m.Cached || 0);
+        const segs = [["used by programs and kernel", used, "var(--accent)"], ["buffers + page cache", (m.Buffers || 0) + (m.Cached || 0), "var(--teal)"], ["free", m.MemFree, "var(--line)"]];
+        const bar = el("div", { style: "display:flex;height:22px;border-radius:4px;overflow:hidden" });
+        segs.forEach(([n, v, c]) => bar.appendChild(el("div", { title: n, style: `width:${Math.max(0, 100 * v / m.MemTotal)}%;background:${c}` })));
+        b.appendChild(bar);
+        b.appendChild(el("p", { class: "small", html: segs.map(([n, v, c]) => `<span style="display:inline-block;width:10px;height:10px;background:${c};border-radius:2px"></span> ${n}: ${(v / 1048576).toFixed(2)} GiB`).join(" · ") + (m.MemAvailable ? `<br>MemAvailable ${(m.MemAvailable / 1048576).toFixed(2)} GiB is more than MemFree: the kernel can drop clean cache when a program needs RAM.` : "") }));
+      }
+    }
+    $("#t7m").addEventListener("input", go); $("#t7m").value = D.stat.meminfo; go();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 2 · Machine and Assembly Language</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 2: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part{scroll-margin-top:12px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 2</div>
+<h1>Machine and Assembly Language</h1>
+<p>Your first nasm programs; reading the assembly gcc makes from C.</p>
+<nav class="navlinks" aria-label="Lab links"><a href="../index.html">All lectures</a><a href="../present/lecture_02.html">Present 2</a><a href="lab02_files.zip">Download the lab files (3 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-2">
+<div class="phead"><h3>Lab 2 <span class="dim">· Machine and Assembly Language</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_02.html">Present lecture 2</a>
+<a class="btn" href="../slides/lecture_02.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>Hand-assemble</b><br>Encode LDA ALPHA, STCH BUFFER,X and TIX MAXLEN (ALPHA = 1033, BUFFER = 1039, MAXLEN = 1036). Show all six steps.</li>
+<li><b>Trace on paper</b><br>Trace Program 2 (string copy) with the string &quot;CAT&quot; and FIVE replaced by THREE. Write X, A and CC after every instruction.</li>
+<li><b>Read gcc output</b><br>gcc -O0 -S sumto.c. Mark which lines are s = 0, i = 1, i &lt;= n, s += i, i++. Repeat with -masm=intel.</li>
+<li><b>Build hello.asm</b><br>Type it, build with nasm and ld, run it. Change the message. Run strace and count the calls.</li>
+<li><b>Build sum.asm</b><br>Change it to add 1 … 20. Check the answer with echo $?. Step through two rounds in gdb.</li>
+<li><b>Break it on purpose</b><br>Remove the exit syscall, then global _start. Record each message and explain it in one sentence.</li>
+</ol>
+<p class="warn">Submit: your lab notebook with commands, outputs, the trace table from task 2, and one sentence per task.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab02_files.zip">lab02_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab02_files.zip">Download lab02_files.zip (3 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab01.html">← Lab 1</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab03.html">Lab 3 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 2, "readme": "CSE 4105 System Programming - Lab 2 files\nMd Mahbub E Noor, University of Barishal\n\nhello.asm         Program 4: hello world with only system calls (slide 28)\nsum.asm           Program 5: 1 + 2 + ... + 10, result as exit status (slide 29)\nsumto.c, maxab.c  C functions to compile with  gcc -O0 -S  (slides 26, lab task 3)\nabsval.c          for homework task 4\nsic_programs.txt  the SIC programs from slides 5, 14, 15 and 17\n\nBuild and run an assembly program:\n    nasm -f elf64 hello.asm -o hello.o\n    ld hello.o -o hello\n    ./hello\n\nSee gcc's assembly for a C file:\n    gcc -O0 -S maxab.c               (AT&T syntax, like gcc prints)\n    gcc -O0 -S -masm=intel maxab.c   (Intel syntax, like nasm)\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 2 files\nMd Mahbub E Noor, University of Barishal\n\nhello.asm         Program 4: hello world with only system calls (slide 28)\nsum.asm           Program 5: 1 + 2 + ... + 10, result as exit status (slide 29)\nsumto.c, maxab.c  C functions to compile with  gcc -O0 -S  (slides 26, lab task 3)\nabsval.c          for homework task 4\nsic_programs.txt  the SIC programs from slides 5, 14, 15 and 17\n\nBuild and run an assembly program:\n    nasm -f elf64 hello.asm -o hello.o\n    ld hello.o -o hello\n    ./hello\n\nSee gcc's assembly for a C file:\n    gcc -O0 -S maxab.c               (AT&T syntax, like gcc prints)\n    gcc -O0 -S -masm=intel maxab.c   (Intel syntax, like nasm)\n", "absval.c": "int abs_val(int n)\n{\n    if (n < 0)\n        return -n;\n    return n;\n}\n", "hello.asm": "; hello.asm - print a message using only system calls (no C library)\n        global  _start\n\n        section .data\nmsg:    db      \"Hello from assembly!\", 10    ; 10 = newline\nlen:    equ     $ - msg                       ; length = here - start of msg\n\n        section .text\n_start:\n        mov     rax, 1          ; system call 1 = write\n        mov     rdi, 1          ; file descriptor 1 = standard output\n        mov     rsi, msg        ; address of the text\n        mov     rdx, len        ; number of bytes\n        syscall                 ; ask the kernel to do it\n\n        mov     rax, 60         ; system call 60 = exit\n        mov     rdi, 0          ; exit status 0\n        syscall\n", "maxab.c": "int max(int a, int b)\n{\n    if (a > b)\n        return a;\n    else\n        return b;\n}\n", "sic_programs.txt": "CSE 4105 System Programming - Lecture 2 SIC programs\n(assemble by hand or with sic.py; addresses in hex)\n\n============================================================\nSlide 5  - beta = alpha + incr - 1\n============================================================\nASSIGN   START   1000\n         LDA     ALPHA\n         ADD     INCR\n         SUB     ONE\n         STA     BETA\nHALT     J       HALT\nALPHA    WORD    20\nINCR     WORD    5\nONE      WORD    1\nBETA     RESW    1\n         END     ASSIGN\n\n============================================================\nSlide 14 - Program 1: if-else (max)\n============================================================\nMAXPRG   START   1000\n         LDA     NUMA\n         COMP    NUMB\n         JGT     ABIG\n         LDA     NUMB\nABIG     STA     MAX\nHALT     J       HALT\nNUMA     WORD    17\nNUMB     WORD    42\nMAX      RESW    1\n         END     MAXPRG\n\n============================================================\nSlide 15 - Program 2: for-loop string copy\n============================================================\nCOPY     START   1000\n         LDX     ZERO\nMOVECH   LDCH    STR1,X\n         STCH    STR2,X\n         TIX     FIVE\n         JLT     MOVECH\nHALT     J       HALT\nSTR1     BYTE    C'HELLO'\nSTR2     RESB    5\nZERO     WORD    0\nFIVE     WORD    5\n         END     COPY\n\n============================================================\nSlide 17 - Program 3: JSUB / RSUB (square)\n============================================================\nSQPRG    START   1000\n         LDA     NUM1\n         JSUB    SQUARE\n         STA     RES1\n         LDA     NUM2\n         JSUB    SQUARE\n         STA     RES2\nHALT     J       HALT\nSQUARE   STA     TEMP\n         MUL     TEMP\n         RSUB\nNUM1     WORD    7\nNUM2     WORD    12\nRES1     RESW    1\nRES2     RESW    1\nTEMP     RESW    1\n         END     SQPRG\n", "sum.asm": "; sum.asm - add 1 + 2 + ... + 10 and return the result as the exit status\n        global  _start\n\n        section .text\n_start:\n        mov     ecx, 1          ; i = 1\n        mov     eax, 0          ; s = 0\nloop:\n        add     eax, ecx        ; s = s + i\n        inc     ecx             ; i++\n        cmp     ecx, 10         ; compare i with 10\n        jle     loop            ; if i <= 10, go back to loop\n\n        mov     edi, eax        ; exit status = s\n        mov     eax, 60         ; system call 60 = exit\n        syscall\n", "sumto.c": "int sum_to(int n)\n{\n    int s = 0;\n    for (int i = 1; i <= n; i++)\n        s += i;\n    return s;\n}\n"}, "programs": "CSE 4105 System Programming - Lecture 2 SIC programs\n(assemble by hand or with sic.py; addresses in hex)\n\n============================================================\nSlide 5  - beta = alpha + incr - 1\n============================================================\nASSIGN   START   1000\n         LDA     ALPHA\n         ADD     INCR\n         SUB     ONE\n         STA     BETA\nHALT     J       HALT\nALPHA    WORD    20\nINCR     WORD    5\nONE      WORD    1\nBETA     RESW    1\n         END     ASSIGN\n\n============================================================\nSlide 14 - Program 1: if-else (max)\n============================================================\nMAXPRG   START   1000\n         LDA     NUMA\n         COMP    NUMB\n         JGT     ABIG\n         LDA     NUMB\nABIG     STA     MAX\nHALT     J       HALT\nNUMA     WORD    17\nNUMB     WORD    42\nMAX      RESW    1\n         END     MAXPRG\n\n============================================================\nSlide 15 - Program 2: for-loop string copy\n============================================================\nCOPY     START   1000\n         LDX     ZERO\nMOVECH   LDCH    STR1,X\n         STCH    STR2,X\n         TIX     FIVE\n         JLT     MOVECH\nHALT     J       HALT\nSTR1     BYTE    C'HELLO'\nSTR2     RESB    5\nZERO     WORD    0\nFIVE     WORD    5\n         END     COPY\n\n============================================================\nSlide 17 - Program 3: JSUB / RSUB (square)\n============================================================\nSQPRG    START   1000\n         LDA     NUM1\n         JSUB    SQUARE\n         STA     RES1\n         LDA     NUM2\n         JSUB    SQUARE\n         STA     RES2\nHALT     J       HALT\nSQUARE   STA     TEMP\n         MUL     TEMP\n         RSUB\nNUM1     WORD    7\nNUM2     WORD    12\nRES1     RESW    1\nRES2     RESW    1\nTEMP     RESW    1\n         END     SQPRG\n"}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* sicxe.js - SIC and SIC/XE two-pass assembler, relocating loader and simulator for the CSE 4105 labs.
+   A line-by-line port of the course's reference sicxe.py (Beck, System Software, Ch. 2-3); tested to give
+   identical listings, object programs and memory images on every lab program. */
+(function (root) {
+"use strict";
+const OPTAB = {
+  ADD: [3, 0x18], ADDF: [3, 0x58], ADDR: [2, 0x90], AND: [3, 0x40], CLEAR: [2, 0xB4],
+  COMP: [3, 0x28], COMPF: [3, 0x88], COMPR: [2, 0xA0], DIV: [3, 0x24], DIVF: [3, 0x64],
+  DIVR: [2, 0x9C], FIX: [1, 0xC4], FLOAT: [1, 0xC0], HIO: [1, 0xF4], J: [3, 0x3C],
+  JEQ: [3, 0x30], JGT: [3, 0x34], JLT: [3, 0x38], JSUB: [3, 0x48], LDA: [3, 0x00],
+  LDB: [3, 0x68], LDCH: [3, 0x50], LDF: [3, 0x70], LDL: [3, 0x08], LDS: [3, 0x6C],
+  LDT: [3, 0x74], LDX: [3, 0x04], LPS: [3, 0xD0], MUL: [3, 0x20], MULF: [3, 0x60],
+  MULR: [2, 0x98], NORM: [1, 0xC8], OR: [3, 0x44], RD: [3, 0xD8], RMO: [2, 0xAC],
+  RSUB: [3, 0x4C], SHIFTL: [2, 0xA4], SHIFTR: [2, 0xA8], SIO: [1, 0xF0], SSK: [3, 0xEC],
+  STA: [3, 0x0C], STB: [3, 0x78], STCH: [3, 0x54], STF: [3, 0x80], STI: [3, 0xD4],
+  STL: [3, 0x14], STS: [3, 0x7C], STSW: [3, 0xE8], STT: [3, 0x84], STX: [3, 0x10],
+  SUB: [3, 0x1C], SUBF: [3, 0x5C], SUBR: [2, 0x94], SVC: [2, 0xB0], TD: [3, 0xE0],
+  TIO: [1, 0xF8], TIX: [3, 0x2C], TIXR: [2, 0xB8], WD: [3, 0xDC]
+};
+const REGS = { A: 0, X: 1, L: 2, B: 3, S: 4, T: 5, F: 6, PC: 8, SW: 9 };
+class AsmError extends Error {}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n, "0");
+const isDigits = t => /^\d+$/.test(t);
+
+function parseLine(raw) {
+  const line = raw.replace(/\n$/, "");
+  if (!line.trim() || line.trimStart().startsWith(".")) return null;
+  let m, label, op, operand;
+  if (line[0] === " " || line[0] === "\t") {
+    m = line.match(/^\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = null; op = m[1]; operand = m[2] === undefined ? null : m[2];
+  } else {
+    m = line.match(/^(\S+)\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = m[1]; op = m[2]; operand = m[3] === undefined ? null : m[3];
+  }
+  const U = op.toUpperCase();
+  if (U.replace(/^\+/, "") === "RSUB" || U === "LTORG" || U === "NOBASE") operand = null;
+  return [label, U, operand];
+}
+function constBytes(c) {
+  if (c.startsWith("C'")) return Array.from(c.slice(2, -1)).map(ch => ch.charCodeAt(0));
+  if (c.startsWith("X'")) { const h = c.slice(2, -1); const out = []; for (let i = 0; i < h.length; i += 2) out.push(parseInt(h.substr(i, 2), 16)); return out; }
+  throw new AsmError("bad constant " + c);
+}
+const bytesHex = b => b.map(x => hex(x, 2)).join("");
+
+class Line {
+  constructor(src, label, op, operand, lineno) {
+    Object.assign(this, { src, label, op, operand, lineno, loc: null, block: 0, addr: null, size: 0, code: "", note: "", isLiteral: false });
+  }
+}
+class Section {
+  constructor(name) {
+    Object.assign(this, { name, symtab: {}, littab: {}, pendingLits: [], blocks: ["(default)"], blockLoc: [0], blockStart: [0],
+      extdef: [], extref: [], lines: [], start: 0, length: 0, records: [], curBlock: 0, mods: [] });
+  }
+}
+
+class Assembler {
+  constructor(src, xe = true) { this.src = src; this.xe = xe; this.sections = []; this.pass1Trace = []; this.pass2Trace = []; }
+  evalExpr(expr, sec, hereBlock, hereLoc, allowExt = false) {
+    const tokens = expr.match(/[+\-*/]|[A-Za-z_$][\w$]*|\d+|\*/g) || [];
+    let val = 0, rel = 0, ext = [], sign = 1, expectTerm = true, opMul = null;
+    for (const t of tokens) {
+      if (expectTerm) {
+        if (t === "-") { sign = -sign; continue; }
+        if (t === "+") continue;
+        let v, r;
+        if (t === "*") { v = this.addrOf(sec, hereBlock, hereLoc); r = 1; }
+        else if (isDigits(t)) { v = parseInt(t, 10); r = 0; }
+        else if (t in sec.symtab) { const [b, off, kind] = sec.symtab[t]; v = kind === "R" ? this.addrOf(sec, b, off) : off; r = kind === "R" ? 1 : 0; }
+        else if (sec.extref.includes(t) && allowExt) { ext.push([sign > 0 ? "+" : "-", t]); v = 0; r = 0; }
+        else throw new AsmError("undefined symbol " + t);
+        if (opMul) { if (r) throw new AsmError("relative term in multiply/divide"); val = opMul === "*" ? val * v : Math.floor(val / v); opMul = null; }
+        else { val += sign * v; rel += sign * r; }
+        sign = 1; expectTerm = false;
+      } else {
+        if (t === "+" || t === "-") sign = t === "+" ? 1 : -1;
+        else if (t === "*" || t === "/") opMul = t;
+        expectTerm = true;
+      }
+    }
+    if (rel !== 0 && rel !== 1) throw new AsmError(`expression ${expr} is not absolute or relative`);
+    return [val, rel === 1 ? "R" : "A", ext];
+  }
+  addrOf(sec, block, off) { return sec.blockStart[block] + off; }
+  pass1() {
+    let sec = null;
+    const lines = this.src.split(/\r?\n/);
+    lines.forEach((raw, idx) => {
+      const n = idx + 1;
+      const p = parseLine(raw);
+      if (p === null) return;
+      const [label, op, operand] = p;
+      if (op === "START") {
+        sec = new Section(label || ""); this.sections.push(sec);
+        sec.start = operand ? parseInt(operand, 16) : 0; sec.blockLoc[0] = sec.start;
+        const ln = new Line(raw, label, op, operand, n); ln.loc = sec.start; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: sec.start, action: `LOCCTR ← ${hex(sec.start, 4)}` });
+        return;
+      }
+      if (sec === null) { sec = new Section(""); this.sections.push(sec); }
+      if (op === "CSECT") {
+        this.flushLiterals(sec);
+        sec = new Section(label); this.sections.push(sec);
+        const ln = new Line(raw, label, op, operand, n); ln.loc = 0; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: 0, action: `new control section ${label}: LOCCTR ← 0000` });
+        return;
+      }
+      const cb = sec.curBlock;
+      const loc = sec.blockLoc[cb];
+      const ln = new Line(raw, label, op, operand, n);
+      ln.loc = loc; ln.block = cb; sec.lines.push(ln);
+      const action = [];
+      if (op === "USE") {
+        const name = operand || "(default)";
+        if (!sec.blocks.includes(name)) { sec.blocks.push(name); sec.blockLoc.push(0); sec.blockStart.push(0); }
+        sec.curBlock = sec.blocks.indexOf(name);
+        ln.loc = sec.blockLoc[sec.curBlock]; ln.block = sec.curBlock;
+        this.pass1Trace.push({ line: ln, locctr: ln.loc, action: `switch to block ${name}` });
+        return;
+      }
+      if (label && !["EQU", "EXTDEF", "EXTREF"].includes(op)) {
+        if (label in sec.symtab) throw new AsmError(`duplicate symbol ${label}`);
+        sec.symtab[label] = [cb, loc, "R"];
+        action.push(`SYMTAB ← ${label} = ${hex(loc, 4)}`);
+      }
+      const base = op.replace(/^\+/, "");
+      let size;
+      if (base in OPTAB) {
+        const fmt = OPTAB[base][0];
+        size = !this.xe ? 3 : (op.startsWith("+") ? 4 : fmt);
+        if (operand && operand.startsWith("=")) {
+          if (!(operand in sec.littab) && !sec.pendingLits.includes(operand)) { sec.pendingLits.push(operand); action.push(`LITTAB ← ${operand} (address later)`); }
+        }
+      } else if (op === "WORD") size = 3;
+      else if (op === "RESW") size = 3 * parseInt(operand, 10);
+      else if (op === "RESB") size = parseInt(operand, 10);
+      else if (op === "BYTE") size = constBytes(operand).length;
+      else if (op === "EQU") {
+        let v, kind;
+        if (operand.trim() === "*") { v = loc; kind = "R"; sec.symtab[label] = [cb, loc, "R"]; }
+        else {
+          try { [v, kind] = this.evalExpr(operand, sec, cb, loc); }
+          catch (ex) { const hint = /undefined/.test(ex.message) ? " (EQU needs every symbol defined earlier)" : ""; throw new AsmError(`line ${n}: ${ex.message}${hint}`); }
+          if (kind === "R") sec.symtab[label] = [0, v - sec.blockStart[0], "R"]; else sec.symtab[label] = [cb, v, "A"];
+        }
+        action.push(`SYMTAB ← ${label} = ${hex(v, 4)} (${kind === "R" ? "relative" : "absolute"})`);
+        size = 0;
+      } else if (op === "ORG") {
+        if (operand) { const [v] = this.evalExpr(operand, sec, cb, loc); sec.savedOrg = sec.blockLoc[cb]; sec.blockLoc[cb] = v; }
+        else sec.blockLoc[cb] = sec.savedOrg;
+        this.pass1Trace.push({ line: ln, locctr: loc, action: `LOCCTR ← ${hex(sec.blockLoc[cb], 4)}` });
+        return;
+      } else if (op === "LTORG") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "place the waiting literals here" });
+        this.flushLiterals(sec); return;
+      } else if (op === "BASE" || op === "NOBASE") size = 0;
+      else if (op === "EXTDEF") { sec.extdef.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "EXTREF") { sec.extref.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "END") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "end: place the waiting literals" });
+        this.flushLiterals(sec); return;
+      } else throw new AsmError(`line ${n}: unknown operation ${op}`);
+      ln.size = size;
+      sec.blockLoc[cb] = loc + size;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: action.join("; ") || "—", size });
+    });
+    if (sec) this.flushLiterals(sec);
+    this.sections.forEach((s, si) => {
+      const start = si === 0 ? s.start : 0;
+      let st = start; const lengths = [];
+      for (let i = 0; i < s.blocks.length; i++) {
+        const blen = s.blockLoc[i] - (i === 0 ? start : 0);
+        if (i === 0) { s.blockStart[0] = 0; st = s.blockLoc[0]; }
+        else { s.blockStart[i] = st; st += s.blockLoc[i]; }
+        lengths.push(blen);
+      }
+      s.blockLengths = lengths; s.length = st - start;
+      for (const ln of s.lines) if (ln.loc !== null) ln.addr = s.blockStart[ln.block] + ln.loc;
+    });
+  }
+  flushLiterals(sec) {
+    if (!sec.pendingLits.length) return;
+    const cb = sec.curBlock;
+    for (const lit of sec.pendingLits) {
+      const loc = sec.blockLoc[cb];
+      const b = constBytes(lit.slice(1));
+      sec.littab[lit] = [cb, loc];
+      const ln = new Line(`*        ${lit}`, "*", "LIT", lit, null);
+      ln.loc = loc; ln.block = cb; ln.size = b.length; ln.isLiteral = true;
+      sec.lines.push(ln); sec.blockLoc[cb] = loc + b.length;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: `LITTAB: ${lit} gets address ${hex(loc, 4)}`, size: b.length });
+    }
+    sec.pendingLits = [];
+  }
+  pass2() {
+    this.sections.forEach((sec, si) => {
+      let base = null; const mods = [];
+      for (const ln of sec.lines) {
+        const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+        if (ln.isLiteral) { ln.code = bytesHex(constBytes(operand.slice(1))); ln.note = "literal value"; }
+        else if (bop in OPTAB) { const [c, nt, m] = this.encode(sec, ln, base); ln.code = c; ln.note = nt; if (m) mods.push(m); }
+        else if (op === "WORD") {
+          const [v, kind, ext] = this.evalExpr(operand, sec, ln.block, ln.loc, true);
+          ln.code = hex(v & 0xFFFFFF, 6);
+          if (kind === "R" && this.sections.length === 1) mods.push([ln.addr, 6, null]);
+          for (const [sg, name] of ext) mods.push([ln.addr, 6, sg + name]);
+          ln.note = "word constant";
+        } else if (op === "BYTE") { ln.code = bytesHex(constBytes(operand)); ln.note = "byte constant"; }
+        else if (op === "BASE") { const [v] = this.evalExpr(operand, sec, ln.block, ln.loc); base = v; ln.note = `assembler now assumes (B) = ${hex(v, 4)}`; }
+        else if (op === "NOBASE") base = null;
+        this.pass2Trace.push(ln);
+      }
+      sec.mods = mods; sec.records = this.records(sec, si);
+    });
+  }
+  encode(sec, ln, base) {
+    const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+    const [fmt, opc] = OPTAB[bop];
+    if (!this.xe) {
+      let addr = 0, x = 0;
+      if (operand) {
+        let o = operand;
+        if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+        if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; addr = sec.blockStart[bl] + off; }
+        else [addr] = this.evalExpr(o, sec, ln.block, ln.loc);
+      }
+      const word = (opc << 16) | (x << 15) | addr;
+      return [hex(word, 6), `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}`, null];
+    }
+    if (fmt === 1) return [hex(opc, 2), "format 1", null];
+    if (fmt === 2) {
+      const regs = (operand || "").split(",").map(r => r.trim()).filter(Boolean);
+      const r1 = regs.length ? REGS[regs[0]] : 0;
+      const r2 = regs.length > 1 ? (regs[1] in REGS ? REGS[regs[1]] : parseInt(regs[1], 10) - ((bop === "SHIFTL" || bop === "SHIFTR") ? 1 : 0)) : 0;
+      return [hex(opc, 2) + r1.toString(16).toUpperCase() + r2.toString(16).toUpperCase(), `format 2: r1=${r1}, r2=${r2}`, null];
+    }
+    const e = op.startsWith("+") ? 1 : 0;
+    let n = 1, i = 1, x = 0, b = 0, p = 0;
+    let o = operand;
+    if (o === null) return [hex((opc | 3) << 16, 6), "no operand: n=1 i=1, disp=0", null];
+    if (o.startsWith("#")) { n = 0; i = 1; o = o.slice(1); }
+    else if (o.startsWith("@")) { n = 1; i = 0; o = o.slice(1); }
+    if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+    let mod = null, ta, kind, ext;
+    if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; ta = sec.blockStart[bl] + off; kind = "R"; ext = []; }
+    else [ta, kind, ext] = this.evalExpr(o, sec, ln.block, ln.loc, true);
+    const pc = ln.addr + (e ? 4 : 3);
+    let disp, how;
+    if (e) {
+      disp = ta & 0xFFFFF; how = `format 4: full address ${hex(ta, 5)}`;
+      if (ext.length) { mod = [ln.addr + 1, 5, ext[0][0] + ext[0][1]]; how += ` (external ${ext[0][1]}: 0 + M record)`; }
+      else if (kind === "R") { mod = [ln.addr + 1, 5, null]; how += " + M record (relocatable)"; }
+    } else if (kind === "A" && n === 0) {
+      if (ta > 4095) throw new AsmError(`line ${ln.lineno}: constant ${ta} too big for format 3, use +`);
+      disp = ta; how = `immediate constant ${ta}: disp = ${hex(ta, 3)}`;
+    } else if (kind === "A" && ta >= 0 && ta <= 4095 && !ext.length) {
+      disp = ta; how = `absolute address ${hex(ta, 4)}: direct, b=p=0`;
+    } else {
+      const d = ta - pc;
+      if (d >= -2048 && d <= 2047) { p = 1; disp = d & 0xFFF; how = `PC-relative: ${hex(ta, 4)} − ${hex(pc, 4)} = ${d >= 0 ? "+" : ""}${d} → disp ${hex(disp, 3)}`; }
+      else if (base !== null && ta - base >= 0 && ta - base <= 4095) { b = 1; disp = ta - base; how = `base-relative: ${hex(ta, 4)} − ${hex(base, 4)} = ${hex(disp, 3)} (PC-relative too far: ${d >= 0 ? "+" : ""}${d})`; }
+      else throw new AsmError(`line ${ln.lineno}: ${o} is out of PC and base range; use format 4`);
+    }
+    const first = (opc & 0xFC) | (n << 1) | i;
+    const flags = (x << 3) | (b << 2) | (p << 1) | e;
+    const code = e ? hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 5) : hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 3);
+    return [code, `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}; ${how}`, mod];
+  }
+  records(sec, si) {
+    const recs = [];
+    const name = (sec.name || "").slice(0, 6);
+    const start = si === 0 ? sec.start : 0;
+    recs.push(`H${name.padEnd(6)}${hex(start, 6)}${hex(sec.length, 6)}`);
+    if (sec.extdef.length) { let d = "D"; for (const s of sec.extdef) { const [bl, off] = sec.symtab[s]; d += s.padEnd(6) + hex(sec.blockStart[bl] + off, 6); } recs.push(d); }
+    if (sec.extref.length) recs.push("R" + sec.extref.map(s => s.padEnd(6)).join(""));
+    const items = sec.lines.filter(l => l.code);
+    let curStart = null, cur = "", lastEnd = null;
+    for (const ln of items) {
+      const nb = ln.code.length / 2;
+      const gap = lastEnd !== null && ln.addr !== lastEnd;
+      if (curStart !== null && (gap || cur.length / 2 + nb > 30)) { recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`); curStart = null; cur = ""; }
+      if (curStart === null) curStart = ln.addr;
+      cur += ln.code; lastEnd = ln.addr + nb;
+    }
+    if (cur) recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`);
+    for (const [addr, l, sym] of sec.mods) recs.push(`M${hex(addr, 6)}${hex(l, 2)}` + (sym || ""));
+    const endl = sec.lines.filter(l => l.op === "END");
+    if (si === 0 && endl.length && endl[0].operand) { const [v] = this.evalExpr(endl[0].operand, sec, 0, 0); recs.push(`E${hex(v, 6)}`); }
+    else recs.push("E");
+    return recs;
+  }
+  run() { this.pass1(); this.pass2(); return this; }
+  objectProgram() { return this.sections.flatMap(s => s.records); }
+  listing() {
+    const out = [];
+    for (const s of this.sections) for (const ln of s.lines) {
+      let loc = ["END", "BASE", "NOBASE", "EXTDEF", "EXTREF", "LTORG"].includes(ln.op) || ln.loc === null ? "" : hex(ln.addr, 4);
+      if (ln.op === "EQU") { const [bl, off, kind] = s.symtab[ln.label]; loc = hex(kind === "R" ? s.blockStart[bl] + off : off, 4); }
+      out.push([loc, ln.block, ln.label || "", ln.op, ln.operand || "", ln.code, ln.note]);
+    }
+    return out;
+  }
+}
+
+/* ---------------- loader ---------------- */
+function load(records, mem, loadAddr, estab) {
+  let entry = null, hstart = 0; const prog = loadAddr; const log = [];
+  for (const r of records) {
+    if (r[0] === "H") { hstart = parseInt(r.slice(7, 13), 16); log.push({ rec: r, what: `program ${r.slice(1, 7).trim()}: assembled at ${hex(hstart, 6)}, length ${r.slice(13, 19)}; loading at ${hex(prog, 6)}` }); }
+    else if (r[0] === "T") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, n = parseInt(r.slice(7, 9), 16);
+      for (let i = 0; i < n; i++) mem[a + i] = parseInt(r.substr(9 + 2 * i, 2), 16);
+      log.push({ rec: r, what: `copy ${n} bytes to ${hex(a, 6)}`, addr: a, n });
+    } else if (r[0] === "M") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, half = parseInt(r.slice(7, 9), 16), sym = r.slice(9).trim();
+      const nb = Math.floor((half + 1) / 2);
+      let v = 0; for (let i = 0; i < nb; i++) v = v * 256 + mem[a + i];
+      const mask = Math.pow(2, 4 * half) - 1;
+      let field = v % (mask + 1);
+      let add = sym ? estab[sym.slice(1)] * (sym[0] === "+" ? 1 : -1) : prog - hstart;
+      const before = field;
+      field = ((field + add) % (mask + 1) + (mask + 1)) % (mask + 1);
+      v = v - (v % (mask + 1)) + field;
+      for (let i = nb - 1; i >= 0; i--) { mem[a + i] = v % 256; v = Math.floor(v / 256); }
+      log.push({ rec: r, what: `${half} half-bytes at ${hex(a, 6)}: ${hex(before, half)} ${add >= 0 ? "+" : "−"} ${hex(Math.abs(add), 4)}${sym ? " (" + sym.slice(1) + ")" : ""} = ${hex(field, half)}`, addr: a, n: nb });
+    } else if (r[0] === "E") { if (r.length > 1) entry = parseInt(r.slice(1, 7), 16) - hstart + prog; log.push({ rec: r, what: entry !== null ? `start execution at ${hex(entry, 6)}` : "end of section" }); }
+    else if (r[0] === "D" || r[0] === "R") log.push({ rec: r, what: r[0] === "D" ? "external definitions (used by pass 1 of a linking loader)" : "external references" });
+  }
+  return { entry, log };
+}
+
+/* ---------------- simulator ---------------- */
+const SHORT = {}, LONG = {};
+for (const [k, [f, o]] of Object.entries(OPTAB)) { if (f === 1 || f === 2) SHORT[o] = [k, f]; if (f === 3) LONG[o] = k; }
+const REGNAME = Object.fromEntries(Object.entries(REGS).map(([k, v]) => [v, k]));
+const sgn = v => { v &= 0xFFFFFF; return v & 0x800000 ? v - 0x1000000 : v; };
+class Machine {
+  constructor(mem, xe = true) { this.m = mem; this.xe = xe; this.R = { A: 0, X: 0, L: 0, B: 0, S: 0, T: 0, F: 0, PC: 0, SW: 0 }; this.CC = "="; this.device = []; }
+  w(a) { return (this.m[a] << 16) | (this.m[a + 1] << 8) | this.m[a + 2]; }
+  sw(a, v) { v &= 0xFFFFFF; this.m[a] = v >> 16; this.m[a + 1] = (v >> 8) & 255; this.m[a + 2] = v & 255; }
+  cmp(x, y) { this.CC = x < y ? "<" : (x === y ? "=" : ">"); }
+  step() { return this.xe ? this.stepXE() : this.stepSIC(); }
+  exec(name, ta, imm, info) {
+    const R = this.R, m = this.m, val = () => imm ? ta : this.w(ta);
+    switch (name) {
+      case "LDA": R.A = val(); break; case "LDX": R.X = val(); break; case "LDB": R.B = val(); break;
+      case "LDT": R.T = val(); break; case "LDS": R.S = val(); break; case "LDL": R.L = val(); break;
+      case "LDCH": R.A = (R.A & 0xFFFF00) | (imm ? ta & 0xFF : m[ta]); break;
+      case "STA": this.sw(ta, R.A); break; case "STX": this.sw(ta, R.X); break; case "STL": this.sw(ta, R.L); break;
+      case "STB": this.sw(ta, R.B); break; case "STS": this.sw(ta, R.S); break; case "STT": this.sw(ta, R.T); break;
+      case "STCH": m[ta] = R.A & 0xFF; break;
+      case "ADD": R.A = (R.A + val()) & 0xFFFFFF; break; case "SUB": R.A = (R.A - val()) & 0xFFFFFF; break;
+      case "MUL": R.A = (sgn(R.A) * sgn(val())) & 0xFFFFFF; break;
+      case "DIV": { const d = sgn(val()); if (d === 0) throw new Error("division by zero"); R.A = Math.trunc(sgn(R.A) / d) & 0xFFFFFF; break; }
+      case "AND": R.A = R.A & val(); break; case "OR": R.A = R.A | val(); break;
+      case "COMP": this.cmp(sgn(R.A), sgn(val())); break;
+      case "TIX": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(val())); break;
+      case "J": R.PC = ta; break;
+      case "JEQ": if (this.CC === "=") R.PC = ta; break; case "JLT": if (this.CC === "<") R.PC = ta; break; case "JGT": if (this.CC === ">") R.PC = ta; break;
+      case "JSUB": R.L = R.PC; R.PC = ta; break; case "RSUB": R.PC = R.L; break;
+      case "TD": this.CC = "<"; break;
+      case "RD": R.A = (R.A & 0xFFFF00) | (this.device.length ? this.device.shift() : 0x04); break;
+      case "WD": (this.out = this.out || []).push(R.A & 0xFF); break;
+      default: throw new Error(`instruction ${name} is not simulated here`);
+    }
+  }
+  stepSIC() {
+    const R = this.R, pc = R.PC, word = this.w(pc);
+    const opc = word >> 16, x = (word >> 15) & 1, addr = word & 0x7FFF;
+    const name = LONG[opc]; if (!name) throw new Error(`no instruction with opcode ${hex(opc, 2)} at ${hex(pc, 4)}`);
+    const ta = addr + (x ? R.X : 0);
+    R.PC = pc + 3;
+    this.exec(name, ta, false);
+    return { pc, name, ta, len: 3, how: `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}${x ? " + X" : ""} → TA ${hex(ta, 4)}` };
+  }
+  stepXE() {
+    const R = this.R, m = this.m, pc = R.PC, b0 = m[pc];
+    let name, fmt;
+    if (b0 in SHORT) [name, fmt] = SHORT[b0]; else { name = LONG[b0 & 0xFC]; fmt = 3; }
+    if (!name) throw new Error(`no instruction with opcode ${hex(b0, 2)} at ${hex(pc, 4)}`);
+    if (fmt === 1) { R.PC = pc + 1; throw new Error(`format 1 instruction ${name} is not simulated here`); }
+    if (fmt === 2) {
+      const r1 = m[pc + 1] >> 4, r2 = m[pc + 1] & 0xF; R.PC = pc + 2;
+      const a = REGNAME[r1], bb = REGNAME[r2];
+      switch (name) {
+        case "CLEAR": R[a] = 0; break;
+        case "TIXR": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(R[a])); break;
+        case "ADDR": R[bb] = (R[bb] + R[a]) & 0xFFFFFF; break; case "SUBR": R[bb] = (R[bb] - R[a]) & 0xFFFFFF; break;
+        case "MULR": R[bb] = (sgn(R[bb]) * sgn(R[a])) & 0xFFFFFF; break;
+        case "DIVR": if (sgn(R[a]) === 0) throw new Error("division by zero"); R[bb] = Math.trunc(sgn(R[bb]) / sgn(R[a])) & 0xFFFFFF; break;
+        case "COMPR": this.cmp(sgn(R[a]), sgn(R[bb])); break;
+        case "RMO": R[bb] = R[a]; break;
+        case "SHIFTL": { const n = r2 + 1, v = R[a]; R[a] = ((v << n) | (v >>> (24 - n))) & 0xFFFFFF; break; }
+        case "SHIFTR": { const n = r2 + 1; R[a] = (sgn(R[a]) >> n) & 0xFFFFFF; break; }
+        default: throw new Error(`instruction ${name} is not simulated here`);
+      }
+      return { pc, name, ta: null, len: 2, how: `format 2: r1=${a}${bb !== undefined ? ", r2=" + bb : ""}` };
+    }
+    const n = (b0 >> 1) & 1, i = b0 & 1, f = m[pc + 1] >> 4;
+    const x = (f >> 3) & 1, b = (f >> 2) & 1, p = (f >> 1) & 1, e = f & 1;
+    let disp, len;
+    if (e) { disp = ((m[pc + 1] & 0xF) << 16) | (m[pc + 2] << 8) | m[pc + 3]; R.PC = pc + 4; len = 4; }
+    else { disp = ((m[pc + 1] & 0xF) << 8) | m[pc + 2]; R.PC = pc + 3; len = 3; if (p && disp & 0x800) disp -= 0x1000; }
+    let ta = disp + (p ? R.PC : 0) + (b ? R.B : 0) + (x ? R.X : 0);
+    const parts = [`disp ${disp}`]; if (p) parts.push(`PC ${hex(R.PC, 4)}`); if (b) parts.push(`B ${hex(R.B, 4)}`); if (x) parts.push(`X ${hex(R.X, 4)}`);
+    let how = `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}: TA = ${parts.join(" + ")} = ${hex(ta, 4)}`;
+    if (n === 1 && i === 0) { const t2 = this.w(ta); how += `; indirect → ${hex(t2, 4)}`; ta = t2; }
+    const imm = n === 0 && i === 1;
+    if (imm) how += " (immediate value)";
+    this.exec(name, ta, imm);
+    return { pc, name, ta, len, how };
+  }
+}
+
+const api = { OPTAB, REGS, AsmError, Assembler, parseLine, constBytes, load, Machine, hex, sgn };
+if (typeof module !== "undefined" && module.exports) module.exports = api; else root.SICXE = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 2: a SIC / SIC-XE machine you can step through (assembler, loader and simulator from sicxe.js) */
+TOOLS_UI.push({
+  id: "sic", title: "SIC simulator",
+  build(p, D) {
+    const { el, esc } = L, S = SICXE, hx = S.hex;
+    const progs = [];
+    const chunks = D.programs.split(/^={10,}\s*$/m);
+    for (let i = 1; i + 1 < chunks.length; i += 2) progs.push({ title: chunks[i].trim(), src: chunks[i + 1].replace(/^\n+|\s+$/g, "") + "\n" });
+    p.innerHTML = `<div class="row"><label>program <select id="pg"></select></label>
+<label><input type="radio" name="mode" value="sic" checked> SIC</label><label><input type="radio" name="mode" value="xe"> SIC/XE</label></div>
+<div class="grid2" style="margin-top:12px"><div>
+<textarea id="src" spellcheck="false" aria-label="SIC source program"></textarea>
+<div class="row" style="margin-top:8px"><button class="btn primary" id="asm">Assemble and load</button><button class="btn" id="step">Step</button><button class="btn" id="run">Run to the end</button><button class="btn" id="reset">Reset</button></div>
+<p id="msg" class="small wrapany"></p>
+<div class="scroll"><table class="t" id="lst"></table></div>
+</div><div>
+<h3>Registers</h3><div class="regs" id="regs"></div>
+<p class="small" id="how"></p>
+<h3 style="margin-top:12px">Variables in memory</h3><div class="scroll"><table class="t" id="vars"></table></div>
+<h3 style="margin-top:12px">Trace</h3><div class="scroll" style="max-height:340px;overflow:auto"><table class="t" id="trace"></table></div>
+</div></div>
+<p class="note small">Task 2 of the lab: choose Program 2, change <code>C'HELLO'</code> to <code>C'CAT'</code>, both 5s to 3 (<code>RESB 3</code>, <code>FIVE WORD 3</code>), assemble and step. Write your trace table on paper first, then compare. A program ends at <code>HALT J HALT</code>, a jump to itself.</p>`;
+    const $ = s => p.querySelector(s);
+    progs.forEach((g, i) => $("#pg").appendChild(el("option", { value: i, text: g.title })));
+    let asm = null, m = null, mem = null, halted = false, steps = 0, prevR = null;
+    const xe = () => p.querySelector("input[name=mode]:checked").value === "xe";
+    function choose() { const g = progs[$("#pg").value]; $("#src").value = g.src; const isXE = /[#@+]\w|\bBASE\b|\b(CLEAR|TIXR|COMPR|LDB|LDT|LDS)\b/.test(g.src); p.querySelector(`input[value=${isXE ? "xe" : "sic"}]`).checked = true; load(); }
+    function load() {
+      $("#msg").textContent = ""; $("#msg").className = "small wrapany"; halted = false; steps = 0; $("#trace").innerHTML = "<tr><th>#</th><th>LOC</th><th>instruction</th><th>TA</th><th>A</th><th>X</th><th>CC</th></tr>"; $("#how").textContent = "";
+      let src = $("#src").value;
+      /* the slide programs end with END <program name>; give the assembler the first instruction instead */
+      const st = src.match(/^(\S+)\s+START\b/m);
+      if (st) src = src.replace(new RegExp("^(\\s+END\\s+)" + st[1] + "\\s*$", "m"), "$1");
+      try { asm = new S.Assembler(src, xe()).run(); } catch (x) { asm = null; m = null; $("#msg").className = "err"; $("#msg").textContent = x.message; $("#lst").innerHTML = ""; $("#regs").innerHTML = ""; $("#vars").innerHTML = ""; return; }
+      mem = new Uint8Array(1 << 20);
+      const sec = asm.sections[0];
+      const { entry } = S.load(asm.objectProgram(), mem, sec.start);
+      m = new S.Machine(mem, xe()); m.R.PC = entry === null ? sec.start : entry; prevR = { ...m.R };
+      $("#msg").textContent = `Assembled ${sec.name || "the program"}: ${sec.length} bytes at ${hx(sec.start, 4)}. Object program: ${asm.objectProgram().join("  ")}`;
+      drawListing(); draw();
+    }
+    function drawListing() {
+      const t = $("#lst"); t.innerHTML = "<tr><th>LOC</th><th>label</th><th>op</th><th>operand</th><th>code</th></tr>";
+      for (const ln of asm.sections[0].lines) {
+        const loc = ln.addr === null || ln.op === "END" ? "" : hx(ln.addr, 4);
+        t.appendChild(el("tr", { "data-a": ln.addr === null || !ln.code ? "" : ln.addr }, el("td", { class: "mono", text: loc }), el("td", { class: "mono", text: ln.label || "" }), el("td", { class: "mono", text: ln.op }), el("td", { class: "mono", text: ln.operand || "" }), el("td", { class: "mono", text: ln.code || "" })));
+      }
+    }
+    function draw() {
+      if (!m) return;
+      const names = xe() ? ["A", "X", "L", "B", "S", "T", "PC"] : ["A", "X", "L", "PC"];
+      $("#regs").innerHTML = "";
+      for (const r of names) $("#regs").appendChild(el("div", { class: "reg" + (prevR && prevR[r] !== m.R[r] && steps ? " chg" : "") }, el("b", { text: r }), hx(m.R[r], 6) + (r === "A" || r === "X" ? `  (${S.sgn(m.R[r])})` : "")));
+      $("#regs").appendChild(el("div", { class: "reg" }, el("b", { text: "CC" }), m.CC));
+      p.querySelectorAll("#lst tr").forEach(tr => tr.classList.toggle("cur", tr.dataset.a !== "" && tr.dataset.a !== undefined && Number(tr.dataset.a) === m.R.PC && !halted));
+      const vt = $("#vars"); vt.innerHTML = "<tr><th>label</th><th>address</th><th>contents</th><th>as number / text</th></tr>";
+      for (const ln of asm.sections[0].lines) {
+        if (!ln.label || !["WORD", "RESW", "BYTE", "RESB"].includes(ln.op)) continue;
+        const n = Math.min(ln.size || 3, 24), bytes = Array.from(mem.slice(ln.addr, ln.addr + n));
+        let as = "";
+        if (ln.op === "WORD" || ln.op === "RESW") { const words = []; for (let i = 0; i + 3 <= bytes.length; i += 3) words.push(S.sgn((bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2])); as = words.join(", "); }
+        else as = bytes.every(b => b >= 32 && b < 127) ? `"${String.fromCharCode(...bytes)}"` : (bytes.some(b => b) ? "" : "(zero)");
+        vt.appendChild(el("tr", {}, el("td", { class: "mono", text: ln.label }), el("td", { class: "mono", text: hx(ln.addr, 4) }), el("td", { class: "mono", text: bytes.map(b => hx(b, 2)).join(" ") + ((ln.size || 0) > n ? " …" : "") }), el("td", { class: "mono", text: as })));
+      }
+    }
+    function step() {
+      if (!m) load(); if (!m || halted) return false;
+      prevR = { ...m.R }; const pc = m.R.PC; let r;
+      try { r = m.step(); } catch (x) { $("#msg").className = "err"; $("#msg").textContent = x.message; halted = true; return false; }
+      steps++;
+      const ln = asm.sections[0].lines.find(l => l.addr === pc && l.code);
+      const instr = ln ? `${ln.op} ${ln.operand || ""}` : r.name;
+      $("#how").innerHTML = `<b>${esc(hx(pc, 4))}: ${esc(instr)}</b><br>${esc(r.how)}`;
+      $("#trace").appendChild(el("tr", {}, el("td", { text: String(steps) }), el("td", { class: "mono", text: hx(pc, 4) }), el("td", { class: "mono", text: instr }), el("td", { class: "mono", text: r.ta === null ? "" : hx(r.ta, 4) }), el("td", { class: "mono", text: hx(m.R.A, 6) }), el("td", { class: "mono", text: hx(m.R.X, 6) }), el("td", { class: "mono", text: m.CC })));
+      const tw = $("#trace").parentElement; tw.scrollTop = tw.scrollHeight;
+      if (r.name === "J" && r.ta === pc) { halted = true; $("#msg").className = "ok"; $("#msg").textContent = `Halted after ${steps} instructions (J to itself).`; }
+      if (steps >= 5000 && !halted) { halted = true; $("#msg").className = "err"; $("#msg").textContent = "Stopped after 5000 instructions: is there a loop that never ends?"; }
+      draw(); return !halted;
+    }
+    $("#pg").addEventListener("change", choose);
+    $("#asm").addEventListener("click", load); $("#reset").addEventListener("click", load);
+    $("#step").addEventListener("click", step);
+    $("#run").addEventListener("click", () => { let k = 0; while (step() && k++ < 5000); });
+    p.querySelectorAll("input[name=mode]").forEach(r => r.addEventListener("change", load));
+    choose();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

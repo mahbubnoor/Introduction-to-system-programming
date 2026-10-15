@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 3 · A two-pass assembler</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 3: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part{scroll-margin-top:12px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 3</div>
+<h1>A two-pass assembler</h1>
+<p>A two-pass SIC assembler in C.</p>
+<nav class="navlinks" aria-label="Lab links"><a href="../index.html">All lectures</a><a href="../present/lecture_03.1.html">Present 3.1</a><a href="../present/lecture_03.2.html">Present 3.2</a><a href="../present/lecture_03.3.html">Present 3.3</a><a href="lab03_files.zip">Download the lab files (10 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-3-1">
+<div class="phead"><h3>Lab 3.1 <span class="dim">· Basic Assembler Functions</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_03.1.html">Present lecture 3.1</a>
+<a class="btn" href="../slides/lecture_03.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>Build and run the starter</b><br>gcc -Wall -o sicasm sicasm_starter.c then ./sicasm count.asm. The output is wrong: that is expected.</li>
+<li><b>TODO 1: SYMTAB</b><br>Insert each label. Test with dup.asm: it must stop with &quot;duplicate symbol FIRST&quot;.</li>
+<li><b>TODO 2: LOCCTR</b><br>Apply the size rules (slide 12). Check the LOC column against slide 13, and the length 00A0.</li>
+<li><b>TODO 3: instructions</b><br>Opcode, x bit, address, sprintf. Test with undef.asm: &quot;undefined symbol BETA&quot;.</li>
+<li><b>TODO 4: BYTE</b><br>C&#x27;BANANA&#x27; → 42414E414E41, X&#x27;F1&#x27; → F1. Then every row of slide 16 must match.</li>
+<li><b>Compare</b><br>diff count.obj count_expected.obj prints nothing when your assembler is right. Then try sumn.asm.</li>
+</ol>
+<p class="warn">Submit: your sicasm.c, the listing of sumn.asm, and sumn.obj.</p>
+</section>
+<section class="card part" id="part-3-2">
+<div class="phead"><h3>Lab 3.2 <span class="dim">· Machine-Dependent Assembler Features</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_03.2.html">Present lecture 3.2</a>
+<a class="btn" href="../slides/lecture_03.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>Hand-assemble on paper</b><br>Lines 0000–0032 of countx.asm. Write n i x b p e, the disp and the code. Check against slide 14.</li>
+<li><b>Add -m to sicasm</b><br>With ./sicasm -m file.asm, write M{loc+1}04 for every instruction with an operand.</li>
+<li><b>Count them</b><br>Run it on count.asm: you should get 13 M records. Compare with the 2 of countx.asm.</li>
+<li><b>Relocate by hand</b><br>Load count.obj at 5000 instead of 2000: add 3000 to each marked field. LDCH TEXT,X must become 50D027.</li>
+<li><b>Write apply_m() in C</b><br>void apply_m(unsigned char *mem, int addr, int halfbytes, int delta); Test it on count.obj.</li>
+<li><b>Explain</b><br>In 3 sentences: why does SIC need 13 M records and SIC/XE only 2? What would a big program look like?</li>
+</ol>
+<p class="warn">Submit: your updated sicasm.c, count.obj with M records, and your apply_m() with a test.</p>
+</section>
+<section class="card part" id="part-3-3">
+<div class="phead"><h3>Lab 3.3 <span class="dim">· Machine-Independent Features</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_03.3.html">Present lecture 3.3</a>
+<a class="btn" href="../slides/lecture_03.3.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>EQU with a number</b><br>MAXLEN EQU 6: put MAXLEN into SYMTAB with value 6. Its LOC column shows 0006.</li>
+<li><b>EQU with * and A−B</b><br>TEXTEND EQU *, TLEN EQU TEXTEND-TEXT. Write eval(): number, *, SYMBOL, SYMBOL−SYMBOL, SYMBOL+number.</li>
+<li><b>LITTAB</b><br>struct lit { char text[40]; int addr; int placed; }; Add a literal the first time it is seen.</li>
+<li><b>LTORG and END</b><br>Give every waiting literal an address and output it like a BYTE line marked *.</li>
+<li><b>Pass 2</b><br>An operand starting with = takes its address from LITTAB. Test: countlit.asm must match countlit_expected.obj.</li>
+<li><b>Break it</b><br>Put TLEN EQU TEXTEND-TEXT before TEXT. Your assembler must stop with an error, not print rubbish.</li>
+</ol>
+<p class="warn">Submit: sicasm_v2.c, the listing and object program of countlit.asm, and the output of task 6.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab03_files.zip">lab03_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab03_files.zip">Download lab03_files.zip (10 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab02.html">← Lab 2</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab04.html">Lab 4 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 3, "readme": "CSE 4105 System Programming - Lab 3 files (Lectures 3.1, 3.2, 3.3)\nMd Mahbub E Noor, University of Barishal\n\nLAB 3.1  (your two-pass SIC assembler in C)\n  sicasm_starter.c      the starter program: fill in TODO 1-4\n  count.asm             test program (counts the A's in BANANA)\n  count_expected.obj    the object program your assembler must produce\n  dup.asm, undef.asm    must give \"duplicate symbol FIRST\" / \"undefined symbol BETA\"\n  sumn.asm              homework 3.1\n\n    gcc -Wall -o sicasm sicasm_starter.c\n    ./sicasm count.asm\n    diff count.obj count_expected.obj      (prints nothing when you are right)\n\nLAB 3.2  (SIC/XE and relocation)\n  countx.asm            COUNT for SIC/XE (slides 6-14)\n  sumx.asm              homework 3.2\n  where.c               prints the address of main and of a global: run it twice\n\nLAB 3.3  (EQU and literals)\n  countlit.asm          SIC program with EQU and literals\n  countlit_expected.obj the object program your version 2 must produce\n  countl.asm, countb.asm, countc.asm, multipass.asm   the SIC/XE examples of Lecture 3.3\n  lit.c                 gcc -S lit.c : see where gcc puts a string literal\n  ptr.c                 gcc -c ptr.c : the pointer-arithmetic error (it is meant to fail)\n  blocks.c              gcc -c blocks.c ; size blocks.o\n  main.c, counta.c      gcc -c main.c ; gcc -c counta.c ; nm main.o counta.o ;\n                        gcc main.o counta.o -o count ; ./count\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 3 files (Lectures 3.1, 3.2, 3.3)\nMd Mahbub E Noor, University of Barishal\n\nLAB 3.1  (your two-pass SIC assembler in C)\n  sicasm_starter.c      the starter program: fill in TODO 1-4\n  count.asm             test program (counts the A's in BANANA)\n  count_expected.obj    the object program your assembler must produce\n  dup.asm, undef.asm    must give \"duplicate symbol FIRST\" / \"undefined symbol BETA\"\n  sumn.asm              homework 3.1\n\n    gcc -Wall -o sicasm sicasm_starter.c\n    ./sicasm count.asm\n    diff count.obj count_expected.obj      (prints nothing when you are right)\n\nLAB 3.2  (SIC/XE and relocation)\n  countx.asm            COUNT for SIC/XE (slides 6-14)\n  sumx.asm              homework 3.2\n  where.c               prints the address of main and of a global: run it twice\n\nLAB 3.3  (EQU and literals)\n  countlit.asm          SIC program with EQU and literals\n  countlit_expected.obj the object program your version 2 must produce\n  countl.asm, countb.asm, countc.asm, multipass.asm   the SIC/XE examples of Lecture 3.3\n  lit.c                 gcc -S lit.c : see where gcc puts a string literal\n  ptr.c                 gcc -c ptr.c : the pointer-arithmetic error (it is meant to fail)\n  blocks.c              gcc -c blocks.c ; size blocks.o\n  main.c, counta.c      gcc -c main.c ; gcc -c counta.c ; nm main.o counta.o ;\n                        gcc main.o counta.o -o count ; ./count\n", "blocks.c": "int  cnt = 0;            /* initialised data   -> .data (or .bss if 0) */\nint  limit = 6;          /* initialised data   -> .data */\nchar buffer[4096];       /* no starting value  -> .bss  */\nconst char text[] = \"BANANA\";   /* constant     -> .rodata */\n\nint count_a(void)        /* code               -> .text */\n{\n    for (int i = 0; i < limit; i++)\n        if (text[i] == 'A')\n            cnt++;\n    return cnt;\n}\n", "count.asm": "COUNT    START   2000\nFIRST    LDX     ZERO\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\n         J       DONE\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nDONE     J       DONE\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nBUFFER   RESB    100\nONE      WORD    1\n         END     FIRST\n", "count_expected.obj": "HCOUNT 0020000000A0\nT0020001E04203300203350A0272820303020182C202D3820033C202400203618209D\nT00201E1B0C20363C200F3C202442414E414E41000006000041000000000000\nT00209D03000001\nE002000\n", "counta.c": "extern char text[];          /* defined in another file (like EXTREF) */\n\nint counta(void)\n{\n    int n = 0;\n    for (int i = 0; text[i] != '\\0'; i++)\n        if (text[i] == 'A')\n            n++;\n    return n;\n}\n", "countb.asm": "COUNTB   START   0\nFIRST    STL     RETADR\n         CLEAR   X\n         LDT     #6\nLOOP     CLEAR   A\n         LDCH    TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         J       @RETADR\n         USE     CDATA\nRETADR   RESW    1\nCNT      WORD    0\n         USE     CBLKS\nBUFFER   RESB    4096\n         USE     CDATA\nTEXT     BYTE    C'BANANA'\n         USE\nFOUND    LDA     CNT\n         ADD     #1\n         STA     CNT\n         J       NEXT\n         END     FIRST\n", "countc.asm": "MAIN     START   0\n         EXTDEF  TEXT,TEXTEND\n         EXTREF  COUNTA\nFIRST    STL     RETADR\n         +JSUB   COUNTA\n         STA     CNT\n         J       @RETADR\nRETADR   RESW    1\nCNT      RESW    1\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\nCOUNTA   CSECT\n         EXTREF  TEXT,TEXTEND\n         CLEAR   X\n         CLEAR   S\n         LDT     LEN\nLOOP     CLEAR   A\n         +LDCH   TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         RMO     S,A\n         RSUB\nFOUND    LDA     #1\n         ADDR    A,S\n         J       NEXT\nLEN      WORD    TEXTEND-TEXT\n         END     FIRST\n", "countl.asm": "COUNTL   START   0\nMAXLEN   EQU     6\nFIRST    STL     RETADR\n         CLEAR   X\n         LDT     #MAXLEN\nLOOP     CLEAR   A\n         LDCH    TEXT,X\n         COMP    =X'000041'\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         J       @RETADR\nFOUND    LDA     CNT\n         ADD     =X'000001'\n         STA     CNT\n         J       NEXT\n         LTORG\nRETADR   RESW    1\nCNT      WORD    0\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\nTLEN     EQU     TEXTEND-TEXT\n         END     FIRST\n", "countlit.asm": "CNTLIT   START   2000\nMAXLEN   EQU     6\nFIRST    LDX     =X'000000'\nLOOP     LDA     =X'000000'\n         LDCH    TEXT,X\n         COMP    =X'000041'\n         JEQ     FOUND\nNEXT     TIX     =X'000006'\n         JLT     LOOP\nDONE     J       DONE\nFOUND    LDA     TOTAL\n         ADD     =X'000001'\n         STA     TOTAL\n         J       NEXT\n         LTORG\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\nTLEN     EQU     TEXTEND-TEXT\nTOTAL    WORD    0\n         END     FIRST\n", "countlit_expected.obj": "HCNTLIT002000000039\nT0020001E04202400202450A0302820273020182C202A3820033C201500203618202D\nT00201E1B0C20363C200F00000000004100000600000142414E414E41000000\nE002000\n", "countx.asm": "COUNTX   START   0\nFIRST    STL     RETADR\n         +LDB    #TOTAL\n         BASE    TOTAL\n         CLEAR   X\n         LDT     #6\nLOOP     CLEAR   A\n         LDCH    TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         LDA     CNT\n         STA     TOTAL\n         +JSUB   REPORT\n         J       @RETADR\nFOUND    LDA     CNT\n         ADD     #1\n         STA     CNT\n         J       NEXT\nRETADR   RESW    1\nCNT      WORD    0\nTEXT     BYTE    C'BANANA'\nBUFFER   RESB    4096\nTOTAL    RESW    1\nREPORT   RSUB\n         END     FIRST\n", "dup.asm": "BAD      START   1000\nFIRST    LDA     ALPHA\n         STA     BETA\nFIRST    J       FIRST\nALPHA    WORD    5\n         END     FIRST\n", "lit.c": "#include <string.h>\n\nint count_a(void)\n{\n    const char *text = \"BANANA\";\n    int n = 0;\n    for (int i = 0; text[i] != '\\0'; i++)\n        if (text[i] == 'A')\n            n++;\n    return n;\n}\n", "main.c": "#include <stdio.h>\n\nchar text[] = \"BANANA\";      /* defined here, visible outside (like EXTDEF) */\nint counta(void);            /* defined in another file (like EXTREF)       */\n\nint main(void)\n{\n    printf(\"%d\\n\", counta());\n    return 0;\n}\n", "multipass.asm": "MULTI    START   0\nHALF     EQU     TLEN/2\nTLEN     EQU     TEXTEND-TEXT\nFIRST    LDA     #HALF\n         J       FIRST\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\n         END     FIRST\n", "ptr.c": "int main(void)\n{\n    char text[] = \"BANANA\";\n    char *p = text, *q = text + 6;\n    long len = q - p;     /* pointer - pointer = a number   */\n    char *r = p + 3;      /* pointer + number  = a pointer  */\n    char *bad = p + q;    /* pointer + pointer = error      */\n    return (int)len + *r + (bad != 0);\n}\n", "sicasm_starter.c": "/*\n * sicasm.c - a two-pass assembler for the SIC machine (Beck, System Software, Section 2.1)\n * CSE 4105 System Programming, Lab 3   (STUDENT STARTER: fill in the four TODOs)\n *\n * Build:   gcc -Wall -o sicasm sicasm.c\n * Run:     ./sicasm count.asm            -> prints the listing, writes count.obj\n *\n * Source format: a label starts in column 1; otherwise the line starts with a space or tab.\n *   [LABEL]  OPCODE  [OPERAND]   [comment]\n * Lines starting with '.' are comments.\n */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <ctype.h>\n\n#define MAXLINES 500\n#define MAXSYMS  200\n#define TEXTMAX  30          /* at most 30 bytes of code in one T record */\n\n/* ---------------- OPTAB: a fixed table, like a const array in any C program ---------------- */\nstruct op { const char *name; int code; };\nstatic const struct op OPTAB[] = {\n    {\"ADD\", 0x18}, {\"AND\", 0x40}, {\"COMP\", 0x28}, {\"DIV\", 0x24}, {\"J\", 0x3C},\n    {\"JEQ\", 0x30}, {\"JGT\", 0x34}, {\"JLT\", 0x38}, {\"JSUB\", 0x48}, {\"LDA\", 0x00},\n    {\"LDCH\", 0x50}, {\"LDL\", 0x08}, {\"LDX\", 0x04}, {\"MUL\", 0x20}, {\"OR\", 0x44},\n    {\"RD\", 0xD8}, {\"RSUB\", 0x4C}, {\"STA\", 0x0C}, {\"STCH\", 0x54}, {\"STL\", 0x14},\n    {\"STSW\", 0xE8}, {\"STX\", 0x10}, {\"SUB\", 0x1C}, {\"TD\", 0xE0}, {\"TIX\", 0x2C},\n    {\"WD\", 0xDC},\n};\n#define NOPS (int)(sizeof OPTAB / sizeof OPTAB[0])\n\n/* ---------------- SYMTAB: filled in Pass 1, read in Pass 2 ---------------- */\nstruct sym { char name[16]; int addr; };\nstatic struct sym SYMTAB[MAXSYMS];\nstatic int nsyms = 0;\n\n/* ---------------- one source line, kept in memory between the two passes ---------------- */\nstruct line {\n    char label[16], opcode[16], operand[64];\n    int  loc;                 /* address given by Pass 1 */\n    char objcode[80];         /* object code made by Pass 2 */\n};\nstatic struct line L[MAXLINES];\nstatic int nlines = 0;\n\nstatic int find_op(const char *name)\n{\n    for (int i = 0; i < NOPS; i++)\n        if (strcmp(OPTAB[i].name, name) == 0)\n            return OPTAB[i].code;\n    return -1;\n}\n\nstatic int find_sym(const char *name)\n{\n    for (int i = 0; i < nsyms; i++)\n        if (strcmp(SYMTAB[i].name, name) == 0)\n            return SYMTAB[i].addr;\n    return -1;\n}\n\n/* length in bytes of a BYTE constant: C'EOF' -> 3, X'F1' -> 1 */\nstatic int byte_len(const char *c)\n{\n    int n = (int)strlen(c) - 3;          /* remove C' and the closing ' */\n    return c[0] == 'C' ? n : n / 2;\n}\n\n/* split one source line into label, opcode, operand. Returns 0 for a blank or comment line. */\nstatic int split(char *buf, struct line *ln)\n{\n    char *tok[3] = {0};\n    int has_label = !isspace((unsigned char)buf[0]);\n    if (buf[0] == '.' || buf[strspn(buf, \" \\t\\r\\n\")] == '\\0')\n        return 0;\n    int n = 0;\n    for (char *t = strtok(buf, \" \\t\\r\\n\"); t && n < 3; t = strtok(NULL, \" \\t\\r\\n\"))\n        tok[n++] = t;\n    ln->label[0] = ln->opcode[0] = ln->operand[0] = '\\0';\n    int k = 0;\n    if (has_label) strcpy(ln->label, tok[k++]);\n    if (tok[k]) strcpy(ln->opcode, tok[k++]);\n    if (k < 3 && tok[k] && strcmp(ln->opcode, \"RSUB\") != 0) strcpy(ln->operand, tok[k]);\n    return 1;\n}\n\nint main(int argc, char *argv[])\n{\n    char buf[256];\n    if (argc < 2) { fprintf(stderr, \"usage: %s file.asm\\n\", argv[0]); return 1; }\n    FILE *in = fopen(argv[1], \"r\");\n    if (!in) { perror(argv[1]); return 1; }\n\n    /* ======================= PASS 1: give every label an address ======================= */\n    int locctr = 0, start = 0;\n    while (fgets(buf, sizeof buf, in)) {\n        struct line *ln = &L[nlines];\n        if (!split(buf, ln)) continue;\n        if (strcmp(ln->opcode, \"START\") == 0) {\n            start = locctr = (int)strtol(ln->operand, NULL, 16);\n            ln->loc = locctr;\n            nlines++;\n            continue;\n        }\n        ln->loc = locctr;\n        if (ln->label[0]) {\n            /* TODO 1: if the label is already in SYMTAB, print \"duplicate symbol\" and stop.\n             *         Otherwise add (label, locctr) to SYMTAB and increase nsyms.          */\n        }\n        /* TODO 2: increase locctr by the size of this line:\n         *         an instruction or WORD = 3 bytes, RESW n = 3*n, RESB n = n,\n         *         BYTE = byte_len(operand), END = 0. Anything else: \"unknown opcode\".    */\n        nlines++;\n    }\n    fclose(in);\n    int length = locctr - start;\n\n    /* ======================= PASS 2: make the object code ======================= */\n    for (int i = 0; i < nlines; i++) {\n        struct line *ln = &L[i];\n        int opc = find_op(ln->opcode);\n        ln->objcode[0] = '\\0';\n        if (opc >= 0) {\n            /* TODO 3: build the 3-byte instruction.\n             *   - if the operand ends in \",X\", remove it and set x = 1\n             *   - look up the operand in SYMTAB (error if it is not there); RSUB has no operand\n             *   - objcode = opcode (8 bits) | x (1 bit) | address (15 bits), printed as 6 hex digits */\n        } else if (!strcmp(ln->opcode, \"WORD\")) {\n            sprintf(ln->objcode, \"%06X\", atoi(ln->operand) & 0xFFFFFF);\n        } else if (!strcmp(ln->opcode, \"BYTE\")) {\n            /* TODO 4: C'EOF' -> \"454F46\" (two hex digits per character),\n             *         X'F1'  -> \"F1\"     (copy the hex digits between the quotes)        */\n        }\n    }\n\n    /* ---------------- listing ---------------- */\n    for (int i = 0; i < nlines; i++)\n        printf(\"%04X  %-8s %-6s %-12s %s\\n\", L[i].loc, L[i].label, L[i].opcode, L[i].operand, L[i].objcode);\n\n    /* ---------------- object program: H, T..., E ---------------- */\n    char objname[256];\n    strcpy(objname, argv[1]);\n    char *dot = strrchr(objname, '.');\n    if (dot) *dot = '\\0';\n    strcat(objname, \".obj\");\n    FILE *out = fopen(objname, \"w\");\n    if (!out) { perror(objname); return 1; }\n\n    fprintf(out, \"H%-6.6s%06X%06X\\n\", L[0].label, start, length);\n    char text[2 * TEXTMAX + 1] = \"\";\n    int tstart = -1, tlen = 0, expect = -1;\n    for (int i = 0; i < nlines; i++) {\n        int n = (int)strlen(L[i].objcode) / 2;\n        if (n == 0) continue;                       /* RESW/RESB make no code */\n        if (tstart >= 0 && (L[i].loc != expect || tlen + n > TEXTMAX)) {\n            fprintf(out, \"T%06X%02X%s\\n\", tstart, tlen, text);   /* close the record */\n            tstart = -1;\n        }\n        if (tstart < 0) { tstart = L[i].loc; tlen = 0; text[0] = '\\0'; }\n        strcat(text, L[i].objcode);\n        tlen += n;\n        expect = L[i].loc + n;\n    }\n    if (tstart >= 0)\n        fprintf(out, \"T%06X%02X%s\\n\", tstart, tlen, text);\n    int first = start;\n    for (int i = 0; i < nlines; i++)\n        if (!strcmp(L[i].opcode, \"END\") && L[i].operand[0])\n            first = find_sym(L[i].operand);\n    fprintf(out, \"E%06X\\n\", first);\n    fclose(out);\n    printf(\"\\nobject program written to %s (%d symbols, program length %04X)\\n\", objname, nsyms, length);\n    return 0;\n}\n", "sumn.asm": "SUMN     START   1000\nFIRST    LDA     ZERO\n         STA     SUM\n         LDX     ZERO\nLOOP     TIX     N\n         STX     I\n         LDA     SUM\n         ADD     I\n         STA     SUM\n         JLT     LOOP\nHALT     J       HALT\nN        WORD    5\nZERO     WORD    0\nSUM      RESW    1\nI        RESW    1\nMSG      BYTE    C'SUM'\n         END     FIRST\n", "sumx.asm": "SUMX     START   0\nFIRST    STL     RETADR\n         +LDB    #TOTAL\n         BASE    TOTAL\n         CLEAR   X\n         CLEAR   A\n         LDS     #3\n         LDT     #9\nLOOP     ADD     TABLE,X\n         ADDR    S,X\n         COMPR   X,T\n         JLT     LOOP\n         STA     TOTAL\n         J       @RETADR\nRETADR   RESW    1\nTABLE    WORD    10\n         WORD    20\n         WORD    30\nBIG      RESB    3000\nTOTAL    RESW    1\n         END     FIRST\n", "undef.asm": "BAD      START   1000\nFIRST    LDA     ALPHA\n         STA     BETA\nHALT     J       HALT\nALPHA    WORD    5\n         END     FIRST\n", "where.c": "#include <stdio.h>\n\nint counter = 5;\n\nint main(void)\n{\n    printf(\"main    is at %p\\n\", (void *)main);\n    printf(\"counter is at %p\\n\", (void *)&counter);\n    return 0;\n}\n"}, "asm": {"countb.asm": "COUNTB   START   0\nFIRST    STL     RETADR\n         CLEAR   X\n         LDT     #6\nLOOP     CLEAR   A\n         LDCH    TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         J       @RETADR\n         USE     CDATA\nRETADR   RESW    1\nCNT      WORD    0\n         USE     CBLKS\nBUFFER   RESB    4096\n         USE     CDATA\nTEXT     BYTE    C'BANANA'\n         USE\nFOUND    LDA     CNT\n         ADD     #1\n         STA     CNT\n         J       NEXT\n         END     FIRST\n", "count.asm": "COUNT    START   2000\nFIRST    LDX     ZERO\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\n         J       DONE\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nDONE     J       DONE\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nBUFFER   RESB    100\nONE      WORD    1\n         END     FIRST\n", "countx.asm": "COUNTX   START   0\nFIRST    STL     RETADR\n         +LDB    #TOTAL\n         BASE    TOTAL\n         CLEAR   X\n         LDT     #6\nLOOP     CLEAR   A\n         LDCH    TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         LDA     CNT\n         STA     TOTAL\n         +JSUB   REPORT\n         J       @RETADR\nFOUND    LDA     CNT\n         ADD     #1\n         STA     CNT\n         J       NEXT\nRETADR   RESW    1\nCNT      WORD    0\nTEXT     BYTE    C'BANANA'\nBUFFER   RESB    4096\nTOTAL    RESW    1\nREPORT   RSUB\n         END     FIRST\n", "countlit.asm": "CNTLIT   START   2000\nMAXLEN   EQU     6\nFIRST    LDX     =X'000000'\nLOOP     LDA     =X'000000'\n         LDCH    TEXT,X\n         COMP    =X'000041'\n         JEQ     FOUND\nNEXT     TIX     =X'000006'\n         JLT     LOOP\nDONE     J       DONE\nFOUND    LDA     TOTAL\n         ADD     =X'000001'\n         STA     TOTAL\n         J       NEXT\n         LTORG\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\nTLEN     EQU     TEXTEND-TEXT\nTOTAL    WORD    0\n         END     FIRST\n", "countl.asm": "COUNTL   START   0\nMAXLEN   EQU     6\nFIRST    STL     RETADR\n         CLEAR   X\n         LDT     #MAXLEN\nLOOP     CLEAR   A\n         LDCH    TEXT,X\n         COMP    =X'000041'\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         J       @RETADR\nFOUND    LDA     CNT\n         ADD     =X'000001'\n         STA     CNT\n         J       NEXT\n         LTORG\nRETADR   RESW    1\nCNT      WORD    0\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\nTLEN     EQU     TEXTEND-TEXT\n         END     FIRST\n", "multipass.asm": "MULTI    START   0\nHALF     EQU     TLEN/2\nTLEN     EQU     TEXTEND-TEXT\nFIRST    LDA     #HALF\n         J       FIRST\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\n         END     FIRST\n", "dup.asm": "BAD      START   1000\nFIRST    LDA     ALPHA\n         STA     BETA\nFIRST    J       FIRST\nALPHA    WORD    5\n         END     FIRST\n", "countc.asm": "MAIN     START   0\n         EXTDEF  TEXT,TEXTEND\n         EXTREF  COUNTA\nFIRST    STL     RETADR\n         +JSUB   COUNTA\n         STA     CNT\n         J       @RETADR\nRETADR   RESW    1\nCNT      RESW    1\nTEXT     BYTE    C'BANANA'\nTEXTEND  EQU     *\nCOUNTA   CSECT\n         EXTREF  TEXT,TEXTEND\n         CLEAR   X\n         CLEAR   S\n         LDT     LEN\nLOOP     CLEAR   A\n         +LDCH   TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIXR    T\n         JLT     LOOP\n         RMO     S,A\n         RSUB\nFOUND    LDA     #1\n         ADDR    A,S\n         J       NEXT\nLEN      WORD    TEXTEND-TEXT\n         END     FIRST\n", "sumx.asm": "SUMX     START   0\nFIRST    STL     RETADR\n         +LDB    #TOTAL\n         BASE    TOTAL\n         CLEAR   X\n         CLEAR   A\n         LDS     #3\n         LDT     #9\nLOOP     ADD     TABLE,X\n         ADDR    S,X\n         COMPR   X,T\n         JLT     LOOP\n         STA     TOTAL\n         J       @RETADR\nRETADR   RESW    1\nTABLE    WORD    10\n         WORD    20\n         WORD    30\nBIG      RESB    3000\nTOTAL    RESW    1\n         END     FIRST\n", "undef.asm": "BAD      START   1000\nFIRST    LDA     ALPHA\n         STA     BETA\nHALT     J       HALT\nALPHA    WORD    5\n         END     FIRST\n", "sumn.asm": "SUMN     START   1000\nFIRST    LDA     ZERO\n         STA     SUM\n         LDX     ZERO\nLOOP     TIX     N\n         STX     I\n         LDA     SUM\n         ADD     I\n         STA     SUM\n         JLT     LOOP\nHALT     J       HALT\nN        WORD    5\nZERO     WORD    0\nSUM      RESW    1\nI        RESW    1\nMSG      BYTE    C'SUM'\n         END     FIRST\n"}, "expected": {"count_expected.obj": "HCOUNT 0020000000A0\nT0020001E04203300203350A0272820303020182C202D3820033C202400203618209D\nT00201E1B0C20363C200F3C202442414E414E41000006000041000000000000\nT00209D03000001\nE002000\n", "countlit_expected.obj": "HCNTLIT002000000039\nT0020001E04202400202450A0302820273020182C202A3820033C201500203618202D\nT00201E1B0C20363C200F00000000004100000600000142414E414E41000000\nE002000\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* sicxe.js - SIC and SIC/XE two-pass assembler, relocating loader and simulator for the CSE 4105 labs.
+   A line-by-line port of the course's reference sicxe.py (Beck, System Software, Ch. 2-3); tested to give
+   identical listings, object programs and memory images on every lab program. */
+(function (root) {
+"use strict";
+const OPTAB = {
+  ADD: [3, 0x18], ADDF: [3, 0x58], ADDR: [2, 0x90], AND: [3, 0x40], CLEAR: [2, 0xB4],
+  COMP: [3, 0x28], COMPF: [3, 0x88], COMPR: [2, 0xA0], DIV: [3, 0x24], DIVF: [3, 0x64],
+  DIVR: [2, 0x9C], FIX: [1, 0xC4], FLOAT: [1, 0xC0], HIO: [1, 0xF4], J: [3, 0x3C],
+  JEQ: [3, 0x30], JGT: [3, 0x34], JLT: [3, 0x38], JSUB: [3, 0x48], LDA: [3, 0x00],
+  LDB: [3, 0x68], LDCH: [3, 0x50], LDF: [3, 0x70], LDL: [3, 0x08], LDS: [3, 0x6C],
+  LDT: [3, 0x74], LDX: [3, 0x04], LPS: [3, 0xD0], MUL: [3, 0x20], MULF: [3, 0x60],
+  MULR: [2, 0x98], NORM: [1, 0xC8], OR: [3, 0x44], RD: [3, 0xD8], RMO: [2, 0xAC],
+  RSUB: [3, 0x4C], SHIFTL: [2, 0xA4], SHIFTR: [2, 0xA8], SIO: [1, 0xF0], SSK: [3, 0xEC],
+  STA: [3, 0x0C], STB: [3, 0x78], STCH: [3, 0x54], STF: [3, 0x80], STI: [3, 0xD4],
+  STL: [3, 0x14], STS: [3, 0x7C], STSW: [3, 0xE8], STT: [3, 0x84], STX: [3, 0x10],
+  SUB: [3, 0x1C], SUBF: [3, 0x5C], SUBR: [2, 0x94], SVC: [2, 0xB0], TD: [3, 0xE0],
+  TIO: [1, 0xF8], TIX: [3, 0x2C], TIXR: [2, 0xB8], WD: [3, 0xDC]
+};
+const REGS = { A: 0, X: 1, L: 2, B: 3, S: 4, T: 5, F: 6, PC: 8, SW: 9 };
+class AsmError extends Error {}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n, "0");
+const isDigits = t => /^\d+$/.test(t);
+
+function parseLine(raw) {
+  const line = raw.replace(/\n$/, "");
+  if (!line.trim() || line.trimStart().startsWith(".")) return null;
+  let m, label, op, operand;
+  if (line[0] === " " || line[0] === "\t") {
+    m = line.match(/^\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = null; op = m[1]; operand = m[2] === undefined ? null : m[2];
+  } else {
+    m = line.match(/^(\S+)\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = m[1]; op = m[2]; operand = m[3] === undefined ? null : m[3];
+  }
+  const U = op.toUpperCase();
+  if (U.replace(/^\+/, "") === "RSUB" || U === "LTORG" || U === "NOBASE") operand = null;
+  return [label, U, operand];
+}
+function constBytes(c) {
+  if (c.startsWith("C'")) return Array.from(c.slice(2, -1)).map(ch => ch.charCodeAt(0));
+  if (c.startsWith("X'")) { const h = c.slice(2, -1); const out = []; for (let i = 0; i < h.length; i += 2) out.push(parseInt(h.substr(i, 2), 16)); return out; }
+  throw new AsmError("bad constant " + c);
+}
+const bytesHex = b => b.map(x => hex(x, 2)).join("");
+
+class Line {
+  constructor(src, label, op, operand, lineno) {
+    Object.assign(this, { src, label, op, operand, lineno, loc: null, block: 0, addr: null, size: 0, code: "", note: "", isLiteral: false });
+  }
+}
+class Section {
+  constructor(name) {
+    Object.assign(this, { name, symtab: {}, littab: {}, pendingLits: [], blocks: ["(default)"], blockLoc: [0], blockStart: [0],
+      extdef: [], extref: [], lines: [], start: 0, length: 0, records: [], curBlock: 0, mods: [] });
+  }
+}
+
+class Assembler {
+  constructor(src, xe = true) { this.src = src; this.xe = xe; this.sections = []; this.pass1Trace = []; this.pass2Trace = []; }
+  evalExpr(expr, sec, hereBlock, hereLoc, allowExt = false) {
+    const tokens = expr.match(/[+\-*/]|[A-Za-z_$][\w$]*|\d+|\*/g) || [];
+    let val = 0, rel = 0, ext = [], sign = 1, expectTerm = true, opMul = null;
+    for (const t of tokens) {
+      if (expectTerm) {
+        if (t === "-") { sign = -sign; continue; }
+        if (t === "+") continue;
+        let v, r;
+        if (t === "*") { v = this.addrOf(sec, hereBlock, hereLoc); r = 1; }
+        else if (isDigits(t)) { v = parseInt(t, 10); r = 0; }
+        else if (t in sec.symtab) { const [b, off, kind] = sec.symtab[t]; v = kind === "R" ? this.addrOf(sec, b, off) : off; r = kind === "R" ? 1 : 0; }
+        else if (sec.extref.includes(t) && allowExt) { ext.push([sign > 0 ? "+" : "-", t]); v = 0; r = 0; }
+        else throw new AsmError("undefined symbol " + t);
+        if (opMul) { if (r) throw new AsmError("relative term in multiply/divide"); val = opMul === "*" ? val * v : Math.floor(val / v); opMul = null; }
+        else { val += sign * v; rel += sign * r; }
+        sign = 1; expectTerm = false;
+      } else {
+        if (t === "+" || t === "-") sign = t === "+" ? 1 : -1;
+        else if (t === "*" || t === "/") opMul = t;
+        expectTerm = true;
+      }
+    }
+    if (rel !== 0 && rel !== 1) throw new AsmError(`expression ${expr} is not absolute or relative`);
+    return [val, rel === 1 ? "R" : "A", ext];
+  }
+  addrOf(sec, block, off) { return sec.blockStart[block] + off; }
+  pass1() {
+    let sec = null;
+    const lines = this.src.split(/\r?\n/);
+    lines.forEach((raw, idx) => {
+      const n = idx + 1;
+      const p = parseLine(raw);
+      if (p === null) return;
+      const [label, op, operand] = p;
+      if (op === "START") {
+        sec = new Section(label || ""); this.sections.push(sec);
+        sec.start = operand ? parseInt(operand, 16) : 0; sec.blockLoc[0] = sec.start;
+        const ln = new Line(raw, label, op, operand, n); ln.loc = sec.start; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: sec.start, action: `LOCCTR ← ${hex(sec.start, 4)}` });
+        return;
+      }
+      if (sec === null) { sec = new Section(""); this.sections.push(sec); }
+      if (op === "CSECT") {
+        this.flushLiterals(sec);
+        sec = new Section(label); this.sections.push(sec);
+        const ln = new Line(raw, label, op, operand, n); ln.loc = 0; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: 0, action: `new control section ${label}: LOCCTR ← 0000` });
+        return;
+      }
+      const cb = sec.curBlock;
+      const loc = sec.blockLoc[cb];
+      const ln = new Line(raw, label, op, operand, n);
+      ln.loc = loc; ln.block = cb; sec.lines.push(ln);
+      const action = [];
+      if (op === "USE") {
+        const name = operand || "(default)";
+        if (!sec.blocks.includes(name)) { sec.blocks.push(name); sec.blockLoc.push(0); sec.blockStart.push(0); }
+        sec.curBlock = sec.blocks.indexOf(name);
+        ln.loc = sec.blockLoc[sec.curBlock]; ln.block = sec.curBlock;
+        this.pass1Trace.push({ line: ln, locctr: ln.loc, action: `switch to block ${name}` });
+        return;
+      }
+      if (label && !["EQU", "EXTDEF", "EXTREF"].includes(op)) {
+        if (label in sec.symtab) throw new AsmError(`duplicate symbol ${label}`);
+        sec.symtab[label] = [cb, loc, "R"];
+        action.push(`SYMTAB ← ${label} = ${hex(loc, 4)}`);
+      }
+      const base = op.replace(/^\+/, "");
+      let size;
+      if (base in OPTAB) {
+        const fmt = OPTAB[base][0];
+        size = !this.xe ? 3 : (op.startsWith("+") ? 4 : fmt);
+        if (operand && operand.startsWith("=")) {
+          if (!(operand in sec.littab) && !sec.pendingLits.includes(operand)) { sec.pendingLits.push(operand); action.push(`LITTAB ← ${operand} (address later)`); }
+        }
+      } else if (op === "WORD") size = 3;
+      else if (op === "RESW") size = 3 * parseInt(operand, 10);
+      else if (op === "RESB") size = parseInt(operand, 10);
+      else if (op === "BYTE") size = constBytes(operand).length;
+      else if (op === "EQU") {
+        let v, kind;
+        if (operand.trim() === "*") { v = loc; kind = "R"; sec.symtab[label] = [cb, loc, "R"]; }
+        else {
+          try { [v, kind] = this.evalExpr(operand, sec, cb, loc); }
+          catch (ex) { const hint = /undefined/.test(ex.message) ? " (EQU needs every symbol defined earlier)" : ""; throw new AsmError(`line ${n}: ${ex.message}${hint}`); }
+          if (kind === "R") sec.symtab[label] = [0, v - sec.blockStart[0], "R"]; else sec.symtab[label] = [cb, v, "A"];
+        }
+        action.push(`SYMTAB ← ${label} = ${hex(v, 4)} (${kind === "R" ? "relative" : "absolute"})`);
+        size = 0;
+      } else if (op === "ORG") {
+        if (operand) { const [v] = this.evalExpr(operand, sec, cb, loc); sec.savedOrg = sec.blockLoc[cb]; sec.blockLoc[cb] = v; }
+        else sec.blockLoc[cb] = sec.savedOrg;
+        this.pass1Trace.push({ line: ln, locctr: loc, action: `LOCCTR ← ${hex(sec.blockLoc[cb], 4)}` });
+        return;
+      } else if (op === "LTORG") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "place the waiting literals here" });
+        this.flushLiterals(sec); return;
+      } else if (op === "BASE" || op === "NOBASE") size = 0;
+      else if (op === "EXTDEF") { sec.extdef.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "EXTREF") { sec.extref.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "END") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "end: place the waiting literals" });
+        this.flushLiterals(sec); return;
+      } else throw new AsmError(`line ${n}: unknown operation ${op}`);
+      ln.size = size;
+      sec.blockLoc[cb] = loc + size;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: action.join("; ") || "—", size });
+    });
+    if (sec) this.flushLiterals(sec);
+    this.sections.forEach((s, si) => {
+      const start = si === 0 ? s.start : 0;
+      let st = start; const lengths = [];
+      for (let i = 0; i < s.blocks.length; i++) {
+        const blen = s.blockLoc[i] - (i === 0 ? start : 0);
+        if (i === 0) { s.blockStart[0] = 0; st = s.blockLoc[0]; }
+        else { s.blockStart[i] = st; st += s.blockLoc[i]; }
+        lengths.push(blen);
+      }
+      s.blockLengths = lengths; s.length = st - start;
+      for (const ln of s.lines) if (ln.loc !== null) ln.addr = s.blockStart[ln.block] + ln.loc;
+    });
+  }
+  flushLiterals(sec) {
+    if (!sec.pendingLits.length) return;
+    const cb = sec.curBlock;
+    for (const lit of sec.pendingLits) {
+      const loc = sec.blockLoc[cb];
+      const b = constBytes(lit.slice(1));
+      sec.littab[lit] = [cb, loc];
+      const ln = new Line(`*        ${lit}`, "*", "LIT", lit, null);
+      ln.loc = loc; ln.block = cb; ln.size = b.length; ln.isLiteral = true;
+      sec.lines.push(ln); sec.blockLoc[cb] = loc + b.length;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: `LITTAB: ${lit} gets address ${hex(loc, 4)}`, size: b.length });
+    }
+    sec.pendingLits = [];
+  }
+  pass2() {
+    this.sections.forEach((sec, si) => {
+      let base = null; const mods = [];
+      for (const ln of sec.lines) {
+        const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+        if (ln.isLiteral) { ln.code = bytesHex(constBytes(operand.slice(1))); ln.note = "literal value"; }
+        else if (bop in OPTAB) { const [c, nt, m] = this.encode(sec, ln, base); ln.code = c; ln.note = nt; if (m) mods.push(m); }
+        else if (op === "WORD") {
+          const [v, kind, ext] = this.evalExpr(operand, sec, ln.block, ln.loc, true);
+          ln.code = hex(v & 0xFFFFFF, 6);
+          if (kind === "R" && this.sections.length === 1) mods.push([ln.addr, 6, null]);
+          for (const [sg, name] of ext) mods.push([ln.addr, 6, sg + name]);
+          ln.note = "word constant";
+        } else if (op === "BYTE") { ln.code = bytesHex(constBytes(operand)); ln.note = "byte constant"; }
+        else if (op === "BASE") { const [v] = this.evalExpr(operand, sec, ln.block, ln.loc); base = v; ln.note = `assembler now assumes (B) = ${hex(v, 4)}`; }
+        else if (op === "NOBASE") base = null;
+        this.pass2Trace.push(ln);
+      }
+      sec.mods = mods; sec.records = this.records(sec, si);
+    });
+  }
+  encode(sec, ln, base) {
+    const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+    const [fmt, opc] = OPTAB[bop];
+    if (!this.xe) {
+      let addr = 0, x = 0;
+      if (operand) {
+        let o = operand;
+        if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+        if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; addr = sec.blockStart[bl] + off; }
+        else [addr] = this.evalExpr(o, sec, ln.block, ln.loc);
+      }
+      const word = (opc << 16) | (x << 15) | addr;
+      return [hex(word, 6), `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}`, null];
+    }
+    if (fmt === 1) return [hex(opc, 2), "format 1", null];
+    if (fmt === 2) {
+      const regs = (operand || "").split(",").map(r => r.trim()).filter(Boolean);
+      const r1 = regs.length ? REGS[regs[0]] : 0;
+      const r2 = regs.length > 1 ? (regs[1] in REGS ? REGS[regs[1]] : parseInt(regs[1], 10) - ((bop === "SHIFTL" || bop === "SHIFTR") ? 1 : 0)) : 0;
+      return [hex(opc, 2) + r1.toString(16).toUpperCase() + r2.toString(16).toUpperCase(), `format 2: r1=${r1}, r2=${r2}`, null];
+    }
+    const e = op.startsWith("+") ? 1 : 0;
+    let n = 1, i = 1, x = 0, b = 0, p = 0;
+    let o = operand;
+    if (o === null) return [hex((opc | 3) << 16, 6), "no operand: n=1 i=1, disp=0", null];
+    if (o.startsWith("#")) { n = 0; i = 1; o = o.slice(1); }
+    else if (o.startsWith("@")) { n = 1; i = 0; o = o.slice(1); }
+    if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+    let mod = null, ta, kind, ext;
+    if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; ta = sec.blockStart[bl] + off; kind = "R"; ext = []; }
+    else [ta, kind, ext] = this.evalExpr(o, sec, ln.block, ln.loc, true);
+    const pc = ln.addr + (e ? 4 : 3);
+    let disp, how;
+    if (e) {
+      disp = ta & 0xFFFFF; how = `format 4: full address ${hex(ta, 5)}`;
+      if (ext.length) { mod = [ln.addr + 1, 5, ext[0][0] + ext[0][1]]; how += ` (external ${ext[0][1]}: 0 + M record)`; }
+      else if (kind === "R") { mod = [ln.addr + 1, 5, null]; how += " + M record (relocatable)"; }
+    } else if (kind === "A" && n === 0) {
+      if (ta > 4095) throw new AsmError(`line ${ln.lineno}: constant ${ta} too big for format 3, use +`);
+      disp = ta; how = `immediate constant ${ta}: disp = ${hex(ta, 3)}`;
+    } else if (kind === "A" && ta >= 0 && ta <= 4095 && !ext.length) {
+      disp = ta; how = `absolute address ${hex(ta, 4)}: direct, b=p=0`;
+    } else {
+      const d = ta - pc;
+      if (d >= -2048 && d <= 2047) { p = 1; disp = d & 0xFFF; how = `PC-relative: ${hex(ta, 4)} − ${hex(pc, 4)} = ${d >= 0 ? "+" : ""}${d} → disp ${hex(disp, 3)}`; }
+      else if (base !== null && ta - base >= 0 && ta - base <= 4095) { b = 1; disp = ta - base; how = `base-relative: ${hex(ta, 4)} − ${hex(base, 4)} = ${hex(disp, 3)} (PC-relative too far: ${d >= 0 ? "+" : ""}${d})`; }
+      else throw new AsmError(`line ${ln.lineno}: ${o} is out of PC and base range; use format 4`);
+    }
+    const first = (opc & 0xFC) | (n << 1) | i;
+    const flags = (x << 3) | (b << 2) | (p << 1) | e;
+    const code = e ? hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 5) : hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 3);
+    return [code, `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}; ${how}`, mod];
+  }
+  records(sec, si) {
+    const recs = [];
+    const name = (sec.name || "").slice(0, 6);
+    const start = si === 0 ? sec.start : 0;
+    recs.push(`H${name.padEnd(6)}${hex(start, 6)}${hex(sec.length, 6)}`);
+    if (sec.extdef.length) { let d = "D"; for (const s of sec.extdef) { const [bl, off] = sec.symtab[s]; d += s.padEnd(6) + hex(sec.blockStart[bl] + off, 6); } recs.push(d); }
+    if (sec.extref.length) recs.push("R" + sec.extref.map(s => s.padEnd(6)).join(""));
+    const items = sec.lines.filter(l => l.code);
+    let curStart = null, cur = "", lastEnd = null;
+    for (const ln of items) {
+      const nb = ln.code.length / 2;
+      const gap = lastEnd !== null && ln.addr !== lastEnd;
+      if (curStart !== null && (gap || cur.length / 2 + nb > 30)) { recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`); curStart = null; cur = ""; }
+      if (curStart === null) curStart = ln.addr;
+      cur += ln.code; lastEnd = ln.addr + nb;
+    }
+    if (cur) recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`);
+    for (const [addr, l, sym] of sec.mods) recs.push(`M${hex(addr, 6)}${hex(l, 2)}` + (sym || ""));
+    const endl = sec.lines.filter(l => l.op === "END");
+    if (si === 0 && endl.length && endl[0].operand) { const [v] = this.evalExpr(endl[0].operand, sec, 0, 0); recs.push(`E${hex(v, 6)}`); }
+    else recs.push("E");
+    return recs;
+  }
+  run() { this.pass1(); this.pass2(); return this; }
+  objectProgram() { return this.sections.flatMap(s => s.records); }
+  listing() {
+    const out = [];
+    for (const s of this.sections) for (const ln of s.lines) {
+      let loc = ["END", "BASE", "NOBASE", "EXTDEF", "EXTREF", "LTORG"].includes(ln.op) || ln.loc === null ? "" : hex(ln.addr, 4);
+      if (ln.op === "EQU") { const [bl, off, kind] = s.symtab[ln.label]; loc = hex(kind === "R" ? s.blockStart[bl] + off : off, 4); }
+      out.push([loc, ln.block, ln.label || "", ln.op, ln.operand || "", ln.code, ln.note]);
+    }
+    return out;
+  }
+}
+
+/* ---------------- loader ---------------- */
+function load(records, mem, loadAddr, estab) {
+  let entry = null, hstart = 0; const prog = loadAddr; const log = [];
+  for (const r of records) {
+    if (r[0] === "H") { hstart = parseInt(r.slice(7, 13), 16); log.push({ rec: r, what: `program ${r.slice(1, 7).trim()}: assembled at ${hex(hstart, 6)}, length ${r.slice(13, 19)}; loading at ${hex(prog, 6)}` }); }
+    else if (r[0] === "T") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, n = parseInt(r.slice(7, 9), 16);
+      for (let i = 0; i < n; i++) mem[a + i] = parseInt(r.substr(9 + 2 * i, 2), 16);
+      log.push({ rec: r, what: `copy ${n} bytes to ${hex(a, 6)}`, addr: a, n });
+    } else if (r[0] === "M") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, half = parseInt(r.slice(7, 9), 16), sym = r.slice(9).trim();
+      const nb = Math.floor((half + 1) / 2);
+      let v = 0; for (let i = 0; i < nb; i++) v = v * 256 + mem[a + i];
+      const mask = Math.pow(2, 4 * half) - 1;
+      let field = v % (mask + 1);
+      let add = sym ? estab[sym.slice(1)] * (sym[0] === "+" ? 1 : -1) : prog - hstart;
+      const before = field;
+      field = ((field + add) % (mask + 1) + (mask + 1)) % (mask + 1);
+      v = v - (v % (mask + 1)) + field;
+      for (let i = nb - 1; i >= 0; i--) { mem[a + i] = v % 256; v = Math.floor(v / 256); }
+      log.push({ rec: r, what: `${half} half-bytes at ${hex(a, 6)}: ${hex(before, half)} ${add >= 0 ? "+" : "−"} ${hex(Math.abs(add), 4)}${sym ? " (" + sym.slice(1) + ")" : ""} = ${hex(field, half)}`, addr: a, n: nb });
+    } else if (r[0] === "E") { if (r.length > 1) entry = parseInt(r.slice(1, 7), 16) - hstart + prog; log.push({ rec: r, what: entry !== null ? `start execution at ${hex(entry, 6)}` : "end of section" }); }
+    else if (r[0] === "D" || r[0] === "R") log.push({ rec: r, what: r[0] === "D" ? "external definitions (used by pass 1 of a linking loader)" : "external references" });
+  }
+  return { entry, log };
+}
+
+/* ---------------- simulator ---------------- */
+const SHORT = {}, LONG = {};
+for (const [k, [f, o]] of Object.entries(OPTAB)) { if (f === 1 || f === 2) SHORT[o] = [k, f]; if (f === 3) LONG[o] = k; }
+const REGNAME = Object.fromEntries(Object.entries(REGS).map(([k, v]) => [v, k]));
+const sgn = v => { v &= 0xFFFFFF; return v & 0x800000 ? v - 0x1000000 : v; };
+class Machine {
+  constructor(mem, xe = true) { this.m = mem; this.xe = xe; this.R = { A: 0, X: 0, L: 0, B: 0, S: 0, T: 0, F: 0, PC: 0, SW: 0 }; this.CC = "="; this.device = []; }
+  w(a) { return (this.m[a] << 16) | (this.m[a + 1] << 8) | this.m[a + 2]; }
+  sw(a, v) { v &= 0xFFFFFF; this.m[a] = v >> 16; this.m[a + 1] = (v >> 8) & 255; this.m[a + 2] = v & 255; }
+  cmp(x, y) { this.CC = x < y ? "<" : (x === y ? "=" : ">"); }
+  step() { return this.xe ? this.stepXE() : this.stepSIC(); }
+  exec(name, ta, imm, info) {
+    const R = this.R, m = this.m, val = () => imm ? ta : this.w(ta);
+    switch (name) {
+      case "LDA": R.A = val(); break; case "LDX": R.X = val(); break; case "LDB": R.B = val(); break;
+      case "LDT": R.T = val(); break; case "LDS": R.S = val(); break; case "LDL": R.L = val(); break;
+      case "LDCH": R.A = (R.A & 0xFFFF00) | (imm ? ta & 0xFF : m[ta]); break;
+      case "STA": this.sw(ta, R.A); break; case "STX": this.sw(ta, R.X); break; case "STL": this.sw(ta, R.L); break;
+      case "STB": this.sw(ta, R.B); break; case "STS": this.sw(ta, R.S); break; case "STT": this.sw(ta, R.T); break;
+      case "STCH": m[ta] = R.A & 0xFF; break;
+      case "ADD": R.A = (R.A + val()) & 0xFFFFFF; break; case "SUB": R.A = (R.A - val()) & 0xFFFFFF; break;
+      case "MUL": R.A = (sgn(R.A) * sgn(val())) & 0xFFFFFF; break;
+      case "DIV": { const d = sgn(val()); if (d === 0) throw new Error("division by zero"); R.A = Math.trunc(sgn(R.A) / d) & 0xFFFFFF; break; }
+      case "AND": R.A = R.A & val(); break; case "OR": R.A = R.A | val(); break;
+      case "COMP": this.cmp(sgn(R.A), sgn(val())); break;
+      case "TIX": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(val())); break;
+      case "J": R.PC = ta; break;
+      case "JEQ": if (this.CC === "=") R.PC = ta; break; case "JLT": if (this.CC === "<") R.PC = ta; break; case "JGT": if (this.CC === ">") R.PC = ta; break;
+      case "JSUB": R.L = R.PC; R.PC = ta; break; case "RSUB": R.PC = R.L; break;
+      case "TD": this.CC = "<"; break;
+      case "RD": R.A = (R.A & 0xFFFF00) | (this.device.length ? this.device.shift() : 0x04); break;
+      case "WD": (this.out = this.out || []).push(R.A & 0xFF); break;
+      default: throw new Error(`instruction ${name} is not simulated here`);
+    }
+  }
+  stepSIC() {
+    const R = this.R, pc = R.PC, word = this.w(pc);
+    const opc = word >> 16, x = (word >> 15) & 1, addr = word & 0x7FFF;
+    const name = LONG[opc]; if (!name) throw new Error(`no instruction with opcode ${hex(opc, 2)} at ${hex(pc, 4)}`);
+    const ta = addr + (x ? R.X : 0);
+    R.PC = pc + 3;
+    this.exec(name, ta, false);
+    return { pc, name, ta, len: 3, how: `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}${x ? " + X" : ""} → TA ${hex(ta, 4)}` };
+  }
+  stepXE() {
+    const R = this.R, m = this.m, pc = R.PC, b0 = m[pc];
+    let name, fmt;
+    if (b0 in SHORT) [name, fmt] = SHORT[b0]; else { name = LONG[b0 & 0xFC]; fmt = 3; }
+    if (!name) throw new Error(`no instruction with opcode ${hex(b0, 2)} at ${hex(pc, 4)}`);
+    if (fmt === 1) { R.PC = pc + 1; throw new Error(`format 1 instruction ${name} is not simulated here`); }
+    if (fmt === 2) {
+      const r1 = m[pc + 1] >> 4, r2 = m[pc + 1] & 0xF; R.PC = pc + 2;
+      const a = REGNAME[r1], bb = REGNAME[r2];
+      switch (name) {
+        case "CLEAR": R[a] = 0; break;
+        case "TIXR": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(R[a])); break;
+        case "ADDR": R[bb] = (R[bb] + R[a]) & 0xFFFFFF; break; case "SUBR": R[bb] = (R[bb] - R[a]) & 0xFFFFFF; break;
+        case "MULR": R[bb] = (sgn(R[bb]) * sgn(R[a])) & 0xFFFFFF; break;
+        case "DIVR": if (sgn(R[a]) === 0) throw new Error("division by zero"); R[bb] = Math.trunc(sgn(R[bb]) / sgn(R[a])) & 0xFFFFFF; break;
+        case "COMPR": this.cmp(sgn(R[a]), sgn(R[bb])); break;
+        case "RMO": R[bb] = R[a]; break;
+        case "SHIFTL": { const n = r2 + 1, v = R[a]; R[a] = ((v << n) | (v >>> (24 - n))) & 0xFFFFFF; break; }
+        case "SHIFTR": { const n = r2 + 1; R[a] = (sgn(R[a]) >> n) & 0xFFFFFF; break; }
+        default: throw new Error(`instruction ${name} is not simulated here`);
+      }
+      return { pc, name, ta: null, len: 2, how: `format 2: r1=${a}${bb !== undefined ? ", r2=" + bb : ""}` };
+    }
+    const n = (b0 >> 1) & 1, i = b0 & 1, f = m[pc + 1] >> 4;
+    const x = (f >> 3) & 1, b = (f >> 2) & 1, p = (f >> 1) & 1, e = f & 1;
+    let disp, len;
+    if (e) { disp = ((m[pc + 1] & 0xF) << 16) | (m[pc + 2] << 8) | m[pc + 3]; R.PC = pc + 4; len = 4; }
+    else { disp = ((m[pc + 1] & 0xF) << 8) | m[pc + 2]; R.PC = pc + 3; len = 3; if (p && disp & 0x800) disp -= 0x1000; }
+    let ta = disp + (p ? R.PC : 0) + (b ? R.B : 0) + (x ? R.X : 0);
+    const parts = [`disp ${disp}`]; if (p) parts.push(`PC ${hex(R.PC, 4)}`); if (b) parts.push(`B ${hex(R.B, 4)}`); if (x) parts.push(`X ${hex(R.X, 4)}`);
+    let how = `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}: TA = ${parts.join(" + ")} = ${hex(ta, 4)}`;
+    if (n === 1 && i === 0) { const t2 = this.w(ta); how += `; indirect → ${hex(t2, 4)}`; ta = t2; }
+    const imm = n === 0 && i === 1;
+    if (imm) how += " (immediate value)";
+    this.exec(name, ta, imm);
+    return { pc, name, ta, len, how };
+  }
+}
+
+const api = { OPTAB, REGS, AsmError, Assembler, parseLine, constBytes, load, Machine, hex, sgn };
+if (typeof module !== "undefined" && module.exports) module.exports = api; else root.SICXE = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 3: watch the two-pass assembler work (SICXE.Assembler, identical to the reference on every lab file) */
+TOOLS_UI.push({
+  id: "asm", title: "Two-pass assembler",
+  build(p, D) {
+    const { el, esc } = L, S = SICXE, hx = S.hex;
+    const names = Object.keys(D.asm).sort((a, b) => (a === "count.asm" ? -1 : b === "count.asm" ? 1 : a.localeCompare(b)));
+    p.innerHTML = `<div class="row"><label>file <select id="f3"></select></label>
+<label><input type="radio" name="m3" value="sic"> SIC</label><label><input type="radio" name="m3" value="xe"> SIC/XE</label>
+<button class="btn primary" id="go3">Assemble</button><span id="cmp3" class="small"></span></div>
+<div class="grid2" style="margin-top:12px"><div><textarea id="s3" spellcheck="false" aria-label="source program"></textarea></div>
+<div><p id="e3" class="small"></p>
+<h3>Pass 1, one line at a time</h3>
+<div class="row"><button class="btn" id="b3">◀</button><input type="range" id="r3" min="0" value="0" style="flex:1;min-width:120px" aria-label="pass 1 step"><button class="btn" id="n3">▶</button><span class="mono small" id="k3"></span></div>
+<p class="small" id="act3"></p>
+<div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr))"><div><b class="small">SYMTAB so far</b><div class="scroll"><table class="t" id="sym3"></table></div></div><div><b class="small">LITTAB so far</b><div class="scroll"><table class="t" id="lit3"></table></div></div></div>
+</div></div>
+<div class="tabs" style="margin-top:16px" id="vt3"><button data-v="lst" aria-selected="true">Listing (pass 2)</button><button data-v="obj" aria-selected="false">Object program</button><button data-v="p1" aria-selected="false">Whole pass 1 trace</button></div>
+<div class="panel" id="out3"></div>
+<p class="note small">dup.asm and undef.asm must fail: that is the test for TODO 1 and TODO 3. multipass.asm needs a symbol before it is defined (EQU), so a two-pass assembler rejects it. count.asm and countlit.asm come with the expected object program: the tool compares them for you, like <code>diff</code>.</p>`;
+    const $ = s => p.querySelector(s);
+    names.forEach(n => $("#f3").appendChild(el("option", { value: n, text: n })));
+    let a = null, view = "lst", k = 0;
+    const isXE = src => /[#@+]\w|\bBASE\b|\b(CLEAR|TIXR|COMPR|LDB|LDT|LDS)\b/.test(src);
+    function pick() { const s = D.asm[$("#f3").value]; $("#s3").value = s; p.querySelector(`input[name=m3][value=${isXE(s) ? "xe" : "sic"}]`).checked = true; run(); }
+    function run() {
+      const xe = p.querySelector("input[name=m3]:checked").value === "xe";
+      $("#e3").textContent = ""; $("#e3").className = "small"; $("#cmp3").textContent = "";
+      a = new S.Assembler($("#s3").value, xe);
+      try { a.run(); }
+      catch (x) { $("#e3").className = "err"; $("#e3").textContent = "The assembler stops: " + x.message; a.failed = true; }
+      $("#r3").max = Math.max(0, a.pass1Trace.length - 1); k = a.failed ? a.pass1Trace.length - 1 : 0; $("#r3").value = k;
+      const exp = D.expected[$("#f3").value.replace(".asm", "_expected.obj")];
+      if (exp && !a.failed) { const same = exp.trim() === a.objectProgram().join("\n").trim(); $("#cmp3").className = same ? "ok small" : "err small"; $("#cmp3").textContent = same ? "✓ same as " + $("#f3").value.replace(".asm", "_expected.obj") : "✗ differs from the expected object program (did you edit the source?)"; }
+      stepView(); out();
+    }
+    function stepView() {
+      const tr = a.pass1Trace; if (!tr.length) { $("#act3").textContent = ""; return; }
+      const t = tr[k];
+      $("#k3").textContent = `${k + 1} / ${tr.length}`;
+      const ln = t.line;
+      $("#act3").innerHTML = `<span class="mono">${esc((ln.src || "").trim())}</span><br>LOCCTR = <b class="mono">${hx(t.locctr || 0, 4)}</b>${t.size ? ` · size ${t.size}` : ""} · ${esc(t.action)}`;
+      const sym = $("#sym3"), lit = $("#lit3"); sym.innerHTML = "<tr><th>symbol</th><th>value</th></tr>"; lit.innerHTML = "<tr><th>literal</th><th>address</th></tr>";
+      const seen = new Set(tr.slice(0, k + 1).map(x => x.line));
+      const sec = a.sections[a.sections.length - 1] && a.sections.find(s => s.lines.includes(ln)) || a.sections[0];
+      if (!sec) return;
+      for (const l of sec.lines) {
+        if (!seen.has(l)) continue;
+        if (l.label && l.label !== "*" && sec.symtab[l.label]) { const [bl, off, kind] = sec.symtab[l.label]; sym.appendChild(el("tr", { class: l === ln ? "cur" : "" }, el("td", { class: "mono", text: l.label }), el("td", { class: "mono", text: hx(kind === "R" ? (sec.blockStart[bl] || 0) + off : off, 4) + (kind === "A" ? " (absolute)" : "") }))); }
+        if (l.isLiteral) lit.appendChild(el("tr", { class: l === ln ? "cur" : "" }, el("td", { class: "mono", text: l.operand }), el("td", { class: "mono", text: hx(l.loc, 4) })));
+      }
+      if (view === "p1") out();
+    }
+    function out() {
+      const o = $("#out3"); o.innerHTML = "";
+      p.querySelectorAll("#vt3 button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === view ? "true" : "false"));
+      if (view === "obj") { o.appendChild(a.failed ? el("p", { class: "err", text: "No object program: the assembler stopped." }) : el("pre", { text: a.objectProgram().join("\n") })); if (!a.failed) o.appendChild(el("p", { class: "small dim", text: "H: name, start, length · T: start, length, bytes · M: address, half-bytes to fix (Lecture 3.2) · E: first instruction" })); return; }
+      const t = el("table", { class: "t" }); const w = el("div", { class: "scroll" }, t); o.appendChild(w);
+      if (view === "lst") {
+        if (a.failed) { o.prepend(el("p", { class: "err", text: "Pass 2 did not run: the assembler stopped." })); return; }
+        t.appendChild(el("tr", {}, ...["LOC", "block", "label", "op", "operand", "object code", "note"].map(h => el("th", { text: h }))));
+        for (const r of a.listing()) t.appendChild(el("tr", {}, ...r.map((c, i) => el("td", { class: i === 6 ? "small" : "mono", text: String(c) }))));
+      } else {
+        t.appendChild(el("tr", {}, ...["#", "line", "LOCCTR", "size", "what pass 1 does"].map(h => el("th", { text: h }))));
+        a.pass1Trace.forEach((x, i) => t.appendChild(el("tr", { class: i === k ? "cur" : "" }, el("td", { text: String(i + 1) }), el("td", { class: "mono", text: (x.line.src || "").trim() }), el("td", { class: "mono", text: hx(x.locctr || 0, 4) }), el("td", { text: x.size ? String(x.size) : "" }), el("td", { class: "small", text: x.action }))));
+      }
+    }
+    $("#f3").addEventListener("change", pick); $("#go3").addEventListener("click", run);
+    p.querySelectorAll("input[name=m3]").forEach(r => r.addEventListener("change", run));
+    $("#r3").addEventListener("input", () => { k = Number($("#r3").value); stepView(); });
+    $("#b3").addEventListener("click", () => { k = Math.max(0, k - 1); $("#r3").value = k; stepView(); });
+    $("#n3").addEventListener("click", () => { k = Math.min(a.pass1Trace.length - 1, k + 1); $("#r3").value = k; stepView(); });
+    p.querySelectorAll("#vt3 button").forEach(b => b.addEventListener("click", () => { view = b.dataset.v; out(); }));
+    pick();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

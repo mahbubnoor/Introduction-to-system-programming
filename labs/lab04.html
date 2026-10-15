@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 4 · Macro Processors</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 4: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part{scroll-margin-top:12px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 4</div>
+<h1>Macro Processors</h1>
+<p>A macro processor in C.</p>
+<nav class="navlinks" aria-label="Lab links"><a href="../index.html">All lectures</a><a href="../present/lecture_04.html">Present 4</a><a href="lab04_files.zip">Download the lab files (11 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-4">
+<div class="phead"><h3>Lab 4 <span class="dim">· Macro Processors</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_04.html">Present lecture 4</a>
+<a class="btn" href="../slides/lecture_04.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>Build the starter</b><br>gcc -Wall -o macro macro_starter.c then ./macro maccnt.asm. The output still says COMP &amp;CH.</li>
+<li><b>TODO 1: DEFTAB</b><br>Replace each parameter name by ?n when storing a line. Print DEFTAB and compare with slide 11.</li>
+<li><b>TODO 2 + 3: ARGTAB</b><br>Split the call&#x27;s operand at commas; replace ?n by ARGTAB[n−1], counting down.</li>
+<li><b>TODO 4: the label</b><br>Put the call&#x27;s label on the first generated line. diff with maccnt_expected.asm must print nothing.</li>
+<li><b>Into the assembler</b><br>./macro maccnt.asm &gt; m.asm then your Lab 3 ./sicasm m.asm. The object program must match slide 7&#x27;s run.</li>
+<li><b>TODO 5: $ labels</b><br>Make twice.asm work: CNTCH called twice. Without TODO 5 your assembler reports duplicate symbol LOOP.</li>
+</ol>
+<p class="warn">Submit: macro.c, the expanded twice.asm, and its object program from your Lab 3 assembler.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab04_files.zip">lab04_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab04_files.zip">Download lab04_files.zip (11 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab03.html">← Lab 3</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab05.html">Lab 5 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 4, "readme": "CSE 4105 System Programming - Lab 4 files (macro processors)\nMd Mahbub E Noor, University of Barishal\n\nYOUR MACRO PROCESSOR\n  macro_starter.c       fill in TODO 1-5\n  maccnt.asm            two macros (CHKCH, INCR) used by the COUNT program\n  maccnt_expected.asm   what your processor must print for maccnt.asm\n  twice.asm             a macro with a loop, called twice (needs TODO 5: $ labels)\n  twice_expected.asm    what your processor must print for twice.asm\n  nodollar.asm          twice.asm without $: gives \"duplicate symbol LOOP\" in the assembler\n  twodef.asm            a macro defined twice: must give an error\n\n    gcc -Wall -o macro macro_starter.c\n    ./macro maccnt.asm > out.asm\n    diff out.asm maccnt_expected.asm        (prints nothing when you are right)\n    ./sicasm out.asm                        (your Lab 3 assembler)\n\nFROM THE LECTURE\n  mac2.asm, sub2.asm    the same job with macros and with subroutines (slide 8)\n  macfeat.asm           concatenation, $ labels, IF/ELSE, SET/WHILE, keyword parameters\n  nested.asm            a macro that calls a macro (slide 23)\n\nC PREPROCESSOR, NASM AND M4 DEMOS\n  sqrun.c               SQUARE and MAX traps:    gcc sqrun.c -o sqrun && ./sqrun ;  gcc -E -P sqrun.c\n  swap.c                the SWAP(t, x) name clash\n  cat.c                 ## and #:                gcc -E -P cat.c\n  dbg.c                 #ifdef:                  gcc dbg.c && ./a.out ;  gcc -DDEBUG dbg.c && ./a.out\n  rec.c                 self-reference:          gcc -E -P rec.c\n  sumrun.c              macro vs function:       gcc -O0 -S sumrun.c ; look at main in sumrun.s\n  cntch.asm             nasm macro with %% labels: nasm -E cntch.asm ; nasm -f elf64 cntch.asm && ld cntch.o -o cntch && ./cntch ; echo $?\n  count.m4              m4 count.m4\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 4 files (macro processors)\nMd Mahbub E Noor, University of Barishal\n\nYOUR MACRO PROCESSOR\n  macro_starter.c       fill in TODO 1-5\n  maccnt.asm            two macros (CHKCH, INCR) used by the COUNT program\n  maccnt_expected.asm   what your processor must print for maccnt.asm\n  twice.asm             a macro with a loop, called twice (needs TODO 5: $ labels)\n  twice_expected.asm    what your processor must print for twice.asm\n  nodollar.asm          twice.asm without $: gives \"duplicate symbol LOOP\" in the assembler\n  twodef.asm            a macro defined twice: must give an error\n\n    gcc -Wall -o macro macro_starter.c\n    ./macro maccnt.asm > out.asm\n    diff out.asm maccnt_expected.asm        (prints nothing when you are right)\n    ./sicasm out.asm                        (your Lab 3 assembler)\n\nFROM THE LECTURE\n  mac2.asm, sub2.asm    the same job with macros and with subroutines (slide 8)\n  macfeat.asm           concatenation, $ labels, IF/ELSE, SET/WHILE, keyword parameters\n  nested.asm            a macro that calls a macro (slide 23)\n\nC PREPROCESSOR, NASM AND M4 DEMOS\n  sqrun.c               SQUARE and MAX traps:    gcc sqrun.c -o sqrun && ./sqrun ;  gcc -E -P sqrun.c\n  swap.c                the SWAP(t, x) name clash\n  cat.c                 ## and #:                gcc -E -P cat.c\n  dbg.c                 #ifdef:                  gcc dbg.c && ./a.out ;  gcc -DDEBUG dbg.c && ./a.out\n  rec.c                 self-reference:          gcc -E -P rec.c\n  sumrun.c              macro vs function:       gcc -O0 -S sumrun.c ; look at main in sumrun.s\n  cntch.asm             nasm macro with %% labels: nasm -E cntch.asm ; nasm -f elf64 cntch.asm && ld cntch.o -o cntch && ./cntch ; echo $?\n  count.m4              m4 count.m4\n", "cat.c": "#define COUNTER(id)  cnt_ ## id\n#define SHOW(x)      printf(#x \" = %d\\n\", x)\n\nint COUNTER(a) = 3, COUNTER(n) = 2;\n\nvoid report(void)\n{\n    SHOW(COUNTER(a));\n}\n", "cntch.asm": "; cntch.asm - a nasm macro with a local label, used twice\n        global  _start\n\n%macro  CNTCH 2                 ; %1 = character, %2 = register for the count\n        xor     ecx, ecx        ; index i = 0\n        xor     %2, %2          ; count = 0\n%%loop: cmp     byte [text + ecx], %1\n        jne     %%next\n        inc     %2\n%%next: inc     ecx\n        cmp     ecx, 6\n        jl      %%loop\n%endmacro\n\n        section .data\ntext:   db      \"BANANA\"\n\n        section .text\n_start:\n        CNTCH   'A', ebx        ; ebx = number of A's\n        CNTCH   'N', edx        ; edx = number of N's\n        imul    ebx, 10\n        add     ebx, edx        ; exit status = 10*A + N\n        mov     edi, ebx\n        mov     eax, 60\n        syscall\n", "count.m4": "define(`GREET', `Hello, $1! You are in $2.')dnl\ndefine(`TWICE', `$1 $1')dnl\nGREET(`students', `CSE 4105')\nTWICE(`macro')\n", "dbg.c": "#include <stdio.h>\n\nint main(void)\n{\n#ifdef DEBUG\n    printf(\"debug: starting\\n\");\n#endif\n    printf(\"hello\\n\");\n    return 0;\n}\n", "mac2.asm": "MAC2     START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\nCHKCH    MACRO   &CH,&HIT\n         LDA     ZERO\n         LDCH    TEXT,X\n         COMP    &CH\n         JEQ     &HIT\n         MEND\n.        macro 2: add one to the word &VAR\nINCR     MACRO   &VAR\n         LDA     &VAR\n         ADD     ONE\n         STA     &VAR\n         MEND\nFIRST    LDX     ZERO\nLOOP     CHKCH   LETTERA,FOUNDA\nTESTN    CHKCH   LETTERN,FOUNDN\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\nFOUNDA   INCR    TOTALA\n         J       TESTN\nFOUNDN   INCR    TOTALN\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nTOTALA   WORD    0\nTOTALN   WORD    0\nONE      WORD    1\n         END     FIRST\n", "maccnt.asm": "MACCNT   START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\nCHKCH    MACRO   &CH,&HIT\n         LDA     ZERO\n         LDCH    TEXT,X\n         COMP    &CH\n         JEQ     &HIT\n         MEND\n.        macro 2: add one to the word &VAR\nINCR     MACRO   &VAR\n         LDA     &VAR\n         ADD     ONE\n         STA     &VAR\n         MEND\nFIRST    LDX     ZERO\nLOOP     CHKCH   LETTERA,FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\nFOUND    INCR    TOTAL\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nONE      WORD    1\n         END     FIRST\n", "maccnt_expected.asm": "MACCNT   START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\n.        macro 2: add one to the word &VAR\nFIRST    LDX     ZERO\n.LOOP    CHKCH   LETTERA,FOUND\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\n.FOUND   INCR    TOTAL\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nONE      WORD    1\n         END     FIRST\n", "macfeat.asm": "MACFT    START   0\n.        CNTCH: count how often the character &CH appears in &TXT (length &LEN).\n.        The count is left in S; with RES= it is also stored in that word.\nCNTCH    MACRO   &TXT,&LEN,&CH,&RES=\n         CLEAR   X\n         CLEAR   S\n         LDT     #&LEN\n$LOOP    CLEAR   A\n         LDCH    &TXT,X\n         COMP    #&CH\n         JEQ     $HIT\n$NEXT    TIXR    T\n         JLT     $LOOP\n         J       $DONE\n$HIT     LDA     #1\n         ADDR    A,S\n         J       $NEXT\n         IF      (&RES NE '')\n$DONE    STS     &RES\n         ELSE\n$DONE    RMO     S,A\n         ENDIF\n         MEND\n.        FILL: put the value &VAL into &N words starting at &TAB (unrolled loop)\nFILL     MACRO   &TAB,&N,&VAL=0\n&OFF     SET     0\n&I       SET     0\n         LDA     #&VAL\n         WHILE   (&I LT &N)\n         STA     &TAB+&OFF\n&OFF     SET     &OFF+3\n&I       SET     &I+1\n         ENDW\n         MEND\n.        SHOW: copy count &ID into the result table (concatenation)\nSHOW     MACRO   &ID,&K\n         LDA     CNT&ID\n         STA     RES&K\n         MEND\nFIRST    STL     RETADR\n         FILL    RES1,3,VAL=7\n         CNTCH   TEXT,6,65,RES=CNTA\n         CNTCH   TEXT,6,78,RES=CNTN\n         CNTCH   TEXT,6,66\n         SHOW    A,1\n         SHOW    N,2\n         J       @RETADR\nRETADR   RESW    1\nTEXT     BYTE    C'BANANA'\nCNTA     WORD    99\nCNTN     WORD    99\nRES1     RESW    1\nRES2     RESW    1\nRES3     RESW    1\n         END     FIRST\n", "macro_starter.c": "/*\n * macro.c - a one-pass macro processor for SIC/XE source (Beck, System Software, Section 4.1)\n * CSE 4105 System Programming, Lab 4   (STUDENT STARTER: fill in TODO 1-5)\n *\n * Build:   gcc -Wall -o macro macro.c\n * Run:     ./macro maccnt.asm > maccnt_expanded.asm\n *\n * Supports:  NAME MACRO &P1,&P2,...  /  body  /  MEND\n *            positional parameters, the invocation label on the first generated line,\n *            and unique labels: a label written $NAME becomes $AANAME, $ABNAME, ... (one pair per call)\n * Not supported here: macros inside macros, IF/WHILE, keyword parameters (see the lecture).\n */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <ctype.h>\n\n#define MAXDEF   500         /* lines in DEFTAB */\n#define MAXMAC   50          /* macros in NAMTAB */\n#define MAXARG   10          /* parameters per macro */\n#define LINELEN  200\n\n/* ---------------- the three tables ---------------- */\nstruct mac { char name[16]; int start, end; };    /* NAMTAB entry: where the macro is in DEFTAB */\nstatic struct mac NAMTAB[MAXMAC];\nstatic int nmacros = 0;\n\nstatic char DEFTAB[MAXDEF][LINELEN];              /* definition lines, parameters written as ?1 ?2 ... */\nstatic int ndef = 0;\n\nstatic char ARGTAB[MAXARG][64];                    /* the arguments of the call being expanded */\nstatic int nargs = 0;\n\nstatic int uniq = 0;                               /* for $ labels: AA, AB, AC ... */\n\n/* ---------------- small helpers ---------------- */\nstatic int find_macro(const char *name)\n{\n    for (int i = 0; i < nmacros; i++)\n        if (strcmp(NAMTAB[i].name, name) == 0)\n            return i;\n    return -1;\n}\n\n/* replace every \"from\" in s by \"to\" (s must have room) */\nstatic void replace_all(char *s, const char *from, const char *to)\n{\n    char buf[LINELEN * 2] = \"\";\n    char *p = s, *hit;\n    size_t lf = strlen(from);\n    while ((hit = strstr(p, from)) != NULL) {\n        strncat(buf, p, (size_t)(hit - p));\n        strcat(buf, to);\n        p = hit + lf;\n    }\n    strcat(buf, p);\n    strcpy(s, buf);\n}\n\n/* split a line into label, opcode, operand; return 0 for a blank or comment line */\nstatic int split(const char *line, char *label, char *op, char *operand)\n{\n    char tmp[LINELEN];\n    label[0] = op[0] = operand[0] = '\\0';\n    if (line[strspn(line, \" \\t\\r\\n\")] == '\\0' || line[strspn(line, \" \\t\")] == '.')\n        return 0;\n    strcpy(tmp, line);\n    int has_label = !isspace((unsigned char)tmp[0]);\n    char *t = strtok(tmp, \" \\t\\r\\n\");\n    if (has_label) { strcpy(label, t); t = strtok(NULL, \" \\t\\r\\n\"); }\n    if (t) { strcpy(op, t); t = strtok(NULL, \" \\t\\r\\n\"); }\n    if (t) strcpy(operand, t);\n    return 1;\n}\n\n/* write one line in fixed columns: label (9), opcode (8), operand */\nstatic void put(const char *label, const char *op, const char *operand)\n{\n    char out[LINELEN];\n    snprintf(out, sizeof out, \"%-9s%-8s%s\", label, op, operand);\n    for (int n = (int)strlen(out); n > 0 && out[n - 1] == ' '; n--)   /* no blanks at the end */\n        out[n - 1] = '\\0';\n    puts(out);\n}\n\n/* ---------------- DEFINE: store a macro in DEFTAB, its name in NAMTAB ---------------- */\nstatic void define(FILE *in, const char *name, const char *protoargs)\n{\n    char line[LINELEN], label[64], op[64], operand[64];\n    char params[MAXARG][64];\n    int np = 0;\n\n    /* the parameter names from the prototype, e.g. \"&CH,&HIT\" */\n    char tmp[LINELEN];\n    strcpy(tmp, protoargs);\n    for (char *p = strtok(tmp, \",\"); p && np < MAXARG; p = strtok(NULL, \",\"))\n        strcpy(params[np++], p);\n\n    strcpy(NAMTAB[nmacros].name, name);\n    NAMTAB[nmacros].start = ndef;\n    snprintf(DEFTAB[ndef++], LINELEN, \"%-9s%-8s%s\", name, \"MACRO\", protoargs);   /* the prototype */\n\n    while (fgets(line, sizeof line, in)) {\n        if (!split(line, label, op, operand)) continue;       /* comments are not stored */\n        if (strcmp(op, \"MEND\") == 0) break;\n        char text[LINELEN];\n        snprintf(text, sizeof text, \"%-9s%-8s%s\", label, op, operand);\n        /* TODO 1: replace each parameter name params[k] in text by its position \"?k+1\",\n         *         e.g. \"COMP &CH\" -> \"COMP ?1\". Use replace_all().\n         *         Careful: replace longer names first (&LEN before &L).            */\n        strcpy(DEFTAB[ndef++], text);\n    }\n    strcpy(DEFTAB[ndef++], \"         MEND\");\n    NAMTAB[nmacros].end = ndef - 1;\n    nmacros++;\n}\n\n/* ---------------- EXPAND: copy the body, putting the arguments in ---------------- */\nstatic void expand(int m, const char *label, const char *operand)\n{\n    char tmp[LINELEN];\n    nargs = 0;\n    strcpy(tmp, operand);\n    /* TODO 2: split tmp at the commas and copy each argument into ARGTAB[nargs++] */\n\n    char id[3] = { (char)('A' + uniq / 26), (char)('A' + uniq % 26), '\\0' };\n    uniq++;\n\n    printf(\".%-8s%-8s%s\\n\", label, NAMTAB[m].name, operand);       /* the call, as a comment */\n\n    int first = 1;\n    for (int i = NAMTAB[m].start + 1; i < NAMTAB[m].end; i++) {\n        char text[LINELEN], lab[64], op[64], opd[64];\n        strcpy(text, DEFTAB[i]);\n        /* TODO 3: replace \"?k\" in text by ARGTAB[k-1], for k = nargs down to 1 (?10 before ?1) */\n        split(text, lab, op, opd);\n\n        /* TODO 5 (after TODO 4 works): unique labels.\n         *   a label \"$LOOP\" becomes \"$\" + id + \"LOOP\", e.g. \"$AALOOP\";\n         *   an operand containing \"$NEXT\" gets the same treatment.                  */\n        (void)id;\n\n        /* TODO 4: if this is the first generated line, the call had a label,\n         *         and this line has no label of its own: give it the call's label  */\n        first = 0;\n        put(lab, op, opd);\n    }\n}\n\nint main(int argc, char *argv[])\n{\n    char line[LINELEN], label[64], op[64], operand[64];\n    if (argc < 2) { fprintf(stderr, \"usage: %s file.asm\\n\", argv[0]); return 1; }\n    FILE *in = fopen(argv[1], \"r\");\n    if (!in) { perror(argv[1]); return 1; }\n\n    while (fgets(line, sizeof line, in)) {\n        if (!split(line, label, op, operand)) {       /* comment or blank: copy it */\n            line[strcspn(line, \"\\r\\n\")] = '\\0';\n            for (int n = (int)strlen(line); n > 0 && line[n - 1] == ' '; n--) line[n - 1] = '\\0';\n            puts(line);\n            continue;\n        }\n        if (strcmp(op, \"MACRO\") == 0) {\n            if (find_macro(label) >= 0) {\n                fprintf(stderr, \"error: macro %s defined twice\\n\", label);\n                return 1;\n            }\n            define(in, label, operand);\n            continue;\n        }\n        int m = find_macro(op);\n        if (m >= 0)\n            expand(m, label, operand);\n        else\n            put(label, op, operand);\n    }\n    fclose(in);\n    return 0;\n}\n", "nested.asm": "NESTED   START   2000\nINCR     MACRO   &VAR\n         LDA     &VAR\n         ADD     ONE\n         STA     &VAR\n         MEND\nADD2     MACRO   &A,&B\n         INCR    &B\n         INCR    &A\n         MEND\nFIRST    ADD2    TOTALA,TOTALN\nDONE     J       DONE\nTOTALA   WORD    0\nTOTALN   WORD    0\nONE      WORD    1\n         END     FIRST\n", "nodollar.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\nCNTCH    MACRO   &TXT,&LEN,&CH,&RES\n         LDX     ZERO\nLOOP    LDA     ZERO\n         LDCH    &TXT,X\n         COMP    &CH\n         JEQ     HIT\nNEXT    TIX     &LEN\n         JLT     LOOP\n         J       DONE\nHIT     LDA     &RES\n         ADD     ONE\n         STA     &RES\n         J       NEXT\nDONE    LDA     &RES\n         MEND\nFIRST    CNTCH   TEXT,LENGTH,LETTERA,TOTALA\n         CNTCH   TEXT,LENGTH,LETTERN,TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n", "rec.c": "#define foo   foo + 1\n#define A     B + 1\n#define B     A * 2\nint x = foo;\nint y = A;\n", "sqrun.c": "#include <stdio.h>\n#define SQUARE(x)   x * x\n#define SQUARE2(x)  ((x) * (x))\n#define MAX(a, b)   ((a) > (b) ? (a) : (b))\n\nint main(void)\n{\n    int a = 3;\n    printf(\"SQUARE(a + 1)  = %d\\n\", SQUARE(a + 1));\n    printf(\"SQUARE2(a + 1) = %d\\n\", SQUARE2(a + 1));\n    int i = 5, j = 2;\n    int m = MAX(i++, j);\n    printf(\"MAX(i++, j) = %d, and now i = %d\\n\", m, i);\n    return 0;\n}\n", "sub2.asm": "SUB2     START   2000\nFIRST    LDX     ZERO\nLOOP     LDA     LETTERA\n         JSUB    CHKCH\n         JEQ     FOUNDA\nTESTN    LDA     LETTERN\n         JSUB    CHKCH\n         JEQ     FOUNDN\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\nFOUNDA   LDA     TOTALA\n         JSUB    INC\n         STA     TOTALA\n         J       TESTN\nFOUNDN   LDA     TOTALN\n         JSUB    INC\n         STA     TOTALN\n         J       NEXT\nCHKCH    STA     CH\n         LDA     ZERO\n         LDCH    TEXT,X\n         COMP    CH\n         RSUB\nINC      ADD     ONE\n         RSUB\nCH       RESW    1\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nTOTALA   WORD    0\nTOTALN   WORD    0\nONE      WORD    1\n         END     FIRST\n", "sumrun.c": "#include <stdio.h>\n#define SQUARE(x) ((x) * (x))\n\nint square(int x) { return x * x; }\n\nint main(void)\n{\n    printf(\"%d %d\\n\", SQUARE(7), square(7));\n    return 0;\n}\n", "swap.c": "#include <stdio.h>\n#define SWAP(a, b)  { int t = a; a = b; b = t; }\n\nint main(void)\n{\n    int x = 1, y = 2, t = 9;\n    SWAP(x, y);\n    printf(\"x=%d y=%d\\n\", x, y);\n    SWAP(t, x);\n    printf(\"t=%d x=%d\\n\", t, x);\n    return 0;\n}\n", "twice.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\nCNTCH    MACRO   &TXT,&LEN,&CH,&RES\n         LDX     ZERO\n$LOOP    LDA     ZERO\n         LDCH    &TXT,X\n         COMP    &CH\n         JEQ     $HIT\n$NEXT    TIX     &LEN\n         JLT     $LOOP\n         J       $DONE\n$HIT     LDA     &RES\n         ADD     ONE\n         STA     &RES\n         J       $NEXT\n$DONE    LDA     &RES\n         MEND\nFIRST    CNTCH   TEXT,LENGTH,LETTERA,TOTALA\n         CNTCH   TEXT,LENGTH,LETTERN,TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n", "twice_expected.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\n.FIRST   CNTCH   TEXT,LENGTH,LETTERA,TOTALA\nFIRST    LDX     ZERO\n$AALOOP  LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     $AAHIT\n$AANEXT  TIX     LENGTH\n         JLT     $AALOOP\n         J       $AADONE\n$AAHIT   LDA     TOTALA\n         ADD     ONE\n         STA     TOTALA\n         J       $AANEXT\n$AADONE  LDA     TOTALA\n.        CNTCH   TEXT,LENGTH,LETTERN,TOTALN\n         LDX     ZERO\n$ABLOOP  LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERN\n         JEQ     $ABHIT\n$ABNEXT  TIX     LENGTH\n         JLT     $ABLOOP\n         J       $ABDONE\n$ABHIT   LDA     TOTALN\n         ADD     ONE\n         STA     TOTALN\n         J       $ABNEXT\n$ABDONE  LDA     TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n", "twodef.asm": "T START 0\nM1       MACRO   &A\n         LDA     &A\n         MEND\nM1       MACRO   &B\n         STA     &B\n         MEND\n         END     T\n"}, "asm": {"sub2.asm": "SUB2     START   2000\nFIRST    LDX     ZERO\nLOOP     LDA     LETTERA\n         JSUB    CHKCH\n         JEQ     FOUNDA\nTESTN    LDA     LETTERN\n         JSUB    CHKCH\n         JEQ     FOUNDN\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\nFOUNDA   LDA     TOTALA\n         JSUB    INC\n         STA     TOTALA\n         J       TESTN\nFOUNDN   LDA     TOTALN\n         JSUB    INC\n         STA     TOTALN\n         J       NEXT\nCHKCH    STA     CH\n         LDA     ZERO\n         LDCH    TEXT,X\n         COMP    CH\n         RSUB\nINC      ADD     ONE\n         RSUB\nCH       RESW    1\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nTOTALA   WORD    0\nTOTALN   WORD    0\nONE      WORD    1\n         END     FIRST\n", "nested.asm": "NESTED   START   2000\nINCR     MACRO   &VAR\n         LDA     &VAR\n         ADD     ONE\n         STA     &VAR\n         MEND\nADD2     MACRO   &A,&B\n         INCR    &B\n         INCR    &A\n         MEND\nFIRST    ADD2    TOTALA,TOTALN\nDONE     J       DONE\nTOTALA   WORD    0\nTOTALN   WORD    0\nONE      WORD    1\n         END     FIRST\n", "twice.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\nCNTCH    MACRO   &TXT,&LEN,&CH,&RES\n         LDX     ZERO\n$LOOP    LDA     ZERO\n         LDCH    &TXT,X\n         COMP    &CH\n         JEQ     $HIT\n$NEXT    TIX     &LEN\n         JLT     $LOOP\n         J       $DONE\n$HIT     LDA     &RES\n         ADD     ONE\n         STA     &RES\n         J       $NEXT\n$DONE    LDA     &RES\n         MEND\nFIRST    CNTCH   TEXT,LENGTH,LETTERA,TOTALA\n         CNTCH   TEXT,LENGTH,LETTERN,TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n", "maccnt.asm": "MACCNT   START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\nCHKCH    MACRO   &CH,&HIT\n         LDA     ZERO\n         LDCH    TEXT,X\n         COMP    &CH\n         JEQ     &HIT\n         MEND\n.        macro 2: add one to the word &VAR\nINCR     MACRO   &VAR\n         LDA     &VAR\n         ADD     ONE\n         STA     &VAR\n         MEND\nFIRST    LDX     ZERO\nLOOP     CHKCH   LETTERA,FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\nFOUND    INCR    TOTAL\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nONE      WORD    1\n         END     FIRST\n", "mac2.asm": "MAC2     START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\nCHKCH    MACRO   &CH,&HIT\n         LDA     ZERO\n         LDCH    TEXT,X\n         COMP    &CH\n         JEQ     &HIT\n         MEND\n.        macro 2: add one to the word &VAR\nINCR     MACRO   &VAR\n         LDA     &VAR\n         ADD     ONE\n         STA     &VAR\n         MEND\nFIRST    LDX     ZERO\nLOOP     CHKCH   LETTERA,FOUNDA\nTESTN    CHKCH   LETTERN,FOUNDN\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\nFOUNDA   INCR    TOTALA\n         J       TESTN\nFOUNDN   INCR    TOTALN\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nTOTALA   WORD    0\nTOTALN   WORD    0\nONE      WORD    1\n         END     FIRST\n", "twodef.asm": "T START 0\nM1       MACRO   &A\n         LDA     &A\n         MEND\nM1       MACRO   &B\n         STA     &B\n         MEND\n         END     T\n", "twice_expected.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\n.FIRST   CNTCH   TEXT,LENGTH,LETTERA,TOTALA\nFIRST    LDX     ZERO\n$AALOOP  LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     $AAHIT\n$AANEXT  TIX     LENGTH\n         JLT     $AALOOP\n         J       $AADONE\n$AAHIT   LDA     TOTALA\n         ADD     ONE\n         STA     TOTALA\n         J       $AANEXT\n$AADONE  LDA     TOTALA\n.        CNTCH   TEXT,LENGTH,LETTERN,TOTALN\n         LDX     ZERO\n$ABLOOP  LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERN\n         JEQ     $ABHIT\n$ABNEXT  TIX     LENGTH\n         JLT     $ABLOOP\n         J       $ABDONE\n$ABHIT   LDA     TOTALN\n         ADD     ONE\n         STA     TOTALN\n         J       $ABNEXT\n$ABDONE  LDA     TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n", "cntch.asm": "; cntch.asm - a nasm macro with a local label, used twice\n        global  _start\n\n%macro  CNTCH 2                 ; %1 = character, %2 = register for the count\n        xor     ecx, ecx        ; index i = 0\n        xor     %2, %2          ; count = 0\n%%loop: cmp     byte [text + ecx], %1\n        jne     %%next\n        inc     %2\n%%next: inc     ecx\n        cmp     ecx, 6\n        jl      %%loop\n%endmacro\n\n        section .data\ntext:   db      \"BANANA\"\n\n        section .text\n_start:\n        CNTCH   'A', ebx        ; ebx = number of A's\n        CNTCH   'N', edx        ; edx = number of N's\n        imul    ebx, 10\n        add     ebx, edx        ; exit status = 10*A + N\n        mov     edi, ebx\n        mov     eax, 60\n        syscall\n", "maccnt_expected.asm": "MACCNT   START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\n.        macro 2: add one to the word &VAR\nFIRST    LDX     ZERO\n.LOOP    CHKCH   LETTERA,FOUND\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\n.FOUND   INCR    TOTAL\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nONE      WORD    1\n         END     FIRST\n", "macfeat.asm": "MACFT    START   0\n.        CNTCH: count how often the character &CH appears in &TXT (length &LEN).\n.        The count is left in S; with RES= it is also stored in that word.\nCNTCH    MACRO   &TXT,&LEN,&CH,&RES=\n         CLEAR   X\n         CLEAR   S\n         LDT     #&LEN\n$LOOP    CLEAR   A\n         LDCH    &TXT,X\n         COMP    #&CH\n         JEQ     $HIT\n$NEXT    TIXR    T\n         JLT     $LOOP\n         J       $DONE\n$HIT     LDA     #1\n         ADDR    A,S\n         J       $NEXT\n         IF      (&RES NE '')\n$DONE    STS     &RES\n         ELSE\n$DONE    RMO     S,A\n         ENDIF\n         MEND\n.        FILL: put the value &VAL into &N words starting at &TAB (unrolled loop)\nFILL     MACRO   &TAB,&N,&VAL=0\n&OFF     SET     0\n&I       SET     0\n         LDA     #&VAL\n         WHILE   (&I LT &N)\n         STA     &TAB+&OFF\n&OFF     SET     &OFF+3\n&I       SET     &I+1\n         ENDW\n         MEND\n.        SHOW: copy count &ID into the result table (concatenation)\nSHOW     MACRO   &ID,&K\n         LDA     CNT&ID\n         STA     RES&K\n         MEND\nFIRST    STL     RETADR\n         FILL    RES1,3,VAL=7\n         CNTCH   TEXT,6,65,RES=CNTA\n         CNTCH   TEXT,6,78,RES=CNTN\n         CNTCH   TEXT,6,66\n         SHOW    A,1\n         SHOW    N,2\n         J       @RETADR\nRETADR   RESW    1\nTEXT     BYTE    C'BANANA'\nCNTA     WORD    99\nCNTN     WORD    99\nRES1     RESW    1\nRES2     RESW    1\nRES3     RESW    1\n         END     FIRST\n", "nodollar.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\nCNTCH    MACRO   &TXT,&LEN,&CH,&RES\n         LDX     ZERO\nLOOP    LDA     ZERO\n         LDCH    &TXT,X\n         COMP    &CH\n         JEQ     HIT\nNEXT    TIX     &LEN\n         JLT     LOOP\n         J       DONE\nHIT     LDA     &RES\n         ADD     ONE\n         STA     &RES\n         J       NEXT\nDONE    LDA     &RES\n         MEND\nFIRST    CNTCH   TEXT,LENGTH,LETTERA,TOTALA\n         CNTCH   TEXT,LENGTH,LETTERN,TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n"}, "expected": {"twice_expected.asm": "TWICE    START   2000\n.        CNTCH: count the character &CH in &TXT (length in word &LEN), result in &RES\n.FIRST   CNTCH   TEXT,LENGTH,LETTERA,TOTALA\nFIRST    LDX     ZERO\n$AALOOP  LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     $AAHIT\n$AANEXT  TIX     LENGTH\n         JLT     $AALOOP\n         J       $AADONE\n$AAHIT   LDA     TOTALA\n         ADD     ONE\n         STA     TOTALA\n         J       $AANEXT\n$AADONE  LDA     TOTALA\n.        CNTCH   TEXT,LENGTH,LETTERN,TOTALN\n         LDX     ZERO\n$ABLOOP  LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERN\n         JEQ     $ABHIT\n$ABNEXT  TIX     LENGTH\n         JLT     $ABLOOP\n         J       $ABDONE\n$ABHIT   LDA     TOTALN\n         ADD     ONE\n         STA     TOTALN\n         J       $ABNEXT\n$ABDONE  LDA     TOTALN\nHALT     J       HALT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nLETTERN  WORD    78\nZERO     WORD    0\nONE      WORD    1\nTOTALA   WORD    0\nTOTALN   WORD    0\n         END     FIRST\n", "maccnt_expected.asm": "MACCNT   START   2000\n.        macro 1: is text[i] equal to the character &CH?  if so, jump to &HIT\n.        macro 2: add one to the word &VAR\nFIRST    LDX     ZERO\n.LOOP    CHKCH   LETTERA,FOUND\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\nDONE     J       DONE\n.FOUND   INCR    TOTAL\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nONE      WORD    1\n         END     FIRST\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* macro.js - a one-pass macro processor for SIC/XE source (Beck, System Software, Ch. 4).
+   Port of the course's reference macro.py: NAMTAB, DEFTAB (?n parameters), ARGTAB, $ labels,
+   concatenation, keyword parameters, SET, IF/ELSE/ENDIF, WHILE/ENDW. Records a trace of every step. */
+(function (root) {
+"use strict";
+class MacroError extends Error {}
+function split(line) {
+  if (!line.trim() || line.trimStart().startsWith(".")) return null;
+  let m, label, op, operand, rest;
+  if (line[0] === " " || line[0] === "\t") { m = line.match(/^\s+(\S+)(?:\s+(\S+))?(.*)$/); label = null; op = m[1]; operand = m[2] === undefined ? null : m[2]; rest = m[3]; }
+  else { m = line.match(/^(\S+)\s+(\S+)(?:\s+(\S+))?(.*)$/); if (!m) { m = [null, line.trim(), "", undefined, ""]; } label = m[1]; op = m[2]; operand = m[3] === undefined ? null : m[3]; rest = m[4] || ""; }
+  if (op === "IF" || op === "WHILE") { operand = ((operand || "") + rest).trim(); rest = ""; }
+  return [label, op, operand, (rest || "").trim()];
+}
+const fmt = (label, op, operand) => ((label || "").padEnd(9) + (op || "").padEnd(8) + (operand || "")).replace(/\s+$/, "");
+function splitArgs(s) {
+  const out = []; let cur = "", depth = 0, q = false;
+  for (const ch of s || "") {
+    if (ch === "'") q = !q;
+    if (ch === "(" && !q) depth++;
+    if (ch === ")" && !q) depth--;
+    if (ch === "," && depth === 0 && !q) { out.push(cur); cur = ""; } else cur += ch;
+  }
+  if (s) out.push(cur);
+  return out;
+}
+/* integer arithmetic only: numbers, + - * / ( ) */
+function arith(s) {
+  if (!/^[\d\s+\-*/()]+$/.test(s)) throw new Error("not arithmetic");
+  let i = 0; const t = s.replace(/\s+/g, "");
+  const num = () => { if (t[i] === "(") { i++; const v = expr(); if (t[i] !== ")") throw new Error("paren"); i++; return v; }
+    if (t[i] === "-") { i++; return -num(); } if (t[i] === "+") { i++; return num(); }
+    const m = t.slice(i).match(/^\d+/); if (!m) throw new Error("num"); i += m[0].length; return parseInt(m[0], 10); };
+  const term = () => { let v = num(); while (t[i] === "*" || t[i] === "/") { const o = t[i++]; if (o === "/" && t[i] === "/") { i++; const d = num(); v = Math.floor(v / d); } else { const d = num(); v = o === "*" ? v * d : v / d; } } return v; };
+  const expr = () => { let v = term(); while (t[i] === "+" || t[i] === "-") { const o = t[i++]; const d = term(); v = o === "+" ? v + d : v - d; } return v; };
+  const v = expr(); if (i !== t.length) throw new Error("trailing"); return Math.trunc(v);
+}
+function value(s) {
+  s = s.trim();
+  if (s === "''" || s === "") return "";
+  try { return arith(s); } catch (e) { return s.replace(/^'+|'+$/g, ""); }
+}
+class MacroProcessor {
+  constructor(naive = false) { this.naive = naive; this.ARGTAB = []; this.NAMTAB = {}; this.DEFTAB = []; this.PARAMS = {}; this.out = []; this.trace = []; this.uniq = 0; }
+  define(lines, i, label, operand) {
+    const name = label;
+    if (name in this.NAMTAB) throw new MacroError(`macro ${name} defined twice`);
+    const params = splitArgs(operand).map(p => p.includes("=") ? [p.slice(0, p.indexOf("=")), p.slice(p.indexOf("=") + 1)] : [p, null]);
+    this.PARAMS[name] = params;
+    const start = this.DEFTAB.length;
+    this.DEFTAB.push(fmt(name, "MACRO", operand));
+    this.trace.push({ kind: "proto", name, text: this.DEFTAB[this.DEFTAB.length - 1], params: params.map(p => p[0]) });
+    const order = params.map((_, k) => k).sort((a, b) => params[b][0].length - params[a][0].length);
+    let level = 1; i++;
+    while (level > 0) {
+      if (i >= lines.length) throw new MacroError(`macro ${name}: MEND missing`);
+      const p = split(lines[i]);
+      if (p && p[1] === "MACRO") level++;
+      if (p && p[1] === "MEND") level--;
+      if (level > 0 && p !== null) {
+        let text = fmt(p[0], p[1], p[2]);
+        for (const k of order) text = text.split(params[k][0]).join(`?${k + 1}`);
+        this.DEFTAB.push(text);
+        this.trace.push({ kind: "def", name, src: fmt(p[0], p[1], p[2]), stored: text });
+      }
+      i++;
+    }
+    this.DEFTAB.push(fmt(null, "MEND", null));
+    this.NAMTAB[name] = [start, this.DEFTAB.length - 1];
+    this.trace.push({ kind: "namtab", name, start, end: this.DEFTAB.length - 1 });
+    return i;
+  }
+  nextUniq() { const a = Math.floor(this.uniq / 26), b = this.uniq % 26; this.uniq++; return String.fromCharCode(65 + a) + String.fromCharCode(65 + b); }
+  expand(label, name, operand, depth = 0) {
+    if (depth > 50) throw new MacroError("macro calls nested too deeply");
+    const params = this.PARAMS[name];
+    let argtab = params.map(([, d]) => d !== null ? d : "");
+    let pos = 0;
+    for (const a of splitArgs(operand)) {
+      if (a.includes("=") && !a.startsWith("=")) {
+        const k = a.slice(0, a.indexOf("=")), v = a.slice(a.indexOf("=") + 1);
+        const idx = params.map(p => p[0]).indexOf("&" + k);
+        if (idx < 0) throw new MacroError(`macro ${name} has no keyword parameter &${k}`);
+        argtab[idx] = v;
+      } else { argtab[pos] = a; pos++; }
+    }
+    if (this.naive) { for (let k = 0; k < argtab.length; k++) this.ARGTAB[k] = argtab[k]; argtab = this.ARGTAB; }
+    const uniqLabel = this.nextUniq();
+    this.out.push(("." + (label || "").padEnd(8) + name.padEnd(8) + (operand || "")).replace(/\s+$/, ""));
+    this.trace.push({ kind: "invoke", name, label, operand, argtab: argtab.slice(), uniq: uniqLabel, depth });
+    const [start, end] = this.NAMTAB[name];
+    const body = this.DEFTAB.slice(start + 1, end);
+    const setvars = {};
+    let first = true, i = 0, active = true; const stack = [];
+    const subst = text => {
+      for (let k = params.length; k >= 1; k--) text = text.split(`?${k}`).join(k <= argtab.length ? argtab[k - 1] : "");
+      for (const v of Object.keys(setvars).sort((a, b) => b.length - a.length)) text = text.split(v).join(String(setvars[v]));
+      return text.split("->").join("");
+    };
+    const evalx = e => {
+      e = subst(e).trim();
+      if (e.startsWith("(") && e.endsWith(")")) e = e.slice(1, -1);
+      const m = e.match(/^(.*?)\s+(EQ|NE|LT|GT|LE|GE)\s+(.*)$/);
+      if (m) { const a = value(m[1]), b = value(m[3]); return { EQ: a === b, NE: a !== b, LT: a < b, GT: a > b, LE: a <= b, GE: a >= b }[m[2]]; }
+      return value(e);
+    };
+    let guard = 0;
+    while (i < body.length) {
+      if (++guard > 100000) throw new MacroError("WHILE loop never ends");
+      const line = body[i];
+      const [lab, op, opd] = split(line);
+      if (op === "IF") { const st = ["if", active, active && !!evalx(opd)]; stack.push(st); active = st[2]; i++; continue; }
+      if (op === "ELSE") { const outer = stack[stack.length - 1][1]; active = outer && !stack[stack.length - 1][2]; i++; continue; }
+      if (op === "ENDIF") { active = stack.pop()[1]; i++; continue; }
+      if (op === "WHILE") {
+        const cond = active && !!evalx(opd);
+        if (cond) stack.push(["while", active, i]);
+        else { let lvl = 1; while (lvl) { i++; const o = split(body[i])[1]; lvl += (o === "WHILE") - (o === "ENDW"); } }
+        i++; continue;
+      }
+      if (op === "ENDW") { i = stack.pop()[2]; continue; }
+      if (!active) { i++; continue; }
+      if (op === "SET") { setvars[lab] = evalx(opd); this.trace.push({ kind: "set", name, var: lab, value: setvars[lab] }); i++; continue; }
+      let newLab = lab ? subst(lab) : null, newOpd = opd ? subst(opd) : null;
+      if (newLab && newLab.startsWith("$")) newLab = "$" + uniqLabel + newLab.slice(1);
+      if (newOpd) newOpd = newOpd.replace(/(^|[^\w$])\$(?=[A-Za-z])/g, (m0, pre) => pre + "$" + uniqLabel);
+      if (first && label && !newLab) newLab = label;
+      first = false;
+      if (op in this.NAMTAB) this.expand(newLab, op, newOpd, depth + 1);
+      else { const text = fmt(newLab, op, newOpd); this.out.push(text); this.trace.push({ kind: "gen", name, stored: line, text, depth }); }
+      i++;
+    }
+  }
+  run(src) {
+    const lines = src.split(/\r?\n/); if (lines.length && lines[lines.length - 1] === "") lines.pop();
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i], p = split(raw);
+      if (p === null) { this.out.push(raw.replace(/\s+$/, "")); this.trace.push({ kind: "copy", text: raw.replace(/\s+$/, "") }); i++; continue; }
+      const [label, op, operand] = p;
+      if (op === "MACRO") { i = this.define(lines, i, label, operand); continue; }
+      if (op in this.NAMTAB) this.expand(label, op, operand);
+      else { const t = fmt(label, op, operand); this.out.push(t); this.trace.push({ kind: "copy", text: t }); }
+      i++;
+    }
+    return this.out;
+  }
+}
+const api = { MacroProcessor, MacroError, split, splitArgs, fmt };
+if (typeof module !== "undefined" && module.exports) module.exports = api; else root.MACRO = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* sicxe.js - SIC and SIC/XE two-pass assembler, relocating loader and simulator for the CSE 4105 labs.
+   A line-by-line port of the course's reference sicxe.py (Beck, System Software, Ch. 2-3); tested to give
+   identical listings, object programs and memory images on every lab program. */
+(function (root) {
+"use strict";
+const OPTAB = {
+  ADD: [3, 0x18], ADDF: [3, 0x58], ADDR: [2, 0x90], AND: [3, 0x40], CLEAR: [2, 0xB4],
+  COMP: [3, 0x28], COMPF: [3, 0x88], COMPR: [2, 0xA0], DIV: [3, 0x24], DIVF: [3, 0x64],
+  DIVR: [2, 0x9C], FIX: [1, 0xC4], FLOAT: [1, 0xC0], HIO: [1, 0xF4], J: [3, 0x3C],
+  JEQ: [3, 0x30], JGT: [3, 0x34], JLT: [3, 0x38], JSUB: [3, 0x48], LDA: [3, 0x00],
+  LDB: [3, 0x68], LDCH: [3, 0x50], LDF: [3, 0x70], LDL: [3, 0x08], LDS: [3, 0x6C],
+  LDT: [3, 0x74], LDX: [3, 0x04], LPS: [3, 0xD0], MUL: [3, 0x20], MULF: [3, 0x60],
+  MULR: [2, 0x98], NORM: [1, 0xC8], OR: [3, 0x44], RD: [3, 0xD8], RMO: [2, 0xAC],
+  RSUB: [3, 0x4C], SHIFTL: [2, 0xA4], SHIFTR: [2, 0xA8], SIO: [1, 0xF0], SSK: [3, 0xEC],
+  STA: [3, 0x0C], STB: [3, 0x78], STCH: [3, 0x54], STF: [3, 0x80], STI: [3, 0xD4],
+  STL: [3, 0x14], STS: [3, 0x7C], STSW: [3, 0xE8], STT: [3, 0x84], STX: [3, 0x10],
+  SUB: [3, 0x1C], SUBF: [3, 0x5C], SUBR: [2, 0x94], SVC: [2, 0xB0], TD: [3, 0xE0],
+  TIO: [1, 0xF8], TIX: [3, 0x2C], TIXR: [2, 0xB8], WD: [3, 0xDC]
+};
+const REGS = { A: 0, X: 1, L: 2, B: 3, S: 4, T: 5, F: 6, PC: 8, SW: 9 };
+class AsmError extends Error {}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n, "0");
+const isDigits = t => /^\d+$/.test(t);
+
+function parseLine(raw) {
+  const line = raw.replace(/\n$/, "");
+  if (!line.trim() || line.trimStart().startsWith(".")) return null;
+  let m, label, op, operand;
+  if (line[0] === " " || line[0] === "\t") {
+    m = line.match(/^\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = null; op = m[1]; operand = m[2] === undefined ? null : m[2];
+  } else {
+    m = line.match(/^(\S+)\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = m[1]; op = m[2]; operand = m[3] === undefined ? null : m[3];
+  }
+  const U = op.toUpperCase();
+  if (U.replace(/^\+/, "") === "RSUB" || U === "LTORG" || U === "NOBASE") operand = null;
+  return [label, U, operand];
+}
+function constBytes(c) {
+  if (c.startsWith("C'")) return Array.from(c.slice(2, -1)).map(ch => ch.charCodeAt(0));
+  if (c.startsWith("X'")) { const h = c.slice(2, -1); const out = []; for (let i = 0; i < h.length; i += 2) out.push(parseInt(h.substr(i, 2), 16)); return out; }
+  throw new AsmError("bad constant " + c);
+}
+const bytesHex = b => b.map(x => hex(x, 2)).join("");
+
+class Line {
+  constructor(src, label, op, operand, lineno) {
+    Object.assign(this, { src, label, op, operand, lineno, loc: null, block: 0, addr: null, size: 0, code: "", note: "", isLiteral: false });
+  }
+}
+class Section {
+  constructor(name) {
+    Object.assign(this, { name, symtab: {}, littab: {}, pendingLits: [], blocks: ["(default)"], blockLoc: [0], blockStart: [0],
+      extdef: [], extref: [], lines: [], start: 0, length: 0, records: [], curBlock: 0, mods: [] });
+  }
+}
+
+class Assembler {
+  constructor(src, xe = true) { this.src = src; this.xe = xe; this.sections = []; this.pass1Trace = []; this.pass2Trace = []; }
+  evalExpr(expr, sec, hereBlock, hereLoc, allowExt = false) {
+    const tokens = expr.match(/[+\-*/]|[A-Za-z_$][\w$]*|\d+|\*/g) || [];
+    let val = 0, rel = 0, ext = [], sign = 1, expectTerm = true, opMul = null;
+    for (const t of tokens) {
+      if (expectTerm) {
+        if (t === "-") { sign = -sign; continue; }
+        if (t === "+") continue;
+        let v, r;
+        if (t === "*") { v = this.addrOf(sec, hereBlock, hereLoc); r = 1; }
+        else if (isDigits(t)) { v = parseInt(t, 10); r = 0; }
+        else if (t in sec.symtab) { const [b, off, kind] = sec.symtab[t]; v = kind === "R" ? this.addrOf(sec, b, off) : off; r = kind === "R" ? 1 : 0; }
+        else if (sec.extref.includes(t) && allowExt) { ext.push([sign > 0 ? "+" : "-", t]); v = 0; r = 0; }
+        else throw new AsmError("undefined symbol " + t);
+        if (opMul) { if (r) throw new AsmError("relative term in multiply/divide"); val = opMul === "*" ? val * v : Math.floor(val / v); opMul = null; }
+        else { val += sign * v; rel += sign * r; }
+        sign = 1; expectTerm = false;
+      } else {
+        if (t === "+" || t === "-") sign = t === "+" ? 1 : -1;
+        else if (t === "*" || t === "/") opMul = t;
+        expectTerm = true;
+      }
+    }
+    if (rel !== 0 && rel !== 1) throw new AsmError(`expression ${expr} is not absolute or relative`);
+    return [val, rel === 1 ? "R" : "A", ext];
+  }
+  addrOf(sec, block, off) { return sec.blockStart[block] + off; }
+  pass1() {
+    let sec = null;
+    const lines = this.src.split(/\r?\n/);
+    lines.forEach((raw, idx) => {
+      const n = idx + 1;
+      const p = parseLine(raw);
+      if (p === null) return;
+      const [label, op, operand] = p;
+      if (op === "START") {
+        sec = new Section(label || ""); this.sections.push(sec);
+        sec.start = operand ? parseInt(operand, 16) : 0; sec.blockLoc[0] = sec.start;
+        const ln = new Line(raw, label, op, operand, n); ln.loc = sec.start; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: sec.start, action: `LOCCTR ← ${hex(sec.start, 4)}` });
+        return;
+      }
+      if (sec === null) { sec = new Section(""); this.sections.push(sec); }
+      if (op === "CSECT") {
+        this.flushLiterals(sec);
+        sec = new Section(label); this.sections.push(sec);
+        const ln = new Line(raw, label, op, operand, n); ln.loc = 0; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: 0, action: `new control section ${label}: LOCCTR ← 0000` });
+        return;
+      }
+      const cb = sec.curBlock;
+      const loc = sec.blockLoc[cb];
+      const ln = new Line(raw, label, op, operand, n);
+      ln.loc = loc; ln.block = cb; sec.lines.push(ln);
+      const action = [];
+      if (op === "USE") {
+        const name = operand || "(default)";
+        if (!sec.blocks.includes(name)) { sec.blocks.push(name); sec.blockLoc.push(0); sec.blockStart.push(0); }
+        sec.curBlock = sec.blocks.indexOf(name);
+        ln.loc = sec.blockLoc[sec.curBlock]; ln.block = sec.curBlock;
+        this.pass1Trace.push({ line: ln, locctr: ln.loc, action: `switch to block ${name}` });
+        return;
+      }
+      if (label && !["EQU", "EXTDEF", "EXTREF"].includes(op)) {
+        if (label in sec.symtab) throw new AsmError(`duplicate symbol ${label}`);
+        sec.symtab[label] = [cb, loc, "R"];
+        action.push(`SYMTAB ← ${label} = ${hex(loc, 4)}`);
+      }
+      const base = op.replace(/^\+/, "");
+      let size;
+      if (base in OPTAB) {
+        const fmt = OPTAB[base][0];
+        size = !this.xe ? 3 : (op.startsWith("+") ? 4 : fmt);
+        if (operand && operand.startsWith("=")) {
+          if (!(operand in sec.littab) && !sec.pendingLits.includes(operand)) { sec.pendingLits.push(operand); action.push(`LITTAB ← ${operand} (address later)`); }
+        }
+      } else if (op === "WORD") size = 3;
+      else if (op === "RESW") size = 3 * parseInt(operand, 10);
+      else if (op === "RESB") size = parseInt(operand, 10);
+      else if (op === "BYTE") size = constBytes(operand).length;
+      else if (op === "EQU") {
+        let v, kind;
+        if (operand.trim() === "*") { v = loc; kind = "R"; sec.symtab[label] = [cb, loc, "R"]; }
+        else {
+          try { [v, kind] = this.evalExpr(operand, sec, cb, loc); }
+          catch (ex) { const hint = /undefined/.test(ex.message) ? " (EQU needs every symbol defined earlier)" : ""; throw new AsmError(`line ${n}: ${ex.message}${hint}`); }
+          if (kind === "R") sec.symtab[label] = [0, v - sec.blockStart[0], "R"]; else sec.symtab[label] = [cb, v, "A"];
+        }
+        action.push(`SYMTAB ← ${label} = ${hex(v, 4)} (${kind === "R" ? "relative" : "absolute"})`);
+        size = 0;
+      } else if (op === "ORG") {
+        if (operand) { const [v] = this.evalExpr(operand, sec, cb, loc); sec.savedOrg = sec.blockLoc[cb]; sec.blockLoc[cb] = v; }
+        else sec.blockLoc[cb] = sec.savedOrg;
+        this.pass1Trace.push({ line: ln, locctr: loc, action: `LOCCTR ← ${hex(sec.blockLoc[cb], 4)}` });
+        return;
+      } else if (op === "LTORG") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "place the waiting literals here" });
+        this.flushLiterals(sec); return;
+      } else if (op === "BASE" || op === "NOBASE") size = 0;
+      else if (op === "EXTDEF") { sec.extdef.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "EXTREF") { sec.extref.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "END") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "end: place the waiting literals" });
+        this.flushLiterals(sec); return;
+      } else throw new AsmError(`line ${n}: unknown operation ${op}`);
+      ln.size = size;
+      sec.blockLoc[cb] = loc + size;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: action.join("; ") || "—", size });
+    });
+    if (sec) this.flushLiterals(sec);
+    this.sections.forEach((s, si) => {
+      const start = si === 0 ? s.start : 0;
+      let st = start; const lengths = [];
+      for (let i = 0; i < s.blocks.length; i++) {
+        const blen = s.blockLoc[i] - (i === 0 ? start : 0);
+        if (i === 0) { s.blockStart[0] = 0; st = s.blockLoc[0]; }
+        else { s.blockStart[i] = st; st += s.blockLoc[i]; }
+        lengths.push(blen);
+      }
+      s.blockLengths = lengths; s.length = st - start;
+      for (const ln of s.lines) if (ln.loc !== null) ln.addr = s.blockStart[ln.block] + ln.loc;
+    });
+  }
+  flushLiterals(sec) {
+    if (!sec.pendingLits.length) return;
+    const cb = sec.curBlock;
+    for (const lit of sec.pendingLits) {
+      const loc = sec.blockLoc[cb];
+      const b = constBytes(lit.slice(1));
+      sec.littab[lit] = [cb, loc];
+      const ln = new Line(`*        ${lit}`, "*", "LIT", lit, null);
+      ln.loc = loc; ln.block = cb; ln.size = b.length; ln.isLiteral = true;
+      sec.lines.push(ln); sec.blockLoc[cb] = loc + b.length;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: `LITTAB: ${lit} gets address ${hex(loc, 4)}`, size: b.length });
+    }
+    sec.pendingLits = [];
+  }
+  pass2() {
+    this.sections.forEach((sec, si) => {
+      let base = null; const mods = [];
+      for (const ln of sec.lines) {
+        const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+        if (ln.isLiteral) { ln.code = bytesHex(constBytes(operand.slice(1))); ln.note = "literal value"; }
+        else if (bop in OPTAB) { const [c, nt, m] = this.encode(sec, ln, base); ln.code = c; ln.note = nt; if (m) mods.push(m); }
+        else if (op === "WORD") {
+          const [v, kind, ext] = this.evalExpr(operand, sec, ln.block, ln.loc, true);
+          ln.code = hex(v & 0xFFFFFF, 6);
+          if (kind === "R" && this.sections.length === 1) mods.push([ln.addr, 6, null]);
+          for (const [sg, name] of ext) mods.push([ln.addr, 6, sg + name]);
+          ln.note = "word constant";
+        } else if (op === "BYTE") { ln.code = bytesHex(constBytes(operand)); ln.note = "byte constant"; }
+        else if (op === "BASE") { const [v] = this.evalExpr(operand, sec, ln.block, ln.loc); base = v; ln.note = `assembler now assumes (B) = ${hex(v, 4)}`; }
+        else if (op === "NOBASE") base = null;
+        this.pass2Trace.push(ln);
+      }
+      sec.mods = mods; sec.records = this.records(sec, si);
+    });
+  }
+  encode(sec, ln, base) {
+    const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+    const [fmt, opc] = OPTAB[bop];
+    if (!this.xe) {
+      let addr = 0, x = 0;
+      if (operand) {
+        let o = operand;
+        if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+        if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; addr = sec.blockStart[bl] + off; }
+        else [addr] = this.evalExpr(o, sec, ln.block, ln.loc);
+      }
+      const word = (opc << 16) | (x << 15) | addr;
+      return [hex(word, 6), `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}`, null];
+    }
+    if (fmt === 1) return [hex(opc, 2), "format 1", null];
+    if (fmt === 2) {
+      const regs = (operand || "").split(",").map(r => r.trim()).filter(Boolean);
+      const r1 = regs.length ? REGS[regs[0]] : 0;
+      const r2 = regs.length > 1 ? (regs[1] in REGS ? REGS[regs[1]] : parseInt(regs[1], 10) - ((bop === "SHIFTL" || bop === "SHIFTR") ? 1 : 0)) : 0;
+      return [hex(opc, 2) + r1.toString(16).toUpperCase() + r2.toString(16).toUpperCase(), `format 2: r1=${r1}, r2=${r2}`, null];
+    }
+    const e = op.startsWith("+") ? 1 : 0;
+    let n = 1, i = 1, x = 0, b = 0, p = 0;
+    let o = operand;
+    if (o === null) return [hex((opc | 3) << 16, 6), "no operand: n=1 i=1, disp=0", null];
+    if (o.startsWith("#")) { n = 0; i = 1; o = o.slice(1); }
+    else if (o.startsWith("@")) { n = 1; i = 0; o = o.slice(1); }
+    if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+    let mod = null, ta, kind, ext;
+    if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; ta = sec.blockStart[bl] + off; kind = "R"; ext = []; }
+    else [ta, kind, ext] = this.evalExpr(o, sec, ln.block, ln.loc, true);
+    const pc = ln.addr + (e ? 4 : 3);
+    let disp, how;
+    if (e) {
+      disp = ta & 0xFFFFF; how = `format 4: full address ${hex(ta, 5)}`;
+      if (ext.length) { mod = [ln.addr + 1, 5, ext[0][0] + ext[0][1]]; how += ` (external ${ext[0][1]}: 0 + M record)`; }
+      else if (kind === "R") { mod = [ln.addr + 1, 5, null]; how += " + M record (relocatable)"; }
+    } else if (kind === "A" && n === 0) {
+      if (ta > 4095) throw new AsmError(`line ${ln.lineno}: constant ${ta} too big for format 3, use +`);
+      disp = ta; how = `immediate constant ${ta}: disp = ${hex(ta, 3)}`;
+    } else if (kind === "A" && ta >= 0 && ta <= 4095 && !ext.length) {
+      disp = ta; how = `absolute address ${hex(ta, 4)}: direct, b=p=0`;
+    } else {
+      const d = ta - pc;
+      if (d >= -2048 && d <= 2047) { p = 1; disp = d & 0xFFF; how = `PC-relative: ${hex(ta, 4)} − ${hex(pc, 4)} = ${d >= 0 ? "+" : ""}${d} → disp ${hex(disp, 3)}`; }
+      else if (base !== null && ta - base >= 0 && ta - base <= 4095) { b = 1; disp = ta - base; how = `base-relative: ${hex(ta, 4)} − ${hex(base, 4)} = ${hex(disp, 3)} (PC-relative too far: ${d >= 0 ? "+" : ""}${d})`; }
+      else throw new AsmError(`line ${ln.lineno}: ${o} is out of PC and base range; use format 4`);
+    }
+    const first = (opc & 0xFC) | (n << 1) | i;
+    const flags = (x << 3) | (b << 2) | (p << 1) | e;
+    const code = e ? hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 5) : hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 3);
+    return [code, `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}; ${how}`, mod];
+  }
+  records(sec, si) {
+    const recs = [];
+    const name = (sec.name || "").slice(0, 6);
+    const start = si === 0 ? sec.start : 0;
+    recs.push(`H${name.padEnd(6)}${hex(start, 6)}${hex(sec.length, 6)}`);
+    if (sec.extdef.length) { let d = "D"; for (const s of sec.extdef) { const [bl, off] = sec.symtab[s]; d += s.padEnd(6) + hex(sec.blockStart[bl] + off, 6); } recs.push(d); }
+    if (sec.extref.length) recs.push("R" + sec.extref.map(s => s.padEnd(6)).join(""));
+    const items = sec.lines.filter(l => l.code);
+    let curStart = null, cur = "", lastEnd = null;
+    for (const ln of items) {
+      const nb = ln.code.length / 2;
+      const gap = lastEnd !== null && ln.addr !== lastEnd;
+      if (curStart !== null && (gap || cur.length / 2 + nb > 30)) { recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`); curStart = null; cur = ""; }
+      if (curStart === null) curStart = ln.addr;
+      cur += ln.code; lastEnd = ln.addr + nb;
+    }
+    if (cur) recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`);
+    for (const [addr, l, sym] of sec.mods) recs.push(`M${hex(addr, 6)}${hex(l, 2)}` + (sym || ""));
+    const endl = sec.lines.filter(l => l.op === "END");
+    if (si === 0 && endl.length && endl[0].operand) { const [v] = this.evalExpr(endl[0].operand, sec, 0, 0); recs.push(`E${hex(v, 6)}`); }
+    else recs.push("E");
+    return recs;
+  }
+  run() { this.pass1(); this.pass2(); return this; }
+  objectProgram() { return this.sections.flatMap(s => s.records); }
+  listing() {
+    const out = [];
+    for (const s of this.sections) for (const ln of s.lines) {
+      let loc = ["END", "BASE", "NOBASE", "EXTDEF", "EXTREF", "LTORG"].includes(ln.op) || ln.loc === null ? "" : hex(ln.addr, 4);
+      if (ln.op === "EQU") { const [bl, off, kind] = s.symtab[ln.label]; loc = hex(kind === "R" ? s.blockStart[bl] + off : off, 4); }
+      out.push([loc, ln.block, ln.label || "", ln.op, ln.operand || "", ln.code, ln.note]);
+    }
+    return out;
+  }
+}
+
+/* ---------------- loader ---------------- */
+function load(records, mem, loadAddr, estab) {
+  let entry = null, hstart = 0; const prog = loadAddr; const log = [];
+  for (const r of records) {
+    if (r[0] === "H") { hstart = parseInt(r.slice(7, 13), 16); log.push({ rec: r, what: `program ${r.slice(1, 7).trim()}: assembled at ${hex(hstart, 6)}, length ${r.slice(13, 19)}; loading at ${hex(prog, 6)}` }); }
+    else if (r[0] === "T") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, n = parseInt(r.slice(7, 9), 16);
+      for (let i = 0; i < n; i++) mem[a + i] = parseInt(r.substr(9 + 2 * i, 2), 16);
+      log.push({ rec: r, what: `copy ${n} bytes to ${hex(a, 6)}`, addr: a, n });
+    } else if (r[0] === "M") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, half = parseInt(r.slice(7, 9), 16), sym = r.slice(9).trim();
+      const nb = Math.floor((half + 1) / 2);
+      let v = 0; for (let i = 0; i < nb; i++) v = v * 256 + mem[a + i];
+      const mask = Math.pow(2, 4 * half) - 1;
+      let field = v % (mask + 1);
+      let add = sym ? estab[sym.slice(1)] * (sym[0] === "+" ? 1 : -1) : prog - hstart;
+      const before = field;
+      field = ((field + add) % (mask + 1) + (mask + 1)) % (mask + 1);
+      v = v - (v % (mask + 1)) + field;
+      for (let i = nb - 1; i >= 0; i--) { mem[a + i] = v % 256; v = Math.floor(v / 256); }
+      log.push({ rec: r, what: `${half} half-bytes at ${hex(a, 6)}: ${hex(before, half)} ${add >= 0 ? "+" : "−"} ${hex(Math.abs(add), 4)}${sym ? " (" + sym.slice(1) + ")" : ""} = ${hex(field, half)}`, addr: a, n: nb });
+    } else if (r[0] === "E") { if (r.length > 1) entry = parseInt(r.slice(1, 7), 16) - hstart + prog; log.push({ rec: r, what: entry !== null ? `start execution at ${hex(entry, 6)}` : "end of section" }); }
+    else if (r[0] === "D" || r[0] === "R") log.push({ rec: r, what: r[0] === "D" ? "external definitions (used by pass 1 of a linking loader)" : "external references" });
+  }
+  return { entry, log };
+}
+
+/* ---------------- simulator ---------------- */
+const SHORT = {}, LONG = {};
+for (const [k, [f, o]] of Object.entries(OPTAB)) { if (f === 1 || f === 2) SHORT[o] = [k, f]; if (f === 3) LONG[o] = k; }
+const REGNAME = Object.fromEntries(Object.entries(REGS).map(([k, v]) => [v, k]));
+const sgn = v => { v &= 0xFFFFFF; return v & 0x800000 ? v - 0x1000000 : v; };
+class Machine {
+  constructor(mem, xe = true) { this.m = mem; this.xe = xe; this.R = { A: 0, X: 0, L: 0, B: 0, S: 0, T: 0, F: 0, PC: 0, SW: 0 }; this.CC = "="; this.device = []; }
+  w(a) { return (this.m[a] << 16) | (this.m[a + 1] << 8) | this.m[a + 2]; }
+  sw(a, v) { v &= 0xFFFFFF; this.m[a] = v >> 16; this.m[a + 1] = (v >> 8) & 255; this.m[a + 2] = v & 255; }
+  cmp(x, y) { this.CC = x < y ? "<" : (x === y ? "=" : ">"); }
+  step() { return this.xe ? this.stepXE() : this.stepSIC(); }
+  exec(name, ta, imm, info) {
+    const R = this.R, m = this.m, val = () => imm ? ta : this.w(ta);
+    switch (name) {
+      case "LDA": R.A = val(); break; case "LDX": R.X = val(); break; case "LDB": R.B = val(); break;
+      case "LDT": R.T = val(); break; case "LDS": R.S = val(); break; case "LDL": R.L = val(); break;
+      case "LDCH": R.A = (R.A & 0xFFFF00) | (imm ? ta & 0xFF : m[ta]); break;
+      case "STA": this.sw(ta, R.A); break; case "STX": this.sw(ta, R.X); break; case "STL": this.sw(ta, R.L); break;
+      case "STB": this.sw(ta, R.B); break; case "STS": this.sw(ta, R.S); break; case "STT": this.sw(ta, R.T); break;
+      case "STCH": m[ta] = R.A & 0xFF; break;
+      case "ADD": R.A = (R.A + val()) & 0xFFFFFF; break; case "SUB": R.A = (R.A - val()) & 0xFFFFFF; break;
+      case "MUL": R.A = (sgn(R.A) * sgn(val())) & 0xFFFFFF; break;
+      case "DIV": { const d = sgn(val()); if (d === 0) throw new Error("division by zero"); R.A = Math.trunc(sgn(R.A) / d) & 0xFFFFFF; break; }
+      case "AND": R.A = R.A & val(); break; case "OR": R.A = R.A | val(); break;
+      case "COMP": this.cmp(sgn(R.A), sgn(val())); break;
+      case "TIX": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(val())); break;
+      case "J": R.PC = ta; break;
+      case "JEQ": if (this.CC === "=") R.PC = ta; break; case "JLT": if (this.CC === "<") R.PC = ta; break; case "JGT": if (this.CC === ">") R.PC = ta; break;
+      case "JSUB": R.L = R.PC; R.PC = ta; break; case "RSUB": R.PC = R.L; break;
+      case "TD": this.CC = "<"; break;
+      case "RD": R.A = (R.A & 0xFFFF00) | (this.device.length ? this.device.shift() : 0x04); break;
+      case "WD": (this.out = this.out || []).push(R.A & 0xFF); break;
+      default: throw new Error(`instruction ${name} is not simulated here`);
+    }
+  }
+  stepSIC() {
+    const R = this.R, pc = R.PC, word = this.w(pc);
+    const opc = word >> 16, x = (word >> 15) & 1, addr = word & 0x7FFF;
+    const name = LONG[opc]; if (!name) throw new Error(`no instruction with opcode ${hex(opc, 2)} at ${hex(pc, 4)}`);
+    const ta = addr + (x ? R.X : 0);
+    R.PC = pc + 3;
+    this.exec(name, ta, false);
+    return { pc, name, ta, len: 3, how: `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}${x ? " + X" : ""} → TA ${hex(ta, 4)}` };
+  }
+  stepXE() {
+    const R = this.R, m = this.m, pc = R.PC, b0 = m[pc];
+    let name, fmt;
+    if (b0 in SHORT) [name, fmt] = SHORT[b0]; else { name = LONG[b0 & 0xFC]; fmt = 3; }
+    if (!name) throw new Error(`no instruction with opcode ${hex(b0, 2)} at ${hex(pc, 4)}`);
+    if (fmt === 1) { R.PC = pc + 1; throw new Error(`format 1 instruction ${name} is not simulated here`); }
+    if (fmt === 2) {
+      const r1 = m[pc + 1] >> 4, r2 = m[pc + 1] & 0xF; R.PC = pc + 2;
+      const a = REGNAME[r1], bb = REGNAME[r2];
+      switch (name) {
+        case "CLEAR": R[a] = 0; break;
+        case "TIXR": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(R[a])); break;
+        case "ADDR": R[bb] = (R[bb] + R[a]) & 0xFFFFFF; break; case "SUBR": R[bb] = (R[bb] - R[a]) & 0xFFFFFF; break;
+        case "MULR": R[bb] = (sgn(R[bb]) * sgn(R[a])) & 0xFFFFFF; break;
+        case "DIVR": if (sgn(R[a]) === 0) throw new Error("division by zero"); R[bb] = Math.trunc(sgn(R[bb]) / sgn(R[a])) & 0xFFFFFF; break;
+        case "COMPR": this.cmp(sgn(R[a]), sgn(R[bb])); break;
+        case "RMO": R[bb] = R[a]; break;
+        case "SHIFTL": { const n = r2 + 1, v = R[a]; R[a] = ((v << n) | (v >>> (24 - n))) & 0xFFFFFF; break; }
+        case "SHIFTR": { const n = r2 + 1; R[a] = (sgn(R[a]) >> n) & 0xFFFFFF; break; }
+        default: throw new Error(`instruction ${name} is not simulated here`);
+      }
+      return { pc, name, ta: null, len: 2, how: `format 2: r1=${a}${bb !== undefined ? ", r2=" + bb : ""}` };
+    }
+    const n = (b0 >> 1) & 1, i = b0 & 1, f = m[pc + 1] >> 4;
+    const x = (f >> 3) & 1, b = (f >> 2) & 1, p = (f >> 1) & 1, e = f & 1;
+    let disp, len;
+    if (e) { disp = ((m[pc + 1] & 0xF) << 16) | (m[pc + 2] << 8) | m[pc + 3]; R.PC = pc + 4; len = 4; }
+    else { disp = ((m[pc + 1] & 0xF) << 8) | m[pc + 2]; R.PC = pc + 3; len = 3; if (p && disp & 0x800) disp -= 0x1000; }
+    let ta = disp + (p ? R.PC : 0) + (b ? R.B : 0) + (x ? R.X : 0);
+    const parts = [`disp ${disp}`]; if (p) parts.push(`PC ${hex(R.PC, 4)}`); if (b) parts.push(`B ${hex(R.B, 4)}`); if (x) parts.push(`X ${hex(R.X, 4)}`);
+    let how = `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}: TA = ${parts.join(" + ")} = ${hex(ta, 4)}`;
+    if (n === 1 && i === 0) { const t2 = this.w(ta); how += `; indirect → ${hex(t2, 4)}`; ta = t2; }
+    const imm = n === 0 && i === 1;
+    if (imm) how += " (immediate value)";
+    this.exec(name, ta, imm);
+    return { pc, name, ta, len, how };
+  }
+}
+
+const api = { OPTAB, REGS, AsmError, Assembler, parseLine, constBytes, load, Machine, hex, sgn };
+if (typeof module !== "undefined" && module.exports) module.exports = api; else root.SICXE = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 4: a one-pass macro processor with its tables (MACRO.MacroProcessor, identical to the reference) */
+TOOLS_UI.push({
+  id: "macro", title: "Macro processor",
+  build(p, D) {
+    const { el, esc } = L;
+    const names = Object.keys(D.asm).filter(n => !n.includes("_expected")).sort((a, b) => (a === "maccnt.asm" ? -1 : b === "maccnt.asm" ? 1 : a.localeCompare(b)));
+    p.innerHTML = `<div class="row"><label>file <select id="f4"></select></label><button class="btn primary" id="go4">Expand</button><span id="cmp4" class="small"></span></div>
+<div class="grid2" style="margin-top:12px"><div><b class="small">source</b><textarea id="s4" spellcheck="false" aria-label="source with macros"></textarea></div>
+<div><b class="small">expanded (what ./macro prints)</b><pre id="o4" style="margin-top:0;min-height:220px"></pre></div></div>
+<div class="tabs" style="margin-top:16px" id="vt4"><button data-v="tables" aria-selected="true">NAMTAB and DEFTAB</button><button data-v="calls" aria-selected="false">Each call: ARGTAB</button><button data-v="trace" aria-selected="false">Every step</button><button data-v="asm" aria-selected="false">Into the assembler</button></div>
+<div class="panel" id="out4"></div>
+<p class="note small">In DEFTAB the parameter names are already gone: <code>&amp;CH</code> is stored as <code>?1</code> (TODO 1). A call fills ARGTAB and puts the arguments back (TODO 2 and 3). <code>$LOOP</code> becomes <code>$AALOOP</code>, <code>$ABLOOP</code> … so two calls do not define LOOP twice (TODO 5). Try nodollar.asm, then "Into the assembler".</p>`;
+    const $ = s => p.querySelector(s);
+    names.forEach(n => $("#f4").appendChild(el("option", { value: n, text: n })));
+    let mp = null, out = null, err = null, view = "tables";
+    function pick() { $("#s4").value = D.asm[$("#f4").value]; run(); }
+    function run() {
+      mp = new MACRO.MacroProcessor(false); err = null; out = null;
+      try { out = mp.run($("#s4").value); $("#o4").textContent = out.join("\n"); $("#o4").className = ""; }
+      catch (x) { err = x.message; $("#o4").textContent = "error: " + err; $("#o4").className = "err"; }
+      const exp = D.expected[$("#f4").value.replace(".asm", "_expected.asm")];
+      $("#cmp4").textContent = ""; if (exp && out) { const same = exp.trim() === out.join("\n").trim(); $("#cmp4").className = same ? "ok small" : "err small"; $("#cmp4").textContent = same ? "✓ same as " + $("#f4").value.replace(".asm", "_expected.asm") : "✗ differs from the expected file"; }
+      draw();
+    }
+    const table = (heads, rows) => { const t = el("table", { class: "t" }, el("tr", {}, ...heads.map(h => el("th", { text: h })))); rows.forEach(r => t.appendChild(el("tr", {}, ...r.map(c => el("td", { class: "mono", text: String(c) }))))); return el("div", { class: "scroll" }, t); };
+    function draw() {
+      const o = $("#out4"); o.innerHTML = "";
+      p.querySelectorAll("#vt4 button").forEach(b => b.setAttribute("aria-selected", b.dataset.v === view ? "true" : "false"));
+      if (view === "tables") {
+        const g = el("div", { class: "grid2" });
+        g.appendChild(el("div", {}, el("h3", { text: "NAMTAB" }), table(["macro", "DEFTAB start", "end"], Object.entries(mp.NAMTAB).map(([n, [s, e]]) => [n, s, e]))));
+        g.appendChild(el("div", {}, el("h3", { text: "DEFTAB" }), table(["#", "stored line"], mp.DEFTAB.map((l, i) => [i, l]))));
+        o.appendChild(g);
+      } else if (view === "calls") {
+        const calls = mp.trace.filter(t => t.kind === "invoke");
+        if (!calls.length) { o.appendChild(el("p", { text: "No macro is called in this file." })); return; }
+        calls.forEach(c => {
+          const params = (mp.PARAMS[c.name] || []).map(x => x[0]);
+          o.appendChild(el("h3", { text: `${c.label ? c.label + " " : ""}${c.name} ${c.operand || ""}`, style: "margin-top:12px" }));
+          o.appendChild(el("p", { class: "small dim", text: `depth ${c.depth}, unique label prefix $${c.uniq}` }));
+          o.appendChild(table(["?n", "parameter", "ARGTAB value"], c.argtab.map((v, i) => [`?${i + 1}`, params[i] || "", v === "" ? "(empty)" : v])));
+        });
+      } else if (view === "trace") {
+        const kinds = { proto: "define: prototype", def: "define: store body line", namtab: "define: NAMTAB entry", invoke: "call", gen: "generate", set: "SET", copy: "copy unchanged" };
+        o.appendChild(table(["#", "step", "details"], mp.trace.map((t, i) => [i + 1, kinds[t.kind] || t.kind,
+          t.kind === "def" ? `${t.src}   →   ${t.stored}` : t.kind === "proto" ? `${t.text}   (parameters ${t.params.join(", ")})` : t.kind === "namtab" ? `${t.name}: DEFTAB ${t.start} … ${t.end}` :
+          t.kind === "invoke" ? `${t.name} ${t.operand || ""}  ARGTAB = [${t.argtab.join(", ")}]` : t.kind === "gen" ? `${t.stored}   →   ${t.text}` : t.kind === "set" ? `${t.var} = ${t.value}` : t.text])));
+      } else {
+        if (!out) { o.appendChild(el("p", { class: "err", text: "Nothing to assemble: the macro processor stopped." })); return; }
+        const src = out.join("\n") + "\n";
+        for (const xe of [false, true]) {
+          o.appendChild(el("h3", { text: xe ? "SIC/XE assembler" : "SIC assembler", style: "margin-top:8px" }));
+          try { const a = new SICXE.Assembler(src, xe).run(); o.appendChild(el("pre", { text: a.objectProgram().join("\n") })); }
+          catch (x) { o.appendChild(el("p", { class: "err", text: "error: " + x.message })); }
+        }
+        o.appendChild(el("p", { class: "small dim", text: "Use the one that matches your program: SIC instructions only, or SIC/XE features (#, @, +, registers)." }));
+      }
+    }
+    $("#f4").addEventListener("change", pick); $("#go4").addEventListener("click", run);
+    p.querySelectorAll("#vt4 button").forEach(b => b.addEventListener("click", () => { view = b.dataset.v; draw(); }));
+    pick();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

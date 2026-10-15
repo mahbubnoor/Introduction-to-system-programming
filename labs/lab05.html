@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 5 · Loaders · Loader Design Options</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 5: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part{scroll-margin-top:12px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 5</div>
+<h1>Loaders · Loader Design Options</h1>
+<p>A SIC loader in C: absolute, relocating and linking.</p>
+<nav class="navlinks" aria-label="Lab links"><a href="../index.html">All lectures</a><a href="../present/lecture_05.1.html">Present 5.1</a><a href="../present/lecture_05.2.html">Present 5.2</a><a href="lab05_files.zip">Download the lab files (22 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-5-1">
+<div class="phead"><h3>Lab 5.1 <span class="dim">· Loaders</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_05.1.html">Present lecture 5.1</a>
+<a class="btn" href="../slides/lecture_05.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>Build the starter</b><br>gcc -Wall -o sicload sicload_starter.c then ./sicload count.obj. Memory is all xx: nothing is loaded yet.</li>
+<li><b>TODO 1: load_T</b><br>Copy the bytes of a T record into memory. ./sicload count.obj | diff - expected_abs.txt must print nothing.</li>
+<li><b>TODO 2: patch</b><br>Add delta to a field of 4, 5 or 6 half-bytes, keeping the other bits. Test by hand: 100000 + 4011 → 104011.</li>
+<li><b>TODO 3: M records</b><br>One line in load_one. Then ./sicload -v -x -r 5000 count0.obj: TOTAL must become 000003.</li>
+<li><b>Try other addresses</b><br>Load count0.obj at 0, 1234 and 7000 with -x. Same result every time? Then your relocation is right.</li>
+<li><b>C side</b><br>In the demo folder: nm, readelf -r and objdump -d on main.o, then link with -Wl,-Map and find the call to counta.</li>
+</ol>
+<p class="warn">Extra: TODO 6 loads bit-mask records (-b 5000 count0_mask.obj). Submit: sicload.c and the output of task 4.</p>
+</section>
+<section class="card part" id="part-5-2">
+<div class="phead"><h3>Lab 5.2 <span class="dim">· Loader Design Options</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_05.2.html">Present lecture 5.2</a>
+<a class="btn" href="../slides/lecture_05.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li><b>TODO 4: Pass 1</b><br>Fill ESTAB from H and D records. ./sicload -l 4000 main.obj counta.obj data.obj must print the load map of Lecture 5.1.</li>
+<li><b>TODO 5: Pass 2</b><br>Apply M records with ±symbol from ESTAB. diff your output with expected_link4000.txt: nothing.</li>
+<li><b>Errors</b><br>Leave out data.obj, then give data.obj twice. You must get &quot;undefined external symbol TOTAL&quot; and &quot;duplicate external symbol DATA&quot;.</li>
+<li><b>Libraries</b><br>In demo/: build libcount.a and libcount.so; reproduce the -l order error and the &#x27;cannot open shared object file&#x27; error, and fix both.</li>
+<li><b>Watch ld.so</b><br>Run with LD_DEBUG=libs and LD_DEBUG=bindings, and with strace. Find where libcount.so is opened and mapped.</li>
+<li><b>The GOT</b><br>gdb -batch -x got.gdb ./lazy: write down GOT[counta] before and after the first call; check base + 10f9.</li>
+</ol>
+<p class="warn">Submit: sicload.c, your load map, and a short report with the GOT values from task 6.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab05_files.zip">lab05_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab05_files.zip">Download lab05_files.zip (22 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab04.html">← Lab 4</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab06.html">Lab 6 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 5, "readme": "CSE 4105 System Programming - Lab 5 (Lectures 5.1 and 5.2): Loaders and linking\n==============================================================================\nWorks offline on the lab PCs (Linux). Needs: gcc, binutils (nm, readelf, objdump, ar),\ngdb, strace, nasm. Check with:  which gcc gdb strace nasm\n\nPART 1  The loader in C   (sicload_starter.c)\n  gcc -Wall -o sicload sicload_starter.c\n  Lab 5.1: TODO 1 (load a T record), TODO 2 (patch a field), TODO 3 (apply M records)\n     ./sicload count.obj                     | diff - expected_abs.txt\n     ./sicload -v -x -r 5000 count0.obj      | diff - expected_reloc5000.txt\n     (-x runs a plain SIC program after loading; TOTAL must become 000003)\n  Lab 5.2: TODO 4 (Pass 1: ESTAB), TODO 5 (Pass 2: M records with +/- symbols)\n     ./sicload -v -l 4000 main.obj counta.obj data.obj | diff - expected_link4000.txt\n     ./sicload -l 4000 main.obj counta.obj            -> error: undefined external symbol TOTAL\n     ./sicload -l 4000 main.obj counta.obj data.obj data.obj -> error: duplicate external symbol DATA\n  Extra: TODO 6 (bit-mask records)\n     ./sicload -v -x -b 5000 count0_mask.obj | diff - expected_mask5000.txt\n\nObject files:  count.obj (START 2000, absolute), count0.obj (START 0, M records),\n               count0_mask.obj (bit masks), main/counta/data.obj (SIC/XE control sections),\n               boot.obj (the bootstrap loader), countboot.obj (START 80, booted by boot.asm).\n               The .asm sources are included. hw51.asm is for homework 5.1.\n\nPART 2  Linux demos   (folder demo/)\n  cd demo && ./run_all.sh > my_output.txt 2>&1\n  Compare with run_all_output.txt (our run on Ubuntu 24.04, gcc 13.3, glibc 2.39).\n  Addresses starting with 0x55... or 0x7f... change on every run (ASLR); that is expected.\n  got.gdb reads the GOT slot at 0x404000; if your gcc lays the file out differently,\n  find the slot with:  readelf -r lazy   (the R_X86_64_JUMP_SLOT line for counta)\n  and change the address in got.gdb.\n  boot.s builds a real 512-byte x86 boot sector (ends in 55 aa); we only inspect it.\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 5 (Lectures 5.1 and 5.2): Loaders and linking\n==============================================================================\nWorks offline on the lab PCs (Linux). Needs: gcc, binutils (nm, readelf, objdump, ar),\ngdb, strace, nasm. Check with:  which gcc gdb strace nasm\n\nPART 1  The loader in C   (sicload_starter.c)\n  gcc -Wall -o sicload sicload_starter.c\n  Lab 5.1: TODO 1 (load a T record), TODO 2 (patch a field), TODO 3 (apply M records)\n     ./sicload count.obj                     | diff - expected_abs.txt\n     ./sicload -v -x -r 5000 count0.obj      | diff - expected_reloc5000.txt\n     (-x runs a plain SIC program after loading; TOTAL must become 000003)\n  Lab 5.2: TODO 4 (Pass 1: ESTAB), TODO 5 (Pass 2: M records with +/- symbols)\n     ./sicload -v -l 4000 main.obj counta.obj data.obj | diff - expected_link4000.txt\n     ./sicload -l 4000 main.obj counta.obj            -> error: undefined external symbol TOTAL\n     ./sicload -l 4000 main.obj counta.obj data.obj data.obj -> error: duplicate external symbol DATA\n  Extra: TODO 6 (bit-mask records)\n     ./sicload -v -x -b 5000 count0_mask.obj | diff - expected_mask5000.txt\n\nObject files:  count.obj (START 2000, absolute), count0.obj (START 0, M records),\n               count0_mask.obj (bit masks), main/counta/data.obj (SIC/XE control sections),\n               boot.obj (the bootstrap loader), countboot.obj (START 80, booted by boot.asm).\n               The .asm sources are included. hw51.asm is for homework 5.1.\n\nPART 2  Linux demos   (folder demo/)\n  cd demo && ./run_all.sh > my_output.txt 2>&1\n  Compare with run_all_output.txt (our run on Ubuntu 24.04, gcc 13.3, glibc 2.39).\n  Addresses starting with 0x55... or 0x7f... change on every run (ASLR); that is expected.\n  got.gdb reads the GOT slot at 0x404000; if your gcc lays the file out differently,\n  find the slot with:  readelf -r lazy   (the R_X86_64_JUMP_SLOT line for counta)\n  and change the address in got.gdb.\n  boot.s builds a real 512-byte x86 boot sector (ends in 55 aa); we only inspect it.\n", "boot.asm": ". Bootstrap loader for SIC/XE (our version of the idea in Beck, Section 3.4.4)\n. Reads the program as hex characters from device F1, two characters per byte,\n. stores the bytes from address 80 (hex) upward, and jumps to 80 at end of input (X'04').\nBOOT     START   0\nFIRST    CLEAR   A\n         LDX     #128          . X = 80 hex: where the first byte goes\nLOOP     JSUB    GETC          . A = value of the first hex digit\n         RMO     A,S\n         SHIFTL  S,4           . S = digit * 16\n         JSUB    GETC          . A = value of the second hex digit\n         ADDR    S,A           . A = the whole byte\n         STCH    0,X           . store it at address X\n         TIXR    X,X           . X = X + 1\n         J       LOOP\n. GETC: read one character, return its hex value in A\nGETC     TD      INPUT\n         JEQ     GETC          . device busy: wait\n         RD      INPUT\n         COMP    #4            . end of input?\n         JEQ     128           . yes: start the loaded program at 80 hex\n         COMP    #48           . below '0'? ignore it (line breaks)\n         JLT     GETC\n         SUB     #48           . '0'..'9' -> 0..9\n         COMP    #10\n         JLT     RETURN\n         SUB     #7            . 'A'..'F' -> 10..15\nRETURN   RSUB\nINPUT    BYTE    X'F1'\n         END     FIRST\n", "boot.obj": "HBOOT  00000000003E\nT0000001CB4000500804B2011AC04A4434B200A9040578000B8113F2FECE32021\nT00001C1E332FFADB201B2900043300802900303B2FEB1D003029000A3B20031D0007\nT00003A044F0000F1\nE000000\n", "count.asm": "COUNT    START   2000\nFIRST    LDX     ZERO\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\n         J       DONE\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nDONE     J       DONE\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nBUFFER   RESB    100\nONE      WORD    1\n         END     FIRST\n", "count.obj": "HCOUNT 0020000000A0\nT0020001E04203300203350A0272820303020182C202D3820033C202400203618209D\nT00201E1B0C20363C200F3C202442414E414E41000006000041000000000000\nT00209D03000001\nE002000\n", "count0.asm": "COUNT    START   0\nFIRST    LDX     ZERO\nLOOP     LDA     ZERO\n         LDCH    TEXT,X\n         COMP    LETTERA\n         JEQ     FOUND\nNEXT     TIX     LENGTH\n         JLT     LOOP\n         J       DONE\nFOUND    LDA     TOTAL\n         ADD     ONE\n         STA     TOTAL\n         J       NEXT\nDONE     J       DONE\nTEXT     BYTE    C'BANANA'\nLENGTH   WORD    6\nLETTERA  WORD    65\nZERO     WORD    0\nTOTAL    WORD    0\nONE      WORD    1\n         END     FIRST\n", "count0.obj": "HCOUNT 00000000003C\nT0000001E0400330000335080272800303000182C002D3800033C0024000036180039\nT00001E1E0C00363C000F3C002442414E414E41000006000041000000000000000001\nM00000104\nM00000404\nM00000704\nM00000A04\nM00000D04\nM00001004\nM00001304\nM00001604\nM00001904\nM00001C04\nM00001F04\nM00002204\nM00002504\nE000000\n", "count0_mask.obj": "HCOUNT 00000000003C\nT0000001EFFC0400330000335080272800303000182C002D3800033C0024000036180039\nT00001E1EE000C00363C000F3C002442414E414E41000006000041000000000000000001\nE000000\n", "counta.asm": ". counta.asm: count the letters 'A' in TEXT (length LEN); return the count in A\n. C:  extern char text[]; extern int len;   int counta(void) { ... }\nCOUNTA   START   0\n         EXTREF  TEXT,LEN\n         CLEAR   X             . X = index\n         CLEAR   S             . S = count\n         +LDT    LEN           . T = length (LEN is in another file)\nLOOP     CLEAR   A\n         +LDCH   TEXT,X        . A = text[X]\n         COMP    #65           . 'A' ?\n         JEQ     HIT\nNEXT     TIXR    T             . X = X + 1, compare X with T\n         JLT     LOOP\n         RMO     S,A           . return value in A\n         RSUB\nHIT      RMO     S,A\n         ADD     #1\n         RMO     A,S           . count = count + 1\n         J       NEXT\n         END\n", "counta.obj": "HCOUNTA000000000028\nRTEXT  LEN   \nT0000001EB410B44077100000B4005390000029004133200AB8503B2FEFAC404F0000\nT00001E0AAC40190001AC043F2FEC\nM00000505+LEN\nM00000B05+TEXT\nE\n", "countboot.asm": ". The count program, assembled to run at 80 (hex): the bootstrap loads it there\nCOUNTB   START   80\nFIRST    LDX     #0\nLOOP     LDCH    TEXT,X\n         COMP    #65\n         JEQ     FOUND\nNEXT     TIX     #6\n         JLT     LOOP\nHALT     J       HALT\nFOUND    LDA     TOTAL\n         ADD     #1\n         STA     TOTAL\n         J       NEXT\nTEXT     BYTE    C'BANANA'\nTOTAL    WORD    0\n         END     FIRST\n", "countboot.obj": "HCOUNTB00008000002A\nT0000801E05000053A01B2900413320092D00063B2FF13F2FFD03200F1900010F2009\nT00009E0C3F2FEB42414E414E41000000\nE000080\n", "data.asm": ". data.asm: only data, like a C file with global variables\n. C:  char text[] = \"BANANA\"; int len = 6; int total;\nDATA     START   0\n         EXTDEF  TEXT,LEN,TOTAL\nTEXT     BYTE    C'BANANA'\nLEN      WORD    6\nTOTAL    WORD    0\n         END\n", "data.obj": "HDATA  00000000000C\nDTEXT  000000LEN   000006TOTAL 000009\nT0000000C42414E414E41000006000000\nE\n", "demo/boot.s": "; boot.s - a 512-byte x86 boot sector: BIOS loads it at 0x7C00 and jumps to it\n        org  0x7C00\n        bits 16\nstart:  mov  si, msg\n.next:  lodsb               ; al = next character\n        or   al, al\n        jz   .halt\n        mov  ah, 0x0E       ; BIOS: print character\n        int  0x10\n        jmp  .next\n.halt:  hlt\n        jmp  .halt\nmsg:    db   \"Hello from the boot sector\", 0\n        times 510-($-$$) db 0\n        dw   0xAA55         ; the boot signature: bytes 55 AA at offset 510\n", "demo/counta.c": "/* counta.c - count the letters 'A' in text */\nextern char text[];        /* like EXTREF TEXT,LEN */\nextern int len;\n\nint counta(void)\n{\n    int count = 0;\n    for (int i = 0; i < len; i++)\n        if (text[i] == 'A')\n            count++;\n    return count;\n}\n", "demo/data.c": "/* data.c - only global variables (like EXTDEF TEXT,LEN,TOTAL) */\nchar text[] = \"BANANA\";\nint len = 6;\nint total;                 /* no initial value: goes to .bss */\n", "demo/dyn.c": "/* dyn.c - load a library while the program is running: dlopen / dlsym / dlclose */\n#include <stdio.h>\n#include <dlfcn.h>\nint main(int argc, char *argv[])\n{\n    const char *lib = argc > 1 ? argv[1] : \"./libcount.so\";\n    void *h = dlopen(lib, RTLD_NOW);            /* load the file, link it now */\n    if (!h) { printf(\"dlopen failed: %s\\n\", dlerror()); return 1; }\n    int (*f)(void) = (int (*)(void)) dlsym(h, \"counta\");   /* look up a name */\n    int *t = (int *) dlsym(h, \"total\");\n    if (!f || !t) { printf(\"dlsym failed: %s\\n\", dlerror()); return 1; }\n    printf(\"counta is at %p, total is at %p\\n\", (void *) f, (void *) t);\n    *t = f();\n    printf(\"total = %d\\n\", *t);\n    dlclose(h);\n    return 0;\n}\n", "demo/got.gdb": "set pagination off\nset disable-randomization on\nbreak 6\nbreak 7\nbreak 8\nrun\nprintf \"before 1st call: GOT[counta] at 0x404000 = %#lx\\n\", *(long*)0x404000\ninfo symbol *(long*)0x404000\ncontinue\nprintf \"after 1st call : GOT[counta] at 0x404000 = %#lx\\n\", *(long*)0x404000\ninfo symbol *(long*)0x404000\np &counta\ncontinue\nprintf \"after 2nd call : GOT[counta] at 0x404000 = %#lx\\n\", *(long*)0x404000\ninfo sharedlibrary\ncontinue\n", "demo/lazy.c": "/* lazy.c - call a shared-library function twice and watch its GOT entry change */\n#include <stdio.h>\nint counta(void);\nint main(void)\n{\n    int a = counta();      /* first call: goes through the dynamic linker */\n    int b = counta();      /* second call: goes straight to counta */\n    printf(\"%d %d\\n\", a, b);\n    return 0;\n}\n", "demo/main.c": "/* main.c - the same program as main.asm / counta.asm / data.asm, in C */\n#include <stdio.h>\nextern int total;          /* defined in data.c   (like EXTREF TOTAL) */\nint counta(void);          /* defined in counta.c (like EXTREF COUNTA) */\n\nint main(void)\n{\n    total = counta();\n    printf(\"total = %d\\n\", total);\n    return 0;\n}\n", "demo/maps.c": "#include <stdio.h>\nint main(void) { FILE *f = fopen(\"/proc/self/maps\", \"r\"); char s[512]; while (fgets(s, sizeof s, f)) fputs(s, stdout); return 0; }\n", "demo/root.c": "/* root.c - needs the math library: link with -lm */\n#include <stdio.h>\n#include <math.h>\nint main(int argc, char *argv[])\n{\n    double x = argc + 1.0;          /* a value the compiler cannot know in advance */\n    printf(\"sqrt(%.0f) = %f\\n\", x, sqrt(x));\n    return 0;\n}\n", "demo/run_all.sh": "#!/bin/bash\n# Lecture 5 demos: run in this folder on the lab PC (gcc, binutils, gdb, nasm, strace). No internet needed.\nset -x\ngcc -c main.c counta.c data.c\nnm main.o; nm counta.o; nm data.o                       # U = needs (EXTREF), T/D/B = defines (EXTDEF)\nreadelf -rW main.o                                      # relocations = M records\nobjdump -d main.o | sed -n '/<main>/,/^$/p'              # call e8 00 00 00 00: address still unknown\ngcc -no-pie -o count main.o counta.o data.o && ./count\nobjdump -d count | sed -n '/<main>:/,/ret/p' | head -6   # now the call has a real address\ngcc -no-pie -o count_map main.o counta.o data.o -Wl,-Map=count.map   # the load map\ngcc -no-pie -o x main.o counta.o                        # error: undefined reference\nar rcs libcount.a counta.o data.o && ar t libcount.a\ngcc -no-pie -o count_lib main.o -L. -lcount && ./count_lib\ngcc -no-pie -o x -L. -lcount main.o                      # error: order matters for .a\ngcc -fPIC -c counta.c -o counta_pic.o && gcc -fPIC -c data.c -o data_pic.o\ngcc -shared -o libcount.so counta_pic.o data_pic.o\ngcc -o count_so main.o -L. -lcount\n./count_so                                               # error: cannot open shared object file\nLD_LIBRARY_PATH=. ./count_so\nLD_LIBRARY_PATH=. ldd ./count_so\nLD_DEBUG=libs LD_LIBRARY_PATH=. ./count_so\nLD_DEBUG=bindings LD_LIBRARY_PATH=. ./count_so\ngcc -o count_rp main.o -L. -lcount -Wl,-rpath,'$ORIGIN' && ./count_rp\ngcc -no-pie -static -o count_static main.c counta.c data.c\ngcc -no-pie -o count_dyn main.c counta.c data.c\nls -l count_static count_dyn; size count_static count_dyn\nreadelf -lW count_dyn                                   # LOAD segments, INTERP, entry point\ngcc -o root root.c                                       # error: undefined reference to sqrt\ngcc -o root root.c -lm && ./root\ngcc -o dyn dyn.c && ./dyn\ngcc -o where where.c && ./where && ./where               # PIE + ASLR: only the base changes\ngcc -g -O0 -no-pie -fno-pie -Wl,-z,lazy -o lazy lazy.c -L. -lcount -Wl,-rpath,'$ORIGIN'\ngdb -q -batch -x got.gdb ./lazy                          # GOT before and after the first call\nnasm -f bin boot.s -o boot.bin && od -A x -t x1z boot.bin | tail -3\n", "demo/run_all_output.txt": "+ gcc -c main.c counta.c data.c\n+ nm main.o\n                 U counta\n0000000000000000 T main\n                 U printf\n                 U total\n+ nm counta.o\n0000000000000000 T counta\n                 U len\n                 U text\n+ nm data.o\n0000000000000008 D len\n0000000000000000 D text\n0000000000000000 B total\n+ readelf -rW main.o\n\nRelocation section '.rela.text' at offset 0x1f0 contains 5 entries:\n    Offset             Info             Type               Symbol's Value  Symbol's Name + Addend\n0000000000000009  0000000500000004 R_X86_64_PLT32         0000000000000000 counta - 4\n000000000000000f  0000000600000002 R_X86_64_PC32          0000000000000000 total - 4\n0000000000000015  0000000600000002 R_X86_64_PC32          0000000000000000 total - 4\n000000000000001e  0000000300000002 R_X86_64_PC32          0000000000000000 .rodata - 4\n000000000000002b  0000000700000004 R_X86_64_PLT32         0000000000000000 printf - 4\n\nRelocation section '.rela.eh_frame' at offset 0x268 contains 1 entry:\n    Offset             Info             Type               Symbol's Value  Symbol's Name + Addend\n0000000000000020  0000000200000002 R_X86_64_PC32          0000000000000000 .text + 0\n+ objdump -d main.o\n+ sed -n '/<main>/,/^$/p'\n0000000000000000 <main>:\n   0:\tf3 0f 1e fa          \tendbr64\n   4:\t55                   \tpush   %rbp\n   5:\t48 89 e5             \tmov    %rsp,%rbp\n   8:\te8 00 00 00 00       \tcall   d <main+0xd>\n   d:\t89 05 00 00 00 00    \tmov    %eax,0x0(%rip)        # 13 <main+0x13>\n  13:\t8b 05 00 00 00 00    \tmov    0x0(%rip),%eax        # 19 <main+0x19>\n  19:\t89 c6                \tmov    %eax,%esi\n  1b:\t48 8d 05 00 00 00 00 \tlea    0x0(%rip),%rax        # 22 <main+0x22>\n  22:\t48 89 c7             \tmov    %rax,%rdi\n  25:\tb8 00 00 00 00       \tmov    $0x0,%eax\n  2a:\te8 00 00 00 00       \tcall   2f <main+0x2f>\n  2f:\tb8 00 00 00 00       \tmov    $0x0,%eax\n  34:\t5d                   \tpop    %rbp\n  35:\tc3                   \tret\n+ gcc -no-pie -o count main.o counta.o data.o\n+ ./count\ntotal = 3\n+ objdump -d count\n+ sed -n '/<main>:/,/ret/p'\n+ head -6\n0000000000401136 <main>:\n  401136:\tf3 0f 1e fa          \tendbr64\n  40113a:\t55                   \tpush   %rbp\n  40113b:\t48 89 e5             \tmov    %rsp,%rbp\n  40113e:\te8 29 00 00 00       \tcall   40116c <counta>\n  401143:\t89 05 df 2e 00 00    \tmov    %eax,0x2edf(%rip)        # 404028 <total>\n+ gcc -no-pie -o count_map main.o counta.o data.o -Wl,-Map=count.map\n+ gcc -no-pie -o x main.o counta.o\n/usr/bin/ld: main.o: in function `main':\nmain.c:(.text+0xf): undefined reference to `total'\n/usr/bin/ld: main.c:(.text+0x15): undefined reference to `total'\n/usr/bin/ld: counta.o: in function `counta':\ncounta.c:(.text+0x20): undefined reference to `text'\n/usr/bin/ld: counta.c:(.text+0x36): undefined reference to `len'\ncollect2: error: ld returned 1 exit status\n+ ar rcs libcount.a counta.o data.o\n+ ar t libcount.a\ncounta.o\ndata.o\n+ gcc -no-pie -o count_lib main.o -L. -lcount\n+ ./count_lib\n./count_lib: error while loading shared libraries: libcount.so: cannot open shared object file: No such file or directory\n+ gcc -no-pie -o x -L. -lcount main.o\n/usr/bin/ld: main.o: in function `main':\nmain.c:(.text+0x9): undefined reference to `counta'\n/usr/bin/ld: main.c:(.text+0xf): undefined reference to `total'\n/usr/bin/ld: main.c:(.text+0x15): undefined reference to `total'\ncollect2: error: ld returned 1 exit status\n+ gcc -fPIC -c counta.c -o counta_pic.o\n+ gcc -fPIC -c data.c -o data_pic.o\n+ gcc -shared -o libcount.so counta_pic.o data_pic.o\n+ gcc -o count_so main.o -L. -lcount\n+ ./count_so\n./count_so: error while loading shared libraries: libcount.so: cannot open shared object file: No such file or directory\n+ LD_LIBRARY_PATH=.\n+ ./count_so\ntotal = 3\n+ LD_LIBRARY_PATH=.\n+ ldd ./count_so\n\tlinux-vdso.so.1 (0x00007fc1f0606000)\n\tlibcount.so => ./libcount.so (0x00007fc1f05f4000)\n\tlibc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fc1f0200000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007fc1f0608000)\n+ LD_DEBUG=libs\n+ LD_LIBRARY_PATH=.\n+ ./count_so\n       656:\tfind library=libcount.so [0]; searching\n       656:\t search path=./glibc-hwcaps/x86-64-v4:./glibc-hwcaps/x86-64-v3:./glibc-hwcaps/x86-64-v2:.\t\t(LD_LIBRARY_PATH)\n       656:\t  trying file=./glibc-hwcaps/x86-64-v4/libcount.so\n       656:\t  trying file=./glibc-hwcaps/x86-64-v3/libcount.so\n       656:\t  trying file=./glibc-hwcaps/x86-64-v2/libcount.so\n       656:\t  trying file=./libcount.so\n       656:\t\n       656:\tfind library=libc.so.6 [0]; searching\n       656:\t search path=./glibc-hwcaps/x86-64-v4:./glibc-hwcaps/x86-64-v3:./glibc-hwcaps/x86-64-v2:.\t\t(LD_LIBRARY_PATH)\n       656:\t  trying file=./glibc-hwcaps/x86-64-v4/libc.so.6\n       656:\t  trying file=./glibc-hwcaps/x86-64-v3/libc.so.6\n       656:\t  trying file=./glibc-hwcaps/x86-64-v2/libc.so.6\n       656:\t  trying file=./libc.so.6\n       656:\t search cache=/etc/ld.so.cache\n       656:\t  trying file=/lib/x86_64-linux-gnu/libc.so.6\n       656:\t\n       656:\t\n       656:\tcalling init: /lib64/ld-linux-x86-64.so.2\n       656:\t\n       656:\t\n       656:\tcalling init: /lib/x86_64-linux-gnu/libc.so.6\n       656:\t\n       656:\t\n       656:\tcalling init: ./libcount.so\n       656:\t\n       656:\t\n       656:\tinitialize program: ./count_so\n       656:\t\n       656:\t\n       656:\ttransferring control: ./count_so\n       656:\t\n       656:\t\n       656:\tcalling fini:  [0]\n       656:\t\n       656:\t\n       656:\tcalling fini: ./libcount.so [0]\n       656:\t\n       656:\t\n       656:\tcalling fini: /lib/x86_64-linux-gnu/libc.so.6 [0]\n       656:\t\n       656:\t\n       656:\tcalling fini: /lib64/ld-linux-x86-64.so.2 [0]\n       656:\t\ntotal = 3\n+ LD_DEBUG=bindings\n+ LD_LIBRARY_PATH=.\n+ ./count_so\n       657:\tbinding file linux-vdso.so.1 [0] to linux-vdso.so.1 [0]: normal symbol `__vdso_clock_gettime' [LINUX_2.6]\n       657:\tbinding file linux-vdso.so.1 [0] to linux-vdso.so.1 [0]: normal symbol `__vdso_gettimeofday' [LINUX_2.6]\n       657:\tbinding file linux-vdso.so.1 [0] to linux-vdso.so.1 [0]: normal symbol `__vdso_time' [LINUX_2.6]\n       657:\tbinding file linux-vdso.so.1 [0] to linux-vdso.so.1 [0]: normal symbol `__vdso_getcpu' [LINUX_2.6]\n       657:\tbinding file linux-vdso.so.1 [0] to linux-vdso.so.1 [0]: normal symbol `__vdso_clock_getres' [LINUX_2.6]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_res' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `svc_max_pollfd' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `obstack_alloc_failed_handler' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__ctype_toupper' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `loc1' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_argv' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__libc_single_threaded' [GLIBC_2.32]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `free' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `re_syntax_options' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `rpc_createerr' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `stdout' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__ctype32_toupper' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `opterr' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `getdate_err' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__curbrk' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `loc2' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `program_invocation_name' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__fpu_control' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__libc_enable_secure' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_IO_2_1_stderr_' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__rcmd_errstr' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__ctype_b' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `error_print_progname' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `stderr' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `obstack_exit_failure' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__libc_stack_end' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__key_encryptsession_pk_LOCAL' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_rtld_global_ro' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `argp_program_version' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `svcauthdes_stats' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__check_rhosts_file' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `optind' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_IO_2_1_stdin_' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `program_invocation_short_name' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__ctype32_tolower' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `error_message_count' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `optopt' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__ctype32_b' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_nl_msg_cat_cntr' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__daylight' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_nl_domain_bindings' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `argp_program_bug_address' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_IO_funlockfile' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `svc_fdset' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__libc_dlerror_result' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `stdin' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__timezone' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__ctype_tolower' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_IO_2_1_stdout_' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__tzname' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `error_one_per_line' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `_res_hconf' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__key_decryptsession_pk_LOCAL' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_rtld_global' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__progname' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `h_errlist' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__environ' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `argp_err_exit_status' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `svc_pollfd' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__progname_full' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `argp_program_version_hook' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `optarg' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `malloc' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `realloc' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `calloc' [GLIBC_2.2.5]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_find_dso_for_object' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_deallocate_tls' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__tls_get_addr' [GLIBC_2.3]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_signal_error' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_signal_exception' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_audit_symbind_alt' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__tunable_is_initialized' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_rtld_di_serinfo' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_allocate_tls' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__tunable_get_val' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_catch_exception' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_allocate_tls_init' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__nptl_change_stack_perm' [GLIBC_PRIVATE]\n       657:\tbinding file /lib/x86_64-linux-gnu/libc.so.6 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `_dl_audit_preinit' [GLIBC_PRIVATE]\n       657:\tbinding file ./libcount.so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__cxa_finalize'\n       657:\tbinding file ./libcount.so [0] to ./libcount.so [0]: normal symbol `text'\n       657:\tbinding file ./libcount.so [0] to ./libcount.so [0]: normal symbol `len'\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__libc_start_main' [GLIBC_2.34]\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `__cxa_finalize' [GLIBC_2.2.5]\n       657:\tbinding file ./count_so [0] to ./libcount.so [0]: normal symbol `total'\n       657:\tbinding file ./count_so [0] to ./libcount.so [0]: normal symbol `counta'\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `printf' [GLIBC_2.2.5]\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `calloc' [GLIBC_2.2.5]\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `free' [GLIBC_2.2.5]\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `malloc' [GLIBC_2.2.5]\n       657:\tbinding file ./count_so [0] to /lib/x86_64-linux-gnu/libc.so.6 [0]: normal symbol `realloc' [GLIBC_2.2.5]\n       657:\tbinding file /lib64/ld-linux-x86-64.so.2 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__rseq_offset' [GLIBC_2.35]\n       657:\tbinding file /lib64/ld-linux-x86-64.so.2 [0] to /lib64/ld-linux-x86-64.so.2 [0]: normal symbol `__rseq_size' [GLIBC_2.35]\n       657:\t\n       657:\tcalling init: /lib64/ld-linux-x86-64.so.2\n       657:\t\n       657:\t\n       657:\tcalling init: /lib/x86_64-linux-gnu/libc.so.6\n       657:\t\n       657:\t\n       657:\tcalling init: ./libcount.so\n       657:\t\n       657:\t\n       657:\tinitialize program: ./count_so\n       657:\t\n       657:\t\n       657:\ttransferring control: ./count_so\n       657:\t\n       657:\t\n       657:\tcalling fini:  [0]\n       657:\t\n       657:\t\n       657:\tcalling fini: ./libcount.so [0]\n       657:\t\n       657:\t\n       657:\tcalling fini: /lib/x86_64-linux-gnu/libc.so.6 [0]\n       657:\t\n       657:\t\n       657:\tcalling fini: /lib64/ld-linux-x86-64.so.2 [0]\n       657:\t\ntotal = 3\n+ gcc -o count_rp main.o -L. -lcount '-Wl,-rpath,$ORIGIN'\n+ ./count_rp\ntotal = 3\n+ gcc -no-pie -static -o count_static main.c counta.c data.c\n+ gcc -no-pie -o count_dyn main.c counta.c data.c\n+ ls -l count_static count_dyn\n-rwxr-xr-x 1 root root  16064 Oct 10 20:36 count_dyn\n-rwxr-xr-x 1 root root 785504 Oct 10 20:36 count_static\n+ size count_static count_dyn\n   text\t   data\t    bss\t    dec\t    hex\tfilename\n 667949\t  23360\t  22440\t 713749\t  ae415\tcount_static\n   1182\t    556\t     12\t   1750\t    6d6\tcount_dyn\n+ readelf -lW count_dyn\n\nElf file type is EXEC (Executable file)\nEntry point 0x401050\nThere are 13 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  PHDR           0x000040 0x0000000000400040 0x0000000000400040 0x0002d8 0x0002d8 R   0x8\n  INTERP         0x000318 0x0000000000400318 0x0000000000400318 0x00001c 0x00001c R   0x1\n      [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]\n  LOAD           0x000000 0x0000000000400000 0x0000000000400000 0x000500 0x000500 R   0x1000\n  LOAD           0x001000 0x0000000000401000 0x0000000000401000 0x0001bd 0x0001bd R E 0x1000\n  LOAD           0x002000 0x0000000000402000 0x0000000000402000 0x000114 0x000114 R   0x1000\n  LOAD           0x002df8 0x0000000000403df8 0x0000000000403df8 0x00022c 0x000238 RW  0x1000\n  DYNAMIC        0x002e08 0x0000000000403e08 0x0000000000403e08 0x0001d0 0x0001d0 RW  0x8\n  NOTE           0x000338 0x0000000000400338 0x0000000000400338 0x000030 0x000030 R   0x8\n  NOTE           0x000368 0x0000000000400368 0x0000000000400368 0x000044 0x000044 R   0x4\n  GNU_PROPERTY   0x000338 0x0000000000400338 0x0000000000400338 0x000030 0x000030 R   0x8\n  GNU_EH_FRAME   0x002010 0x0000000000402010 0x0000000000402010 0x00003c 0x00003c R   0x4\n  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x10\n  GNU_RELRO      0x002df8 0x0000000000403df8 0x0000000000403df8 0x000208 0x000208 R   0x1\n\n Section to Segment mapping:\n  Segment Sections...\n   00     \n   01     .interp \n   02     .interp .note.gnu.property .note.gnu.build-id .note.ABI-tag .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt \n   03     .init .plt .plt.sec .text .fini \n   04     .rodata .eh_frame_hdr .eh_frame \n   05     .init_array .fini_array .dynamic .got .got.plt .data .bss \n   06     .dynamic \n   07     .note.gnu.property \n   08     .note.gnu.build-id .note.ABI-tag \n   09     .note.gnu.property \n   10     .eh_frame_hdr \n   11     \n   12     .init_array .fini_array .dynamic .got \n+ gcc -o root root.c\n/usr/bin/ld: /tmp/ccYUbiqt.o: in function `main':\nroot.c:(.text+0x37): undefined reference to `sqrt'\ncollect2: error: ld returned 1 exit status\n+ gcc -o root root.c -lm\n+ ./root\nsqrt(2) = 1.414214\n+ gcc -o dyn dyn.c\n+ ./dyn\ncounta is at 0x7f5d5fd750f9, total is at 0x7f5d5fd78018\ntotal = 3\n+ gcc -o where where.c\n+ ./where\nmain   0x5588ea856199\nglobal 0x5588ea859010\nprintf 0x7f413dc60100\nlocal  0x7ffed52ea74c\nheap   0x558928b0b2a0\n+ ./where\nmain   0x55bf1fc5f199\nglobal 0x55bf1fc62010\nprintf 0x7fdf4e060100\nlocal  0x7ffe9fdb931c\nheap   0x55bf5b6ab2a0\n+ gcc -g -O0 -no-pie -fno-pie -Wl,-z,lazy -o lazy lazy.c -L. -lcount '-Wl,-rpath,$ORIGIN'\n+ gdb -q -batch -x got.gdb ./lazy\nBreakpoint 1 at 0x401162: file lazy.c, line 6.\nBreakpoint 2 at 0x40116a: file lazy.c, line 7.\nBreakpoint 3 at 0x401172: file lazy.c, line 8.\n[Thread debugging using libthread_db enabled]\nUsing host libthread_db library \"/lib/x86_64-linux-gnu/libthread_db.so.1\".\n\nBreakpoint 1, main () at lazy.c:6\n6\t    int a = counta();      /* first call: goes through the dynamic linker */\nbefore 1st call: GOT[counta] at 0x404000 = 0x401030\nNo symbol matches *(long*)0x404000.\n\nBreakpoint 2, main () at lazy.c:7\n7\t    int b = counta();      /* second call: goes straight to counta */\nafter 1st call : GOT[counta] at 0x404000 = 0x7ffff7fb70f9\ncounta in section .text of /home/claude/l5/demo/libcount.so\n$1 = (<text variable, no debug info> *) 0x7ffff7fb70f9 <counta>\n\nBreakpoint 3, main () at lazy.c:8\n8\t    printf(\"%d %d\\n\", a, b);\nafter 2nd call : GOT[counta] at 0x404000 = 0x7ffff7fb70f9\nFrom                To                  Syms Read   Shared Object Library\n0x00007ffff7fc6000  0x00007ffff7ff0195  Yes         /lib64/ld-linux-x86-64.so.2\n0x00007ffff7fb7040  0x00007ffff7fb7140  Yes (*)     /home/claude/l5/demo/libcount.so\n0x00007ffff7c28800  0x00007ffff7db0039  Yes         /lib/x86_64-linux-gnu/libc.so.6\n(*): Shared library is missing debugging information.\n3 3\n[Inferior 1 (process 716) exited normally]\n+ nasm -f bin boot.s -o boot.bin\n+ tail -3\n+ od -A x -t x1z boot.bin\n*\n0001f0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 55 aa  >..............U.<\n000200\n", "demo/where.c": "/* where.c - where did the loader put things? Run it twice. */\n#include <stdio.h>\n#include <stdlib.h>\nint global = 7;                       /* .data  */\nint main(void)\n{\n    int local = 1;                    /* stack  */\n    int *heap = malloc(sizeof *heap); /* heap   */\n    printf(\"main   %p\\nglobal %p\\nprintf %p\\nlocal  %p\\nheap   %p\\n\",\n           (void *) main, (void *) &global, (void *) printf, (void *) &local, (void *) heap);\n    free(heap);\n    return 0;\n}\n", "expected_abs.txt": "Program COUNT: assembled at 002000, length 0000A0, loaded at 002000\nEntry point 002000\nMemory after loading:\n002000  04203300 203350A0 27282030 3020182C\n002010  202D3820 033C2024 00203618 209D0C20\n002020  363C200F 3C202442 414E414E 41000006\n002030  00004100 00000000 00xxxxxx xxxxxxxx\n002040  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002050  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002060  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002070  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002080  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002090  xxxxxxxx xxxxxxxx xxxxxxxx xx000001\n", "expected_link4000.txt": "Load map (ESTAB)\nSection   Symbol   Address  Length\nMAIN               004000   000011\nCOUNTA             004011   000028\nDATA               004039   00000C\n          TEXT     004039\n          LEN      00403F\n          TOTAL    004042\nSection MAIN at 004000\n  T record:    17 bytes at 004000\n  M record:    at 004001  100000 -> 104011  (+COUNTA)\n  M record:    at 004005  100000 -> 104042  (+TOTAL)\n  M record:    at 00400B  000000 -> 004039  (+TEXT)\n  M record:    at 00400E  000000 -> 004042  (+TOTAL)\n  M record:    at 00400E  004042 -> 000009  (-TEXT)\nSection COUNTA at 004011\n  T record:    30 bytes at 004011\n  T record:    10 bytes at 00402F\n  M record:    at 004016  100000 -> 10403F  (+LEN)\n  M record:    at 00401C  900000 -> 904039  (+TEXT)\nSection DATA at 004039\n  T record:    12 bytes at 004039\nEntry point 004000\nMemory after loading:\n004000  4B104011 0F104042 3F2FFD00 40390000\n004010  09B410B4 40771040 3FB40053 90403929\n004020  00413320 0AB8503B 2FEFAC40 4F0000AC\n004030  40190001 AC043F2F EC42414E 414E4100\n004040  00060000 00xxxxxx xxxxxxxx xxxxxxxx\n", "expected_mask5000.txt": "Program COUNT: assembled at 000000, length 00003C, loaded at 005000\n  T record:    30 bytes at 005000, mask 111111111100\n  T record:    30 bytes at 00501E, mask 111000000000\nEntry point 005000\nMemory after loading:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 00000001 xxxxxxxx\nRan 51 instructions, stopped at 005024: A=000003 X=000006 L=000000\nMemory after running:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 03000001 xxxxxxxx\n", "expected_reloc5000.txt": "Program COUNT: assembled at 000000, length 00003C, loaded at 005000\n  T record:    30 bytes at 005000\n  T record:    30 bytes at 00501E\n  M record:    at 005001  0033 -> 5033\n  M record:    at 005004  0033 -> 5033\n  M record:    at 005007  8027 -> D027\n  M record:    at 00500A  0030 -> 5030\n  M record:    at 00500D  0018 -> 5018\n  M record:    at 005010  002D -> 502D\n  M record:    at 005013  0003 -> 5003\n  M record:    at 005016  0024 -> 5024\n  M record:    at 005019  0036 -> 5036\n  M record:    at 00501C  0039 -> 5039\n  M record:    at 00501F  0036 -> 5036\n  M record:    at 005022  000F -> 500F\n  M record:    at 005025  0024 -> 5024\nEntry point 005000\nMemory after loading:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 00000001 xxxxxxxx\nRan 51 instructions, stopped at 005024: A=000003 X=000006 L=000000\nMemory after running:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 03000001 xxxxxxxx\n", "hw51.asm": "HW       START   0\nFIRST    LDA     ZERO\n         STA     TOTAL\n         RSUB\nZERO     WORD    0\nTOTAL    WORD    0\nPTR      WORD    TOTAL\n         END     FIRST\n", "main.asm": ". main.asm: calls COUNTA and stores the result in TOTAL, which lives in another file\n. C:  extern int total; int counta(void);   total = counta();\nMAIN     START   0\n         EXTREF  COUNTA,TOTAL,TEXT\nFIRST    +JSUB   COUNTA        . call a routine in another control section\n         +STA    TOTAL         . total = A\nHALT     J       HALT\nPTR      WORD    TEXT          . like  char *ptr = text;\nDIST     WORD    TOTAL-TEXT    . distance between two external symbols\n         END     FIRST\n", "main.obj": "HMAIN  000000000011\nRCOUNTATOTAL TEXT  \nT000000114B1000000F1000003F2FFD000000000000\nM00000105+COUNTA\nM00000505+TOTAL\nM00000B06+TEXT\nM00000E06+TOTAL\nM00000E06-TEXT\nE000000\n", "sicload_starter.c": "/*\n * sicload.c - loaders for SIC / SIC-XE object programs (Beck, System Software, Chapter 3)\n * CSE 4105 System Programming, Lab 5   (STARTER: fill in the parts marked TODO)\n *\n * Lab 5.1: TODO 1, TODO 2, TODO 3      Lab 5.2: TODO 4, TODO 5      Extra: TODO 6\n * Until a TODO is done, the program still compiles and runs; the dump just shows xx or wrong bytes.\n *\n * Build:  gcc -Wall -o sicload sicload.c\n *\n * Usage:  ./sicload [-v] [-x] file.obj                  absolute loader: load where the H record says\n *         ./sicload [-v] [-x] -r ADDR file.obj          relocating loader: load at ADDR, apply M records\n *         ./sicload [-v] [-x] -b ADDR file.obj          relocating loader with bit-mask T records (SIC)\n *         ./sicload [-v] -l ADDR a.obj b.obj ...        linking loader: ESTAB in Pass 1, T and M in Pass 2\n *\n *   ADDR is hexadecimal (like PROGADDR).  -v prints every T and M record as it is used.\n *   -x runs the loaded program on a small SIC simulator (plain SIC only) and dumps memory again.\n *\n * Object record formats (columns as in Beck):\n *   H name(6) start(6) length(6)\n *   D name(6) addr(6) name(6) addr(6) ...\n *   R name(6) name(6) ...\n *   T start(6) length(2) bytes...           (with -b: T start(6) length(2) mask(3) bytes...)\n *   M addr(6) halfbytes(2) [+NAME or -NAME]\n *   E [entry(6)]\n */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <ctype.h>\n\n#define MEMSIZE  (1 << 20)          /* SIC/XE has 1 MB of memory */\n#define MAXSYM   200\n#define MAXSEC   20\n#define LINELEN  300\n\nstatic unsigned char mem[MEMSIZE];\nstatic unsigned char valid[MEMSIZE];  /* 1 = this byte was loaded (the dump prints xx otherwise) */\nstatic int verbose = 0;\n\n/* ---------------- ESTAB: external symbol table of the linking loader ---------------- */\nstruct sym { char name[8]; int addr; int length; int is_section; };\nstatic struct sym ESTAB[MAXSYM];\nstatic int nsym = 0;\n\nstatic int estab_find(const char *name)\n{\n    for (int i = 0; i < nsym; i++)\n        if (strcmp(ESTAB[i].name, name) == 0)\n            return i;\n    return -1;\n}\n\n/* ---------------- small helpers ---------------- */\nstatic void die(const char *msg, const char *what)\n{\n    fflush(stdout);\n    fprintf(stderr, \"error: %s%s\\n\", msg, what ? what : \"\");\n    exit(1);\n}\n\n/* hex number from n characters of s */\nstatic int hexn(const char *s, int n)\n{\n    char buf[16];\n    memcpy(buf, s, (size_t)n);\n    buf[n] = '\\0';\n    return (int)strtol(buf, NULL, 16);\n}\n\n/* a 6-character name field without the blanks at the end */\nstatic void name6(const char *s, char *out)\n{\n    int n = 0;\n    while (n < 6 && s[n] && s[n] != '\\n' && s[n] != '\\r') { out[n] = s[n]; n++; }\n    out[n] = '\\0';\n    while (n > 0 && out[n - 1] == ' ') out[--n] = '\\0';\n}\n\nstatic void store(int addr, int byte)\n{\n    if (addr < 0 || addr >= MEMSIZE) die(\"address outside memory\", NULL);\n    mem[addr] = (unsigned char)byte;\n    valid[addr] = 1;\n}\n\n/* read a whole object file: one record per line */\nstatic int read_records(const char *file, char rec[][LINELEN], int max)\n{\n    FILE *f = fopen(file, \"r\");\n    if (!f) { perror(file); exit(1); }\n    int n = 0;\n    char line[LINELEN];\n    while (n < max && fgets(line, sizeof line, f)) {\n        line[strcspn(line, \"\\r\\n\")] = '\\0';\n        if (line[0]) strcpy(rec[n++], line);\n    }\n    fclose(f);\n    return n;\n}\n\n/* load one T record; delta is added to its start address */\nstatic void load_T(const char *r, int delta)\n{\n    int start = hexn(r + 1, 6) + delta;\n    int len = hexn(r + 7, 2);\n    /* TODO 1 (Lab 5.1): copy the len bytes of the record into memory.\n     *   The bytes start at column 9 of the record (r + 9), two hex characters per byte.\n     *   Byte i goes to address start + i.  Use store(address, value) and hexn(text, 2).   */\n\n    if (verbose)\n        printf(\"  %-12s %d bytes at %06X\\n\", \"T record:\", len, start);\n}\n\n/*\n * Add delta to the field of `half` half-bytes at address addr.\n * Odd number of half-bytes (05 for format 4): the field starts in the middle of the first byte,\n * so the left half of that byte (the x b p e flags) must not change.\n */\nstatic void patch(int addr, int half, int delta)\n{\n    /* TODO 2 (Lab 5.1):\n     *   1. nbytes = (half + 1) / 2  (05 half-bytes -> 3 bytes, 04 -> 2, 06 -> 3)\n     *   2. read those bytes from mem[addr] ... into one number v (big-endian: first byte is highest)\n     *   3. mask = (1L << (4 * half)) - 1         the bits that belong to the field\n     *   4. new field = (v + delta) & mask;  keep the other bits:  v = (v & ~mask) | field\n     *   5. write v back, lowest byte at addr + nbytes - 1, with store()\n     *   Check by hand: half = 5, bytes 10 00 00, delta 4011  ->  10 40 11                         */\n    (void)addr; (void)half; (void)delta;\n}\n\nstatic void show_field(int addr, int half)\n{\n    for (int i = 0; i < (half + 1) / 2; i++)\n        printf(\"%02X\", mem[addr + i]);\n}\n\n/* ---------------- memory dump: 16 bytes per line, 4 groups of 4 ---------------- */\nstatic void dump(int start, int end)\n{\n    for (int a = start - start % 16; a < end; a += 16) {\n        printf(\"%06X \", a);\n        for (int k = 0; k < 16; k++) {\n            if (k % 4 == 0) printf(\" \");\n            int b = a + k;\n            if (b >= start && b < end && valid[b]) printf(\"%02X\", mem[b]);\n            else printf(\"xx\");\n        }\n        printf(\"\\n\");\n    }\n}\n\n/* ======================= 1. absolute and relocating loader ======================= */\n/* progaddr < 0: absolute load.  mode 'm': use M records.  mode 'b': bit-mask T records. */\nstatic void load_one(const char *file, int progaddr, char mode, int *first, int *last, int *entry)\n{\n    static char rec[2000][LINELEN];\n    int n = read_records(file, rec, 2000);\n    if (n == 0 || rec[0][0] != 'H') die(\"no H record in \", file);\n\n    char name[8];\n    name6(rec[0] + 1, name);\n    int start = hexn(rec[0] + 7, 6), length = hexn(rec[0] + 13, 6);\n    int delta = progaddr < 0 ? 0 : progaddr - start;\n    printf(\"Program %s: assembled at %06X, length %06X, loaded at %06X\\n\", name, start, length, start + delta);\n\n    for (int i = 1; i < n; i++) {\n        const char *r = rec[i];\n        if (r[0] == 'T' && mode == 'b') {\n            int a = hexn(r + 1, 6) + delta, len = hexn(r + 7, 2), mask = hexn(r + 9, 3);\n            /* TODO 6 (extra): load the bytes (they start at column 12, after the 3-character mask),\n             *   then for every 3-byte word w = 0, 1, ...: if bit (11 - w) of mask is 1,\n             *   add delta to that whole word: patch(a + 3 * w, 6, delta).                          */\n            if (verbose) {\n                printf(\"  %-12s %d bytes at %06X, mask \", \"T record:\", len, a);\n                for (int bit = 11; bit >= 0; bit--) putchar(mask & (1 << bit) ? '1' : '0');\n                printf(\"\\n\");\n            }\n        } else if (r[0] == 'T') {\n            load_T(r, delta);\n        } else if (r[0] == 'M' && mode == 'm' && progaddr >= 0) {\n            int a = hexn(r + 1, 6) + delta, half = hexn(r + 7, 2);\n            if (verbose) { printf(\"  M record:    at %06X  \", a); show_field(a, half); printf(\" -> \"); }\n            /* TODO 3 (Lab 5.1): one line. Add delta (load address - assembled address) to the field. */\n\n            if (verbose) { show_field(a, half); printf(\"\\n\"); }\n        } else if (r[0] == 'E') {\n            *entry = strlen(r) > 1 ? hexn(r + 1, 6) + delta : start + delta;\n        }\n    }\n    *first = start + delta;\n    *last = start + delta + length;\n}\n\n/* ======================= 2. linking loader ======================= */\nstatic void link_load(int nfiles, char *files[], int progaddr, int *first, int *last, int *entry)\n{\n    static char rec[MAXSEC][2000][LINELEN];\n    int nrec[MAXSEC];\n    if (nfiles > MAXSEC) die(\"too many object files\", NULL);\n    for (int f = 0; f < nfiles; f++)\n        nrec[f] = read_records(files[f], rec[f], 2000);\n\n    /* ---------- Pass 1: give every control section an address; build ESTAB ---------- */\n    int csaddr = progaddr;\n    int cslth = 0;\n    for (int f = 0; f < nfiles; f++) {\n        for (int i = 0; i < nrec[f]; i++) {\n            const char *r = rec[f][i];\n            char name[8];\n            if (r[0] == 'H') {\n                /* TODO 4a (Lab 5.2): a new control section.\n                 *   csaddr += cslth;  (it starts right after the previous one)\n                 *   read its name (name6(r + 1, name)) and length (hexn(r + 13, 6)) into cslth;\n                 *   if the name is already in ESTAB: die(\"duplicate external symbol \", name);\n                 *   add it to ESTAB with addr = csaddr, length = cslth, is_section = 1.         */\n                (void)name;\n            } else if (r[0] == 'D') {\n                /* TODO 4b (Lab 5.2): every 12 characters after the 'D' hold one symbol:\n                 *   6 for the name, 6 for its address inside the section (hex).\n                 *   Add each one to ESTAB with addr = csaddr + that address, is_section = 0.\n                 *   Check for duplicates in the same way.                                      */\n            }\n        }\n    }\n    int total = csaddr + cslth - progaddr;\n\n    printf(\"Load map (ESTAB)\\n\");\n    printf(\"%-9s %-8s %-8s %s\\n\", \"Section\", \"Symbol\", \"Address\", \"Length\");\n    for (int i = 0; i < nsym; i++) {\n        if (ESTAB[i].is_section)\n            printf(\"%-9s %-8s %06X   %06X\\n\", ESTAB[i].name, \"\", ESTAB[i].addr, ESTAB[i].length);\n        else\n            printf(\"%-9s %-8s %06X\\n\", \"\", ESTAB[i].name, ESTAB[i].addr);\n    }\n\n    /* ---------- Pass 2: load T records, apply M records with ESTAB ---------- */\n    *entry = progaddr;\n    csaddr = progaddr;\n    for (int f = 0; f < nfiles; f++) {\n        for (int i = 0; i < nrec[f]; i++) {\n            const char *r = rec[f][i];\n            char name[8];\n            if (r[0] == 'H') {\n                name6(r + 1, name);\n                int s = estab_find(name);\n                if (s < 0) die(\"control section not in ESTAB (is Pass 1 done?): \", name);\n                csaddr = ESTAB[s].addr;\n                if (verbose) printf(\"Section %s at %06X\\n\", name, csaddr);\n            } else if (r[0] == 'T') {\n                load_T(r, csaddr);\n            } else if (r[0] == 'M') {\n                int a = csaddr + hexn(r + 1, 6), half = hexn(r + 7, 2);\n                int value = csaddr;                     /* no symbol: relative to this section */\n                /* TODO 5 (Lab 5.2): if the record has a symbol (strlen(r) > 9):\n                 *   r[9] is '+' or '-', the name starts at r + 10.\n                 *   Look it up in ESTAB; if it is missing: die(\"undefined external symbol \", name);\n                 *   value = + or - its address.                                                */\n                if (verbose) { printf(\"  M record:    at %06X  \", a); show_field(a, half); printf(\" -> \"); }\n                patch(a, half, value);\n                if (verbose) { show_field(a, half); printf(\"  (%s)\\n\", strlen(r) > 9 ? r + 9 : \"section address\"); }\n            } else if (r[0] == 'E' && strlen(r) > 1) {\n                *entry = csaddr + hexn(r + 1, 6);       /* the main program gives the entry point */\n            }\n        }\n    }\n    *first = progaddr;\n    *last = progaddr + total;\n}\n\n/* ======================= 3. a small SIC simulator for -x ======================= */\nstatic int word(int a) { return (mem[a] << 16) | (mem[a + 1] << 8) | mem[a + 2]; }\nstatic void setword(int a, int v) { store(a, (v >> 16) & 0xFF); store(a + 1, (v >> 8) & 0xFF); store(a + 2, v & 0xFF); }\nstatic int sgn(int v) { v &= 0xFFFFFF; return v & 0x800000 ? v - 0x1000000 : v; }\n\nstatic void run_sic(int entry)\n{\n    int A = 0, X = 0, L = 0, PC = entry, cc = 0, steps = 0;\n    for (;;) {\n        if (++steps > 1000000) die(\"program did not stop\", NULL);\n        int w = word(PC), op = w >> 16, x = (w >> 15) & 1, ta = (w & 0x7FFF) + (x ? X : 0);\n        int pc = PC;\n        PC += 3;\n        switch (op) {\n        case 0x00: A = word(ta); break;                                  /* LDA  */\n        case 0x04: X = word(ta); break;                                  /* LDX  */\n        case 0x08: L = word(ta); break;                                  /* LDL  */\n        case 0x0C: setword(ta, A); break;                                /* STA  */\n        case 0x10: setword(ta, X); break;                                /* STX  */\n        case 0x14: setword(ta, L); break;                                /* STL  */\n        case 0x18: A = (A + word(ta)) & 0xFFFFFF; break;                 /* ADD  */\n        case 0x1C: A = (A - word(ta)) & 0xFFFFFF; break;                 /* SUB  */\n        case 0x20: A = (sgn(A) * sgn(word(ta))) & 0xFFFFFF; break;       /* MUL  */\n        case 0x24: A = (sgn(A) / sgn(word(ta))) & 0xFFFFFF; break;       /* DIV  */\n        case 0x28: cc = sgn(A) < sgn(word(ta)) ? -1 : sgn(A) > sgn(word(ta)); break;   /* COMP */\n        case 0x2C: X = (X + 1) & 0xFFFFFF;                               /* TIX  */\n                   cc = sgn(X) < sgn(word(ta)) ? -1 : sgn(X) > sgn(word(ta)); break;\n        case 0x30: if (cc == 0) PC = ta; break;                          /* JEQ  */\n        case 0x34: if (cc > 0) PC = ta; break;                           /* JGT  */\n        case 0x38: if (cc < 0) PC = ta; break;                           /* JLT  */\n        case 0x3C: if (ta == pc) {                                       /* J to itself: the program is done */\n                       printf(\"Ran %d instructions, stopped at %06X: A=%06X X=%06X L=%06X\\n\", steps, pc, A, X, L);\n                       return;\n                   }\n                   PC = ta; break;\n        case 0x48: L = PC; PC = ta; break;                               /* JSUB */\n        case 0x4C: PC = L; break;                                        /* RSUB */\n        case 0x50: A = (A & 0xFFFF00) | mem[ta]; break;                  /* LDCH */\n        case 0x54: store(ta, A & 0xFF); break;                           /* STCH */\n        default:\n            fprintf(stderr, \"error: opcode %02X at %06X is not a SIC instruction this simulator knows\\n\", op, pc);\n            exit(1);\n        }\n    }\n}\n\nint main(int argc, char *argv[])\n{\n    int progaddr = -1, run = 0, i = 1;\n    char mode = 'a';\n    while (i < argc && argv[i][0] == '-') {\n        if (strcmp(argv[i], \"-v\") == 0) verbose = 1;\n        else if (strcmp(argv[i], \"-x\") == 0) run = 1;\n        else if ((strcmp(argv[i], \"-r\") == 0 || strcmp(argv[i], \"-l\") == 0 || strcmp(argv[i], \"-b\") == 0) && i + 1 < argc) {\n            mode = argv[i][1] == 'r' ? 'm' : argv[i][1];\n            progaddr = (int)strtol(argv[++i], NULL, 16);\n        } else break;\n        i++;\n    }\n    if (i >= argc) {\n        fprintf(stderr, \"usage: %s [-v] [-x] [-r ADDR | -b ADDR] file.obj\\n\"\n                        \"       %s [-v] -l ADDR file1.obj file2.obj ...\\n\", argv[0], argv[0]);\n        return 1;\n    }\n\n    int first, last, entry = -1;\n    if (mode == 'l') {\n        link_load(argc - i, argv + i, progaddr, &first, &last, &entry);\n    } else {\n        if (argc - i != 1) die(\"give one object file (use -l to link several)\", NULL);\n        load_one(argv[i], progaddr, mode, &first, &last, &entry);\n    }\n    if (entry < 0) entry = first;\n    printf(\"Entry point %06X\\n\", entry);\n    printf(\"Memory after loading:\\n\");\n    dump(first, last);\n    if (run) {\n        run_sic(entry);\n        printf(\"Memory after running:\\n\");\n        dump(first, last);\n    }\n    return 0;\n}\n"}, "obj": {"count0.obj": "HCOUNT 00000000003C\nT0000001E0400330000335080272800303000182C002D3800033C0024000036180039\nT00001E1E0C00363C000F3C002442414E414E41000006000041000000000000000001\nM00000104\nM00000404\nM00000704\nM00000A04\nM00000D04\nM00001004\nM00001304\nM00001604\nM00001904\nM00001C04\nM00001F04\nM00002204\nM00002504\nE000000\n", "count.obj": "HCOUNT 0020000000A0\nT0020001E04203300203350A0272820303020182C202D3820033C202400203618209D\nT00201E1B0C20363C200F3C202442414E414E41000006000041000000000000\nT00209D03000001\nE002000\n", "countboot.obj": "HCOUNTB00008000002A\nT0000801E05000053A01B2900413320092D00063B2FF13F2FFD03200F1900010F2009\nT00009E0C3F2FEB42414E414E41000000\nE000080\n", "count0_mask.obj": "HCOUNT 00000000003C\nT0000001EFFC0400330000335080272800303000182C002D3800033C0024000036180039\nT00001E1EE000C00363C000F3C002442414E414E41000006000041000000000000000001\nE000000\n", "counta.obj": "HCOUNTA000000000028\nRTEXT  LEN   \nT0000001EB410B44077100000B4005390000029004133200AB8503B2FEFAC404F0000\nT00001E0AAC40190001AC043F2FEC\nM00000505+LEN\nM00000B05+TEXT\nE\n", "boot.obj": "HBOOT  00000000003E\nT0000001CB4000500804B2011AC04A4434B200A9040578000B8113F2FECE32021\nT00001C1E332FFADB201B2900043300802900303B2FEB1D003029000A3B20031D0007\nT00003A044F0000F1\nE000000\n", "main.obj": "HMAIN  000000000011\nRCOUNTATOTAL TEXT  \nT000000114B1000000F1000003F2FFD000000000000\nM00000105+COUNTA\nM00000505+TOTAL\nM00000B06+TEXT\nM00000E06+TOTAL\nM00000E06-TEXT\nE000000\n", "data.obj": "HDATA  00000000000C\nDTEXT  000000LEN   000006TOTAL 000009\nT0000000C42414E414E41000006000000\nE\n"}, "expected": {"expected_reloc5000.txt": "Program COUNT: assembled at 000000, length 00003C, loaded at 005000\n  T record:    30 bytes at 005000\n  T record:    30 bytes at 00501E\n  M record:    at 005001  0033 -> 5033\n  M record:    at 005004  0033 -> 5033\n  M record:    at 005007  8027 -> D027\n  M record:    at 00500A  0030 -> 5030\n  M record:    at 00500D  0018 -> 5018\n  M record:    at 005010  002D -> 502D\n  M record:    at 005013  0003 -> 5003\n  M record:    at 005016  0024 -> 5024\n  M record:    at 005019  0036 -> 5036\n  M record:    at 00501C  0039 -> 5039\n  M record:    at 00501F  0036 -> 5036\n  M record:    at 005022  000F -> 500F\n  M record:    at 005025  0024 -> 5024\nEntry point 005000\nMemory after loading:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 00000001 xxxxxxxx\nRan 51 instructions, stopped at 005024: A=000003 X=000006 L=000000\nMemory after running:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 03000001 xxxxxxxx\n", "expected_mask5000.txt": "Program COUNT: assembled at 000000, length 00003C, loaded at 005000\n  T record:    30 bytes at 005000, mask 111111111100\n  T record:    30 bytes at 00501E, mask 111000000000\nEntry point 005000\nMemory after loading:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 00000001 xxxxxxxx\nRan 51 instructions, stopped at 005024: A=000003 X=000006 L=000000\nMemory after running:\n005000  04503300 503350D0 27285030 3050182C\n005010  502D3850 033C5024 00503618 50390C50\n005020  363C500F 3C502442 414E414E 41000006\n005030  00004100 00000000 03000001 xxxxxxxx\n", "expected_link4000.txt": "Load map (ESTAB)\nSection   Symbol   Address  Length\nMAIN               004000   000011\nCOUNTA             004011   000028\nDATA               004039   00000C\n          TEXT     004039\n          LEN      00403F\n          TOTAL    004042\nSection MAIN at 004000\n  T record:    17 bytes at 004000\n  M record:    at 004001  100000 -> 104011  (+COUNTA)\n  M record:    at 004005  100000 -> 104042  (+TOTAL)\n  M record:    at 00400B  000000 -> 004039  (+TEXT)\n  M record:    at 00400E  000000 -> 004042  (+TOTAL)\n  M record:    at 00400E  004042 -> 000009  (-TEXT)\nSection COUNTA at 004011\n  T record:    30 bytes at 004011\n  T record:    10 bytes at 00402F\n  M record:    at 004016  100000 -> 10403F  (+LEN)\n  M record:    at 00401C  900000 -> 904039  (+TEXT)\nSection DATA at 004039\n  T record:    12 bytes at 004039\nEntry point 004000\nMemory after loading:\n004000  4B104011 0F104042 3F2FFD00 40390000\n004010  09B410B4 40771040 3FB40053 90403929\n004020  00413320 0AB8503B 2FEFAC40 4F0000AC\n004030  40190001 AC043F2F EC42414E 414E4100\n004040  00060000 00xxxxxx xxxxxxxx xxxxxxxx\n", "expected_abs.txt": "Program COUNT: assembled at 002000, length 0000A0, loaded at 002000\nEntry point 002000\nMemory after loading:\n002000  04203300 203350A0 27282030 3020182C\n002010  202D3820 033C2024 00203618 209D0C20\n002020  363C200F 3C202442 414E414E 41000006\n002030  00004100 00000000 00xxxxxx xxxxxxxx\n002040  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002050  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002060  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002070  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002080  xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx\n002090  xxxxxxxx xxxxxxxx xxxxxxxx xx000001\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* sicload.js - the Lab 5 loader (absolute, relocating, bit-mask, linking) and its small SIC simulator.
+   A line-by-line port of the reference sicload.c, so its output is character for character what the
+   finished lab program prints. run(opts) -> { out, err, mem, valid, first, last, steps } */
+(function (root) {
+"use strict";
+const MEMSIZE = 1 << 20;
+function sicload(opts) {
+  const { files, verbose = false, run = false } = opts;   // files: [{ name, text }]
+  let mode = opts.mode || "a", progaddr = opts.progaddr === undefined ? -1 : opts.progaddr;
+  const mem = new Uint8Array(MEMSIZE), valid = new Uint8Array(MEMSIZE);
+  const out = []; let cur = "";
+  const printf = s => { const parts = (cur + s).split("\n"); cur = parts.pop(); out.push(...parts); };
+  class Die extends Error {}
+  const die = (msg, what) => { throw new Die("error: " + msg + (what || "")); };
+  const hexn = (s, i, n) => { const t = s.substr(i, n); const v = parseInt(t, 16); return isNaN(v) ? 0 : v; };
+  const h6 = v => (v >>> 0).toString(16).toUpperCase().padStart(6, "0").slice(-6);
+  const h2 = v => v.toString(16).toUpperCase().padStart(2, "0");
+  const name6 = (s, i) => { let n = ""; for (let k = 0; k < 6 && i + k < s.length; k++) n += s[i + k]; return n.replace(/ +$/, ""); };
+  const store = (a, b) => { if (a < 0 || a >= MEMSIZE) die("address outside memory", null); mem[a] = b & 255; valid[a] = 1; };
+  const readRecords = f => f.text.split(/\r?\n/).filter(l => l.length);
+  const loadT = (r, delta) => {
+    const start = hexn(r, 1, 6) + delta, len = hexn(r, 7, 2);
+    for (let i = 0; i < len; i++) store(start + i, hexn(r, 9 + 2 * i, 2));
+    if (verbose) printf(`  ${"T record:".padEnd(12)} ${len} bytes at ${h6(start)}\n`);
+  };
+  const patch = (addr, half, delta) => {
+    const nb = Math.floor((half + 1) / 2); let v = 0;
+    for (let i = 0; i < nb; i++) v = v * 256 + mem[addr + i];
+    const M = Math.pow(2, 4 * half);
+    let field = ((v % M) + delta) % M; if (field < 0) field += M;
+    v = v - (v % M) + field;
+    for (let i = nb - 1; i >= 0; i--) { store(addr + i, v % 256); v = Math.floor(v / 256); }
+  };
+  const showField = (addr, half) => { let s = ""; for (let i = 0; i < Math.floor((half + 1) / 2); i++) s += h2(mem[addr + i]); return s; };
+  const dump = (start, end) => {
+    for (let a = start - start % 16; a < end; a += 16) {
+      let line = h6(a) + " ";
+      for (let k = 0; k < 16; k++) { if (k % 4 === 0) line += " "; const b = a + k; line += (b >= start && b < end && valid[b]) ? h2(mem[b]) : "xx"; }
+      printf(line + "\n");
+    }
+  };
+  let first, last, entry = -1, steps = 0;
+  function loadOne(file) {
+    const rec = readRecords(file);
+    if (!rec.length || rec[0][0] !== "H") die("no H record in ", file.name);
+    const name = name6(rec[0], 1), start = hexn(rec[0], 7, 6), length = hexn(rec[0], 13, 6);
+    const delta = progaddr < 0 ? 0 : progaddr - start;
+    printf(`Program ${name}: assembled at ${h6(start)}, length ${h6(length)}, loaded at ${h6(start + delta)}\n`);
+    for (let i = 1; i < rec.length; i++) {
+      const r = rec[i];
+      if (r[0] === "T" && mode === "b") {
+        const a = hexn(r, 1, 6) + delta, len = hexn(r, 7, 2), mask = hexn(r, 9, 3);
+        for (let k = 0; k < len; k++) store(a + k, hexn(r, 12 + 2 * k, 2));
+        for (let w = 0; w < Math.floor(len / 3); w++) if (mask & (1 << (11 - w))) patch(a + 3 * w, 6, delta);
+        if (verbose) { let bits = ""; for (let b = 11; b >= 0; b--) bits += mask & (1 << b) ? "1" : "0"; printf(`  ${"T record:".padEnd(12)} ${len} bytes at ${h6(a)}, mask ${bits}\n`); }
+      } else if (r[0] === "T") loadT(r, delta);
+      else if (r[0] === "M" && mode === "m" && progaddr >= 0) {
+        const a = hexn(r, 1, 6) + delta, half = hexn(r, 7, 2);
+        if (verbose) printf(`  M record:    at ${h6(a)}  ${showField(a, half)} -> `);
+        patch(a, half, delta);
+        if (verbose) printf(showField(a, half) + "\n");
+      } else if (r[0] === "E") entry = r.length > 1 ? hexn(r, 1, 6) + delta : start + delta;
+    }
+    first = start + delta; last = start + delta + length;
+  }
+  function linkLoad() {
+    const recs = files.map(readRecords); const ESTAB = [];
+    const find = n => ESTAB.findIndex(e => e.name === n);
+    let csaddr = progaddr, cslth = 0;
+    for (const rf of recs) for (const r of rf) {
+      if (r[0] === "H") {
+        csaddr += cslth; const name = name6(r, 1); cslth = hexn(r, 13, 6);
+        if (find(name) >= 0) die("duplicate external symbol ", name);
+        ESTAB.push({ name, addr: csaddr, length: cslth, sec: true });
+      } else if (r[0] === "D") {
+        for (let k = 1; k + 6 < r.length; k += 12) {
+          const name = name6(r, k);
+          if (find(name) >= 0) die("duplicate external symbol ", name);
+          ESTAB.push({ name, addr: csaddr + hexn(r, k + 6, 6), sec: false });
+        }
+      }
+    }
+    const total = csaddr + cslth - progaddr;
+    printf("Load map (ESTAB)\n");
+    printf(`${"Section".padEnd(9)} ${"Symbol".padEnd(8)} ${"Address".padEnd(8)} Length\n`);
+    for (const e of ESTAB) {
+      if (e.sec) printf(`${e.name.padEnd(9)} ${"".padEnd(8)} ${h6(e.addr)}   ${h6(e.length)}\n`);
+      else printf(`${"".padEnd(9)} ${e.name.padEnd(8)} ${h6(e.addr)}\n`);
+    }
+    entry = progaddr; csaddr = progaddr;
+    for (const rf of recs) for (const r of rf) {
+      if (r[0] === "H") {
+        const name = name6(r, 1), s = find(name);
+        if (s < 0) die("control section not in ESTAB (is Pass 1 done?): ", name);
+        csaddr = ESTAB[s].addr;
+        if (verbose) printf(`Section ${name} at ${h6(csaddr)}\n`);
+      } else if (r[0] === "T") loadT(r, csaddr);
+      else if (r[0] === "M") {
+        const a = csaddr + hexn(r, 1, 6), half = hexn(r, 7, 2);
+        let value = csaddr;
+        if (r.length > 9) { const name = name6(r, 10), s = find(name); if (s < 0) die("undefined external symbol ", name); value = r[9] === "-" ? -ESTAB[s].addr : ESTAB[s].addr; }
+        if (verbose) printf(`  M record:    at ${h6(a)}  ${showField(a, half)} -> `);
+        patch(a, half, value);
+        if (verbose) printf(`${showField(a, half)}  (${r.length > 9 ? r.slice(9) : "section address"})\n`);
+      } else if (r[0] === "E" && r.length > 1) entry = csaddr + hexn(r, 1, 6);
+    }
+    first = progaddr; last = progaddr + total;
+  }
+  const word = a => (mem[a] << 16) | (mem[a + 1] << 8) | mem[a + 2];
+  const setword = (a, v) => { store(a, (v >> 16) & 255); store(a + 1, (v >> 8) & 255); store(a + 2, v & 255); };
+  const sgn = v => { v &= 0xFFFFFF; return v & 0x800000 ? v - 0x1000000 : v; };
+  const trace = [];
+  function runSic(ent) {
+    let A = 0, X = 0, L = 0, PC = ent, cc = 0;
+    for (;;) {
+      if (++steps > 1000000) die("program did not stop", null);
+      const w = word(PC), op = w >> 16, x = (w >> 15) & 1, ta = (w & 0x7FFF) + (x ? X : 0), pc = PC;
+      PC += 3;
+      switch (op) {
+        case 0x00: A = word(ta); break; case 0x04: X = word(ta); break; case 0x08: L = word(ta); break;
+        case 0x0C: setword(ta, A); break; case 0x10: setword(ta, X); break; case 0x14: setword(ta, L); break;
+        case 0x18: A = (A + word(ta)) & 0xFFFFFF; break; case 0x1C: A = (A - word(ta)) & 0xFFFFFF; break;
+        case 0x20: A = (sgn(A) * sgn(word(ta))) & 0xFFFFFF; break;
+        case 0x24: A = Math.trunc(sgn(A) / sgn(word(ta))) & 0xFFFFFF; break;
+        case 0x28: cc = sgn(A) < sgn(word(ta)) ? -1 : (sgn(A) > sgn(word(ta)) ? 1 : 0); break;
+        case 0x2C: X = (X + 1) & 0xFFFFFF; cc = sgn(X) < sgn(word(ta)) ? -1 : (sgn(X) > sgn(word(ta)) ? 1 : 0); break;
+        case 0x30: if (cc === 0) PC = ta; break; case 0x34: if (cc > 0) PC = ta; break; case 0x38: if (cc < 0) PC = ta; break;
+        case 0x3C: if (ta === pc) { printf(`Ran ${steps} instructions, stopped at ${h6(pc)}: A=${h6(A)} X=${h6(X)} L=${h6(L)}\n`); return; } PC = ta; break;
+        case 0x48: L = PC; PC = ta; break; case 0x4C: PC = L; break;
+        case 0x50: A = (A & 0xFFFF00) | mem[ta]; break; case 0x54: store(ta, A & 255); break;
+        default: die(`opcode ${h2(op)} at ${h6(pc)} is not a SIC instruction this simulator knows`, null);
+      }
+      if (trace.length < 2000) trace.push({ pc, op, ta, A, X, L });
+    }
+  }
+  let err = null, after = null, loadedMem = null;
+  try {
+    if (mode === "l") linkLoad();
+    else { if (files.length !== 1) die("give one object file (use -l to link several)", null); loadOne(files[0]); }
+    if (entry < 0) entry = first;
+    printf(`Entry point ${h6(entry)}\n`); printf("Memory after loading:\n"); dump(first, last);
+    loadedMem = { mem: mem.slice(first - first % 16, last + 16), valid: valid.slice(first - first % 16, last + 16), base: first - first % 16 };
+    if (run) { runSic(entry); printf("Memory after running:\n"); dump(first, last); }
+  } catch (e) { if (e instanceof Die) err = e.message; else err = "error: " + e.message; }
+  if (cur) out.push(cur);
+  return { out: out.join("\n") + (out.length ? "\n" : ""), err, first, last, entry, steps, loaded: loadedMem, trace };
+}
+const api = { sicload };
+if (typeof module !== "undefined" && module.exports) module.exports = api; else root.SICLOAD = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+/* sicxe.js - SIC and SIC/XE two-pass assembler, relocating loader and simulator for the CSE 4105 labs.
+   A line-by-line port of the course's reference sicxe.py (Beck, System Software, Ch. 2-3); tested to give
+   identical listings, object programs and memory images on every lab program. */
+(function (root) {
+"use strict";
+const OPTAB = {
+  ADD: [3, 0x18], ADDF: [3, 0x58], ADDR: [2, 0x90], AND: [3, 0x40], CLEAR: [2, 0xB4],
+  COMP: [3, 0x28], COMPF: [3, 0x88], COMPR: [2, 0xA0], DIV: [3, 0x24], DIVF: [3, 0x64],
+  DIVR: [2, 0x9C], FIX: [1, 0xC4], FLOAT: [1, 0xC0], HIO: [1, 0xF4], J: [3, 0x3C],
+  JEQ: [3, 0x30], JGT: [3, 0x34], JLT: [3, 0x38], JSUB: [3, 0x48], LDA: [3, 0x00],
+  LDB: [3, 0x68], LDCH: [3, 0x50], LDF: [3, 0x70], LDL: [3, 0x08], LDS: [3, 0x6C],
+  LDT: [3, 0x74], LDX: [3, 0x04], LPS: [3, 0xD0], MUL: [3, 0x20], MULF: [3, 0x60],
+  MULR: [2, 0x98], NORM: [1, 0xC8], OR: [3, 0x44], RD: [3, 0xD8], RMO: [2, 0xAC],
+  RSUB: [3, 0x4C], SHIFTL: [2, 0xA4], SHIFTR: [2, 0xA8], SIO: [1, 0xF0], SSK: [3, 0xEC],
+  STA: [3, 0x0C], STB: [3, 0x78], STCH: [3, 0x54], STF: [3, 0x80], STI: [3, 0xD4],
+  STL: [3, 0x14], STS: [3, 0x7C], STSW: [3, 0xE8], STT: [3, 0x84], STX: [3, 0x10],
+  SUB: [3, 0x1C], SUBF: [3, 0x5C], SUBR: [2, 0x94], SVC: [2, 0xB0], TD: [3, 0xE0],
+  TIO: [1, 0xF8], TIX: [3, 0x2C], TIXR: [2, 0xB8], WD: [3, 0xDC]
+};
+const REGS = { A: 0, X: 1, L: 2, B: 3, S: 4, T: 5, F: 6, PC: 8, SW: 9 };
+class AsmError extends Error {}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n, "0");
+const isDigits = t => /^\d+$/.test(t);
+
+function parseLine(raw) {
+  const line = raw.replace(/\n$/, "");
+  if (!line.trim() || line.trimStart().startsWith(".")) return null;
+  let m, label, op, operand;
+  if (line[0] === " " || line[0] === "\t") {
+    m = line.match(/^\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = null; op = m[1]; operand = m[2] === undefined ? null : m[2];
+  } else {
+    m = line.match(/^(\S+)\s+(\+?\w+)(?:\s+((?:[^\s']|'[^']*')+))?/);
+    if (!m) throw new AsmError("cannot parse: " + raw);
+    label = m[1]; op = m[2]; operand = m[3] === undefined ? null : m[3];
+  }
+  const U = op.toUpperCase();
+  if (U.replace(/^\+/, "") === "RSUB" || U === "LTORG" || U === "NOBASE") operand = null;
+  return [label, U, operand];
+}
+function constBytes(c) {
+  if (c.startsWith("C'")) return Array.from(c.slice(2, -1)).map(ch => ch.charCodeAt(0));
+  if (c.startsWith("X'")) { const h = c.slice(2, -1); const out = []; for (let i = 0; i < h.length; i += 2) out.push(parseInt(h.substr(i, 2), 16)); return out; }
+  throw new AsmError("bad constant " + c);
+}
+const bytesHex = b => b.map(x => hex(x, 2)).join("");
+
+class Line {
+  constructor(src, label, op, operand, lineno) {
+    Object.assign(this, { src, label, op, operand, lineno, loc: null, block: 0, addr: null, size: 0, code: "", note: "", isLiteral: false });
+  }
+}
+class Section {
+  constructor(name) {
+    Object.assign(this, { name, symtab: {}, littab: {}, pendingLits: [], blocks: ["(default)"], blockLoc: [0], blockStart: [0],
+      extdef: [], extref: [], lines: [], start: 0, length: 0, records: [], curBlock: 0, mods: [] });
+  }
+}
+
+class Assembler {
+  constructor(src, xe = true) { this.src = src; this.xe = xe; this.sections = []; this.pass1Trace = []; this.pass2Trace = []; }
+  evalExpr(expr, sec, hereBlock, hereLoc, allowExt = false) {
+    const tokens = expr.match(/[+\-*/]|[A-Za-z_$][\w$]*|\d+|\*/g) || [];
+    let val = 0, rel = 0, ext = [], sign = 1, expectTerm = true, opMul = null;
+    for (const t of tokens) {
+      if (expectTerm) {
+        if (t === "-") { sign = -sign; continue; }
+        if (t === "+") continue;
+        let v, r;
+        if (t === "*") { v = this.addrOf(sec, hereBlock, hereLoc); r = 1; }
+        else if (isDigits(t)) { v = parseInt(t, 10); r = 0; }
+        else if (t in sec.symtab) { const [b, off, kind] = sec.symtab[t]; v = kind === "R" ? this.addrOf(sec, b, off) : off; r = kind === "R" ? 1 : 0; }
+        else if (sec.extref.includes(t) && allowExt) { ext.push([sign > 0 ? "+" : "-", t]); v = 0; r = 0; }
+        else throw new AsmError("undefined symbol " + t);
+        if (opMul) { if (r) throw new AsmError("relative term in multiply/divide"); val = opMul === "*" ? val * v : Math.floor(val / v); opMul = null; }
+        else { val += sign * v; rel += sign * r; }
+        sign = 1; expectTerm = false;
+      } else {
+        if (t === "+" || t === "-") sign = t === "+" ? 1 : -1;
+        else if (t === "*" || t === "/") opMul = t;
+        expectTerm = true;
+      }
+    }
+    if (rel !== 0 && rel !== 1) throw new AsmError(`expression ${expr} is not absolute or relative`);
+    return [val, rel === 1 ? "R" : "A", ext];
+  }
+  addrOf(sec, block, off) { return sec.blockStart[block] + off; }
+  pass1() {
+    let sec = null;
+    const lines = this.src.split(/\r?\n/);
+    lines.forEach((raw, idx) => {
+      const n = idx + 1;
+      const p = parseLine(raw);
+      if (p === null) return;
+      const [label, op, operand] = p;
+      if (op === "START") {
+        sec = new Section(label || ""); this.sections.push(sec);
+        sec.start = operand ? parseInt(operand, 16) : 0; sec.blockLoc[0] = sec.start;
+        const ln = new Line(raw, label, op, operand, n); ln.loc = sec.start; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: sec.start, action: `LOCCTR ← ${hex(sec.start, 4)}` });
+        return;
+      }
+      if (sec === null) { sec = new Section(""); this.sections.push(sec); }
+      if (op === "CSECT") {
+        this.flushLiterals(sec);
+        sec = new Section(label); this.sections.push(sec);
+        const ln = new Line(raw, label, op, operand, n); ln.loc = 0; sec.lines.push(ln);
+        this.pass1Trace.push({ line: ln, locctr: 0, action: `new control section ${label}: LOCCTR ← 0000` });
+        return;
+      }
+      const cb = sec.curBlock;
+      const loc = sec.blockLoc[cb];
+      const ln = new Line(raw, label, op, operand, n);
+      ln.loc = loc; ln.block = cb; sec.lines.push(ln);
+      const action = [];
+      if (op === "USE") {
+        const name = operand || "(default)";
+        if (!sec.blocks.includes(name)) { sec.blocks.push(name); sec.blockLoc.push(0); sec.blockStart.push(0); }
+        sec.curBlock = sec.blocks.indexOf(name);
+        ln.loc = sec.blockLoc[sec.curBlock]; ln.block = sec.curBlock;
+        this.pass1Trace.push({ line: ln, locctr: ln.loc, action: `switch to block ${name}` });
+        return;
+      }
+      if (label && !["EQU", "EXTDEF", "EXTREF"].includes(op)) {
+        if (label in sec.symtab) throw new AsmError(`duplicate symbol ${label}`);
+        sec.symtab[label] = [cb, loc, "R"];
+        action.push(`SYMTAB ← ${label} = ${hex(loc, 4)}`);
+      }
+      const base = op.replace(/^\+/, "");
+      let size;
+      if (base in OPTAB) {
+        const fmt = OPTAB[base][0];
+        size = !this.xe ? 3 : (op.startsWith("+") ? 4 : fmt);
+        if (operand && operand.startsWith("=")) {
+          if (!(operand in sec.littab) && !sec.pendingLits.includes(operand)) { sec.pendingLits.push(operand); action.push(`LITTAB ← ${operand} (address later)`); }
+        }
+      } else if (op === "WORD") size = 3;
+      else if (op === "RESW") size = 3 * parseInt(operand, 10);
+      else if (op === "RESB") size = parseInt(operand, 10);
+      else if (op === "BYTE") size = constBytes(operand).length;
+      else if (op === "EQU") {
+        let v, kind;
+        if (operand.trim() === "*") { v = loc; kind = "R"; sec.symtab[label] = [cb, loc, "R"]; }
+        else {
+          try { [v, kind] = this.evalExpr(operand, sec, cb, loc); }
+          catch (ex) { const hint = /undefined/.test(ex.message) ? " (EQU needs every symbol defined earlier)" : ""; throw new AsmError(`line ${n}: ${ex.message}${hint}`); }
+          if (kind === "R") sec.symtab[label] = [0, v - sec.blockStart[0], "R"]; else sec.symtab[label] = [cb, v, "A"];
+        }
+        action.push(`SYMTAB ← ${label} = ${hex(v, 4)} (${kind === "R" ? "relative" : "absolute"})`);
+        size = 0;
+      } else if (op === "ORG") {
+        if (operand) { const [v] = this.evalExpr(operand, sec, cb, loc); sec.savedOrg = sec.blockLoc[cb]; sec.blockLoc[cb] = v; }
+        else sec.blockLoc[cb] = sec.savedOrg;
+        this.pass1Trace.push({ line: ln, locctr: loc, action: `LOCCTR ← ${hex(sec.blockLoc[cb], 4)}` });
+        return;
+      } else if (op === "LTORG") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "place the waiting literals here" });
+        this.flushLiterals(sec); return;
+      } else if (op === "BASE" || op === "NOBASE") size = 0;
+      else if (op === "EXTDEF") { sec.extdef.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "EXTREF") { sec.extref.push(...operand.split(",").map(s => s.trim())); size = 0; }
+      else if (op === "END") {
+        this.pass1Trace.push({ line: ln, locctr: loc, action: "end: place the waiting literals" });
+        this.flushLiterals(sec); return;
+      } else throw new AsmError(`line ${n}: unknown operation ${op}`);
+      ln.size = size;
+      sec.blockLoc[cb] = loc + size;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: action.join("; ") || "—", size });
+    });
+    if (sec) this.flushLiterals(sec);
+    this.sections.forEach((s, si) => {
+      const start = si === 0 ? s.start : 0;
+      let st = start; const lengths = [];
+      for (let i = 0; i < s.blocks.length; i++) {
+        const blen = s.blockLoc[i] - (i === 0 ? start : 0);
+        if (i === 0) { s.blockStart[0] = 0; st = s.blockLoc[0]; }
+        else { s.blockStart[i] = st; st += s.blockLoc[i]; }
+        lengths.push(blen);
+      }
+      s.blockLengths = lengths; s.length = st - start;
+      for (const ln of s.lines) if (ln.loc !== null) ln.addr = s.blockStart[ln.block] + ln.loc;
+    });
+  }
+  flushLiterals(sec) {
+    if (!sec.pendingLits.length) return;
+    const cb = sec.curBlock;
+    for (const lit of sec.pendingLits) {
+      const loc = sec.blockLoc[cb];
+      const b = constBytes(lit.slice(1));
+      sec.littab[lit] = [cb, loc];
+      const ln = new Line(`*        ${lit}`, "*", "LIT", lit, null);
+      ln.loc = loc; ln.block = cb; ln.size = b.length; ln.isLiteral = true;
+      sec.lines.push(ln); sec.blockLoc[cb] = loc + b.length;
+      this.pass1Trace.push({ line: ln, locctr: loc, action: `LITTAB: ${lit} gets address ${hex(loc, 4)}`, size: b.length });
+    }
+    sec.pendingLits = [];
+  }
+  pass2() {
+    this.sections.forEach((sec, si) => {
+      let base = null; const mods = [];
+      for (const ln of sec.lines) {
+        const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+        if (ln.isLiteral) { ln.code = bytesHex(constBytes(operand.slice(1))); ln.note = "literal value"; }
+        else if (bop in OPTAB) { const [c, nt, m] = this.encode(sec, ln, base); ln.code = c; ln.note = nt; if (m) mods.push(m); }
+        else if (op === "WORD") {
+          const [v, kind, ext] = this.evalExpr(operand, sec, ln.block, ln.loc, true);
+          ln.code = hex(v & 0xFFFFFF, 6);
+          if (kind === "R" && this.sections.length === 1) mods.push([ln.addr, 6, null]);
+          for (const [sg, name] of ext) mods.push([ln.addr, 6, sg + name]);
+          ln.note = "word constant";
+        } else if (op === "BYTE") { ln.code = bytesHex(constBytes(operand)); ln.note = "byte constant"; }
+        else if (op === "BASE") { const [v] = this.evalExpr(operand, sec, ln.block, ln.loc); base = v; ln.note = `assembler now assumes (B) = ${hex(v, 4)}`; }
+        else if (op === "NOBASE") base = null;
+        this.pass2Trace.push(ln);
+      }
+      sec.mods = mods; sec.records = this.records(sec, si);
+    });
+  }
+  encode(sec, ln, base) {
+    const op = ln.op, operand = ln.operand, bop = op.replace(/^\+/, "");
+    const [fmt, opc] = OPTAB[bop];
+    if (!this.xe) {
+      let addr = 0, x = 0;
+      if (operand) {
+        let o = operand;
+        if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+        if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; addr = sec.blockStart[bl] + off; }
+        else [addr] = this.evalExpr(o, sec, ln.block, ln.loc);
+      }
+      const word = (opc << 16) | (x << 15) | addr;
+      return [hex(word, 6), `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}`, null];
+    }
+    if (fmt === 1) return [hex(opc, 2), "format 1", null];
+    if (fmt === 2) {
+      const regs = (operand || "").split(",").map(r => r.trim()).filter(Boolean);
+      const r1 = regs.length ? REGS[regs[0]] : 0;
+      const r2 = regs.length > 1 ? (regs[1] in REGS ? REGS[regs[1]] : parseInt(regs[1], 10) - ((bop === "SHIFTL" || bop === "SHIFTR") ? 1 : 0)) : 0;
+      return [hex(opc, 2) + r1.toString(16).toUpperCase() + r2.toString(16).toUpperCase(), `format 2: r1=${r1}, r2=${r2}`, null];
+    }
+    const e = op.startsWith("+") ? 1 : 0;
+    let n = 1, i = 1, x = 0, b = 0, p = 0;
+    let o = operand;
+    if (o === null) return [hex((opc | 3) << 16, 6), "no operand: n=1 i=1, disp=0", null];
+    if (o.startsWith("#")) { n = 0; i = 1; o = o.slice(1); }
+    else if (o.startsWith("@")) { n = 1; i = 0; o = o.slice(1); }
+    if (o.endsWith(",X")) { x = 1; o = o.slice(0, -2); }
+    let mod = null, ta, kind, ext;
+    if (o.startsWith("=")) { const [bl, off] = sec.littab[o]; ta = sec.blockStart[bl] + off; kind = "R"; ext = []; }
+    else [ta, kind, ext] = this.evalExpr(o, sec, ln.block, ln.loc, true);
+    const pc = ln.addr + (e ? 4 : 3);
+    let disp, how;
+    if (e) {
+      disp = ta & 0xFFFFF; how = `format 4: full address ${hex(ta, 5)}`;
+      if (ext.length) { mod = [ln.addr + 1, 5, ext[0][0] + ext[0][1]]; how += ` (external ${ext[0][1]}: 0 + M record)`; }
+      else if (kind === "R") { mod = [ln.addr + 1, 5, null]; how += " + M record (relocatable)"; }
+    } else if (kind === "A" && n === 0) {
+      if (ta > 4095) throw new AsmError(`line ${ln.lineno}: constant ${ta} too big for format 3, use +`);
+      disp = ta; how = `immediate constant ${ta}: disp = ${hex(ta, 3)}`;
+    } else if (kind === "A" && ta >= 0 && ta <= 4095 && !ext.length) {
+      disp = ta; how = `absolute address ${hex(ta, 4)}: direct, b=p=0`;
+    } else {
+      const d = ta - pc;
+      if (d >= -2048 && d <= 2047) { p = 1; disp = d & 0xFFF; how = `PC-relative: ${hex(ta, 4)} − ${hex(pc, 4)} = ${d >= 0 ? "+" : ""}${d} → disp ${hex(disp, 3)}`; }
+      else if (base !== null && ta - base >= 0 && ta - base <= 4095) { b = 1; disp = ta - base; how = `base-relative: ${hex(ta, 4)} − ${hex(base, 4)} = ${hex(disp, 3)} (PC-relative too far: ${d >= 0 ? "+" : ""}${d})`; }
+      else throw new AsmError(`line ${ln.lineno}: ${o} is out of PC and base range; use format 4`);
+    }
+    const first = (opc & 0xFC) | (n << 1) | i;
+    const flags = (x << 3) | (b << 2) | (p << 1) | e;
+    const code = e ? hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 5) : hex(first, 2) + flags.toString(16).toUpperCase() + hex(disp, 3);
+    return [code, `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}; ${how}`, mod];
+  }
+  records(sec, si) {
+    const recs = [];
+    const name = (sec.name || "").slice(0, 6);
+    const start = si === 0 ? sec.start : 0;
+    recs.push(`H${name.padEnd(6)}${hex(start, 6)}${hex(sec.length, 6)}`);
+    if (sec.extdef.length) { let d = "D"; for (const s of sec.extdef) { const [bl, off] = sec.symtab[s]; d += s.padEnd(6) + hex(sec.blockStart[bl] + off, 6); } recs.push(d); }
+    if (sec.extref.length) recs.push("R" + sec.extref.map(s => s.padEnd(6)).join(""));
+    const items = sec.lines.filter(l => l.code);
+    let curStart = null, cur = "", lastEnd = null;
+    for (const ln of items) {
+      const nb = ln.code.length / 2;
+      const gap = lastEnd !== null && ln.addr !== lastEnd;
+      if (curStart !== null && (gap || cur.length / 2 + nb > 30)) { recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`); curStart = null; cur = ""; }
+      if (curStart === null) curStart = ln.addr;
+      cur += ln.code; lastEnd = ln.addr + nb;
+    }
+    if (cur) recs.push(`T${hex(curStart, 6)}${hex(cur.length / 2, 2)}${cur}`);
+    for (const [addr, l, sym] of sec.mods) recs.push(`M${hex(addr, 6)}${hex(l, 2)}` + (sym || ""));
+    const endl = sec.lines.filter(l => l.op === "END");
+    if (si === 0 && endl.length && endl[0].operand) { const [v] = this.evalExpr(endl[0].operand, sec, 0, 0); recs.push(`E${hex(v, 6)}`); }
+    else recs.push("E");
+    return recs;
+  }
+  run() { this.pass1(); this.pass2(); return this; }
+  objectProgram() { return this.sections.flatMap(s => s.records); }
+  listing() {
+    const out = [];
+    for (const s of this.sections) for (const ln of s.lines) {
+      let loc = ["END", "BASE", "NOBASE", "EXTDEF", "EXTREF", "LTORG"].includes(ln.op) || ln.loc === null ? "" : hex(ln.addr, 4);
+      if (ln.op === "EQU") { const [bl, off, kind] = s.symtab[ln.label]; loc = hex(kind === "R" ? s.blockStart[bl] + off : off, 4); }
+      out.push([loc, ln.block, ln.label || "", ln.op, ln.operand || "", ln.code, ln.note]);
+    }
+    return out;
+  }
+}
+
+/* ---------------- loader ---------------- */
+function load(records, mem, loadAddr, estab) {
+  let entry = null, hstart = 0; const prog = loadAddr; const log = [];
+  for (const r of records) {
+    if (r[0] === "H") { hstart = parseInt(r.slice(7, 13), 16); log.push({ rec: r, what: `program ${r.slice(1, 7).trim()}: assembled at ${hex(hstart, 6)}, length ${r.slice(13, 19)}; loading at ${hex(prog, 6)}` }); }
+    else if (r[0] === "T") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, n = parseInt(r.slice(7, 9), 16);
+      for (let i = 0; i < n; i++) mem[a + i] = parseInt(r.substr(9 + 2 * i, 2), 16);
+      log.push({ rec: r, what: `copy ${n} bytes to ${hex(a, 6)}`, addr: a, n });
+    } else if (r[0] === "M") {
+      const a = parseInt(r.slice(1, 7), 16) - hstart + prog, half = parseInt(r.slice(7, 9), 16), sym = r.slice(9).trim();
+      const nb = Math.floor((half + 1) / 2);
+      let v = 0; for (let i = 0; i < nb; i++) v = v * 256 + mem[a + i];
+      const mask = Math.pow(2, 4 * half) - 1;
+      let field = v % (mask + 1);
+      let add = sym ? estab[sym.slice(1)] * (sym[0] === "+" ? 1 : -1) : prog - hstart;
+      const before = field;
+      field = ((field + add) % (mask + 1) + (mask + 1)) % (mask + 1);
+      v = v - (v % (mask + 1)) + field;
+      for (let i = nb - 1; i >= 0; i--) { mem[a + i] = v % 256; v = Math.floor(v / 256); }
+      log.push({ rec: r, what: `${half} half-bytes at ${hex(a, 6)}: ${hex(before, half)} ${add >= 0 ? "+" : "−"} ${hex(Math.abs(add), 4)}${sym ? " (" + sym.slice(1) + ")" : ""} = ${hex(field, half)}`, addr: a, n: nb });
+    } else if (r[0] === "E") { if (r.length > 1) entry = parseInt(r.slice(1, 7), 16) - hstart + prog; log.push({ rec: r, what: entry !== null ? `start execution at ${hex(entry, 6)}` : "end of section" }); }
+    else if (r[0] === "D" || r[0] === "R") log.push({ rec: r, what: r[0] === "D" ? "external definitions (used by pass 1 of a linking loader)" : "external references" });
+  }
+  return { entry, log };
+}
+
+/* ---------------- simulator ---------------- */
+const SHORT = {}, LONG = {};
+for (const [k, [f, o]] of Object.entries(OPTAB)) { if (f === 1 || f === 2) SHORT[o] = [k, f]; if (f === 3) LONG[o] = k; }
+const REGNAME = Object.fromEntries(Object.entries(REGS).map(([k, v]) => [v, k]));
+const sgn = v => { v &= 0xFFFFFF; return v & 0x800000 ? v - 0x1000000 : v; };
+class Machine {
+  constructor(mem, xe = true) { this.m = mem; this.xe = xe; this.R = { A: 0, X: 0, L: 0, B: 0, S: 0, T: 0, F: 0, PC: 0, SW: 0 }; this.CC = "="; this.device = []; }
+  w(a) { return (this.m[a] << 16) | (this.m[a + 1] << 8) | this.m[a + 2]; }
+  sw(a, v) { v &= 0xFFFFFF; this.m[a] = v >> 16; this.m[a + 1] = (v >> 8) & 255; this.m[a + 2] = v & 255; }
+  cmp(x, y) { this.CC = x < y ? "<" : (x === y ? "=" : ">"); }
+  step() { return this.xe ? this.stepXE() : this.stepSIC(); }
+  exec(name, ta, imm, info) {
+    const R = this.R, m = this.m, val = () => imm ? ta : this.w(ta);
+    switch (name) {
+      case "LDA": R.A = val(); break; case "LDX": R.X = val(); break; case "LDB": R.B = val(); break;
+      case "LDT": R.T = val(); break; case "LDS": R.S = val(); break; case "LDL": R.L = val(); break;
+      case "LDCH": R.A = (R.A & 0xFFFF00) | (imm ? ta & 0xFF : m[ta]); break;
+      case "STA": this.sw(ta, R.A); break; case "STX": this.sw(ta, R.X); break; case "STL": this.sw(ta, R.L); break;
+      case "STB": this.sw(ta, R.B); break; case "STS": this.sw(ta, R.S); break; case "STT": this.sw(ta, R.T); break;
+      case "STCH": m[ta] = R.A & 0xFF; break;
+      case "ADD": R.A = (R.A + val()) & 0xFFFFFF; break; case "SUB": R.A = (R.A - val()) & 0xFFFFFF; break;
+      case "MUL": R.A = (sgn(R.A) * sgn(val())) & 0xFFFFFF; break;
+      case "DIV": { const d = sgn(val()); if (d === 0) throw new Error("division by zero"); R.A = Math.trunc(sgn(R.A) / d) & 0xFFFFFF; break; }
+      case "AND": R.A = R.A & val(); break; case "OR": R.A = R.A | val(); break;
+      case "COMP": this.cmp(sgn(R.A), sgn(val())); break;
+      case "TIX": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(val())); break;
+      case "J": R.PC = ta; break;
+      case "JEQ": if (this.CC === "=") R.PC = ta; break; case "JLT": if (this.CC === "<") R.PC = ta; break; case "JGT": if (this.CC === ">") R.PC = ta; break;
+      case "JSUB": R.L = R.PC; R.PC = ta; break; case "RSUB": R.PC = R.L; break;
+      case "TD": this.CC = "<"; break;
+      case "RD": R.A = (R.A & 0xFFFF00) | (this.device.length ? this.device.shift() : 0x04); break;
+      case "WD": (this.out = this.out || []).push(R.A & 0xFF); break;
+      default: throw new Error(`instruction ${name} is not simulated here`);
+    }
+  }
+  stepSIC() {
+    const R = this.R, pc = R.PC, word = this.w(pc);
+    const opc = word >> 16, x = (word >> 15) & 1, addr = word & 0x7FFF;
+    const name = LONG[opc]; if (!name) throw new Error(`no instruction with opcode ${hex(opc, 2)} at ${hex(pc, 4)}`);
+    const ta = addr + (x ? R.X : 0);
+    R.PC = pc + 3;
+    this.exec(name, ta, false);
+    return { pc, name, ta, len: 3, how: `opcode ${hex(opc, 2)}, x=${x}, address ${hex(addr, 4)}${x ? " + X" : ""} → TA ${hex(ta, 4)}` };
+  }
+  stepXE() {
+    const R = this.R, m = this.m, pc = R.PC, b0 = m[pc];
+    let name, fmt;
+    if (b0 in SHORT) [name, fmt] = SHORT[b0]; else { name = LONG[b0 & 0xFC]; fmt = 3; }
+    if (!name) throw new Error(`no instruction with opcode ${hex(b0, 2)} at ${hex(pc, 4)}`);
+    if (fmt === 1) { R.PC = pc + 1; throw new Error(`format 1 instruction ${name} is not simulated here`); }
+    if (fmt === 2) {
+      const r1 = m[pc + 1] >> 4, r2 = m[pc + 1] & 0xF; R.PC = pc + 2;
+      const a = REGNAME[r1], bb = REGNAME[r2];
+      switch (name) {
+        case "CLEAR": R[a] = 0; break;
+        case "TIXR": R.X = (R.X + 1) & 0xFFFFFF; this.cmp(sgn(R.X), sgn(R[a])); break;
+        case "ADDR": R[bb] = (R[bb] + R[a]) & 0xFFFFFF; break; case "SUBR": R[bb] = (R[bb] - R[a]) & 0xFFFFFF; break;
+        case "MULR": R[bb] = (sgn(R[bb]) * sgn(R[a])) & 0xFFFFFF; break;
+        case "DIVR": if (sgn(R[a]) === 0) throw new Error("division by zero"); R[bb] = Math.trunc(sgn(R[bb]) / sgn(R[a])) & 0xFFFFFF; break;
+        case "COMPR": this.cmp(sgn(R[a]), sgn(R[bb])); break;
+        case "RMO": R[bb] = R[a]; break;
+        case "SHIFTL": { const n = r2 + 1, v = R[a]; R[a] = ((v << n) | (v >>> (24 - n))) & 0xFFFFFF; break; }
+        case "SHIFTR": { const n = r2 + 1; R[a] = (sgn(R[a]) >> n) & 0xFFFFFF; break; }
+        default: throw new Error(`instruction ${name} is not simulated here`);
+      }
+      return { pc, name, ta: null, len: 2, how: `format 2: r1=${a}${bb !== undefined ? ", r2=" + bb : ""}` };
+    }
+    const n = (b0 >> 1) & 1, i = b0 & 1, f = m[pc + 1] >> 4;
+    const x = (f >> 3) & 1, b = (f >> 2) & 1, p = (f >> 1) & 1, e = f & 1;
+    let disp, len;
+    if (e) { disp = ((m[pc + 1] & 0xF) << 16) | (m[pc + 2] << 8) | m[pc + 3]; R.PC = pc + 4; len = 4; }
+    else { disp = ((m[pc + 1] & 0xF) << 8) | m[pc + 2]; R.PC = pc + 3; len = 3; if (p && disp & 0x800) disp -= 0x1000; }
+    let ta = disp + (p ? R.PC : 0) + (b ? R.B : 0) + (x ? R.X : 0);
+    const parts = [`disp ${disp}`]; if (p) parts.push(`PC ${hex(R.PC, 4)}`); if (b) parts.push(`B ${hex(R.B, 4)}`); if (x) parts.push(`X ${hex(R.X, 4)}`);
+    let how = `n=${n} i=${i} x=${x} b=${b} p=${p} e=${e}: TA = ${parts.join(" + ")} = ${hex(ta, 4)}`;
+    if (n === 1 && i === 0) { const t2 = this.w(ta); how += `; indirect → ${hex(t2, 4)}`; ta = t2; }
+    const imm = n === 0 && i === 1;
+    if (imm) how += " (immediate value)";
+    this.exec(name, ta, imm);
+    return { pc, name, ta, len, how };
+  }
+}
+
+const api = { OPTAB, REGS, AsmError, Assembler, parseLine, constBytes, load, Machine, hex, sgn };
+if (typeof module !== "undefined" && module.exports) module.exports = api; else root.SICXE = api;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 5: the finished sicload, run in the browser (SICLOAD.sicload: 104 of 104 runs identical to the reference C program) */
+TOOLS_UI.push({
+  id: "loader", title: "sicload",
+  build(p, D) {
+    const { el, esc } = L;
+    const presets = [
+      ["./sicload count.obj", "expected_abs.txt", "Lab 5.1 TODO 1: absolute load"],
+      ["./sicload -v -x -r 5000 count0.obj", "expected_reloc5000.txt", "TODO 2–3: relocate with M records, then run"],
+      ["./sicload -v -l 4000 main.obj counta.obj data.obj", "expected_link4000.txt", "Lab 5.2 TODO 4–5: link three control sections"],
+      ["./sicload -l 4000 main.obj counta.obj", null, "error: an external symbol is missing"],
+      ["./sicload -l 4000 main.obj counta.obj data.obj data.obj", null, "error: a section given twice"],
+      ["./sicload -v -x -b 5000 count0_mask.obj", "expected_mask5000.txt", "Extra TODO 6: bit-mask relocation"]];
+    p.innerHTML = `<p class="small">Type a command as you would in the terminal, or pick one from the lab README. Options: <code>-v</code> explain every record, <code>-x</code> run the SIC program after loading, <code>-r ADDR</code> relocate with M records, <code>-b ADDR</code> relocate with bit masks, <code>-l ADDR</code> link several object files.</p>
+<div class="row"><span class="mono">$</span><input id="c5" class="mono" style="flex:1;min-width:220px" aria-label="command line"><button class="btn primary" id="go5">Run</button></div>
+<div class="chips" id="pre5" style="margin-top:10px"></div>
+<p id="cmp5" class="small"></p>
+<div class="grid2"><div><b class="small">output</b><pre id="o5" style="margin-top:4px"></pre></div>
+<div><b class="small">object file <select id="sf5"></select></b><pre id="obj5" style="margin-top:4px"></pre><p class="small dim">H name, start, length · D/R external definitions and references · T start, length, bytes · M address, half-bytes, ±symbol · E entry point</p></div></div>`;
+    const $ = s => p.querySelector(s);
+    presets.forEach(([cmd, , what]) => { const b = el("button", { class: "chip", type: "button", title: what, text: cmd.replace("./sicload ", "") }); b.addEventListener("click", () => { $("#c5").value = cmd; run(); }); $("#pre5").appendChild(b); });
+    Object.keys(D.obj).sort().forEach(n => $("#sf5").appendChild(el("option", { value: n, text: n })));
+    $("#sf5").addEventListener("change", () => { $("#obj5").textContent = D.obj[$("#sf5").value]; });
+    function run() {
+      const cmd = $("#c5").value.trim(); const tok = cmd.split(/\s+/).filter(Boolean); if (tok[0] && /sicload$/.test(tok[0])) tok.shift();
+      const o = { files: [], verbose: false, run: false, mode: "a" }; let bad = "";
+      for (let i = 0; i < tok.length; i++) {
+        const t = tok[i];
+        if (t === "-v") o.verbose = true; else if (t === "-x") o.run = true;
+        else if (t === "-r" || t === "-b" || t === "-l") { o.mode = { "-r": "m", "-b": "b", "-l": "l" }[t]; const a = parseInt(tok[++i], 16); if (isNaN(a)) bad = `${t} needs a hex address`; o.progaddr = a; }
+        else if (t.startsWith("-")) bad = "unknown option " + t;
+        else if (!(t in D.obj)) bad = `cannot open ${t} (the tool knows the .obj files of the lab zip)`;
+        else o.files.push({ name: t, text: D.obj[t] });
+      }
+      if (!o.files.length && !bad) bad = "give at least one .obj file";
+      $("#cmp5").textContent = ""; $("#cmp5").className = "small";
+      if (bad) { $("#o5").textContent = "sicload: " + bad; return; }
+      const r = SICLOAD.sicload(o);
+      const text = r.out + (r.err ? r.err + "\n" : "");
+      $("#o5").textContent = text;
+      const pre = presets.find(x => x[0] === "./sicload " + tok.join(" "));
+      if (pre && pre[1] && D.expected[pre[1]] !== undefined) { const same = D.expected[pre[1]] === r.out; $("#cmp5").className = same ? "ok small" : "err small"; $("#cmp5").textContent = same ? `✓ identical to ${pre[1]}: this is the output your loader must print (diff - ${pre[1]} prints nothing)` : `✗ differs from ${pre[1]}`; }
+      const f = o.files[o.files.length - 1].name; $("#sf5").value = f; $("#obj5").textContent = D.obj[f];
+    }
+    $("#go5").addEventListener("click", run); $("#c5").addEventListener("keydown", ev => { if (ev.key === "Enter") run(); });
+    $("#c5").value = presets[1][0]; run();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>
