@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="../assets/fonts.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 14 · Loadable Kernel Modules · The Device Driver Model</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 14: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part,h2{scroll-margin-top:64px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+.dcbar{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:#16233A;font:600 14px var(--sans);border-bottom:1px solid #0A1220}
+.dcbar a,.dcbar select{font:inherit;color:#F3F6FA;background:#21334F;border:1px solid #2E4566;border-radius:8px;height:32px;padding:0 11px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;cursor:pointer}
+.dcbar a:hover,.dcbar select:hover{border-color:#F28C38}
+.dcbar a:focus-visible,.dcbar select:focus-visible{outline:3px solid #F28C38;outline-offset:1px}
+.dcbar .slides{background:#C2410C;border-color:#E0742F}
+.dcbar .dis{opacity:.35;pointer-events:none}
+.dcbar .sp{flex:1}
+.dcbar select{max-width:300px}
+@media (max-width:640px){.dcbar .wide{display:none}.dcbar select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="dcbar" role="navigation" aria-label="Course navigation"><a href="../index.html" title="Course home">⌂<span class="wide">&nbsp;Course</span></a><a class="slides" href="../present/lecture_14.1.html" title="Lecture 14.1: Loadable Kernel Modules">◀ Lecture 14.1 slides</a><a class="slides" href="../present/lecture_14.2.html" title="Lecture 14.2: The Device Driver Model">◀ 14.2</a><span class="sp"></span><a class="wide" href="lab13.html">◀ Lab 13</a><select aria-label="Go to lab" onchange="location.href=this.value"><option value="lab01.html">Lab 1: C programs that probe the machine</option><option value="lab02.html">Lab 2: your first nasm programs</option><option value="lab03.html">Lab 3: a two-pass SIC assembler in C</option><option value="lab04.html">Lab 4: a macro processor in C</option><option value="lab05.html">Lab 5: a SIC loader in C</option><option value="lab06.html">Lab 6: elfread</option><option value="lab07.html">Lab 7: kinfo (ask the kernel through /proc)</option><option value="lab08.html">Lab 8: mysh, a small shell</option><option value="lab09.html">Lab 9: a C program without the C library</option><option value="lab10.html">Lab 10: pipes in your shell</option><option value="lab11.html">Lab 11: vtop (page tables through /proc/self/pagemap)</option><option value="lab12.html">Lab 12: myls (your own ls -li)</option><option value="lab13.html">Lab 13: irqtop</option><option value="lab14.html" selected>Lab 14: a /proc module and a platform driver, loaded in a virtual machine</option><option value="lab15.html">Lab 15: a character device, a RAM disk and a USB keyboard driver, in a virtual machine</option></select><a href="lab15.html">Lab 15 ▶</a></div>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 14</div>
+<h1>Loadable Kernel Modules · The Device Driver Model</h1>
+<p>A /proc module and a platform driver, loaded in a virtual machine.</p>
+<nav class="navlinks" aria-label="On this page"><a href="lab14_files.zip">Download the lab files (1.1 MB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-14-1">
+<div class="phead"><h3>Lab 14.1 <span class="dim">· Loadable Kernel Modules</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_14.1.html">Present lecture 14.1</a>
+<a class="btn" href="../slides/lecture_14.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>Demo: cd demo/hello; make; ../../guest/run_guest.sh . then insmod, dmesg, lsmod, rmmod</li>
+<li>TODO 1 in sysprog_proc_starter.c: module_param(owner, charp, 0444)</li>
+<li>TODO 2: four seq_printf lines: owner, reads, loaded for, reader</li>
+<li>TODO 3: proc_create_single in init; NULL → return -ENOMEM</li>
+<li>TODO 4: remove_proc_entry in exit. Test: insmod owner=…, cat twice, rmmod, cat</li>
+</ol>
+<p class="cap">the guest, with the finished lab  (real)</p><pre>guest 6.8.0-146-generic: your modules are in /mod:
+$ insmod sysprog_proc.ko owner=Mahbub
+$ cat /proc/sysprog
+owner:      Mahbub
+reads:      1
+loaded for: 15 jiffies = 15 ms (HZ = 1000)
+reader:     cat (pid 136)
+$ rmmod sysprog_proc
+$ dmesg | tail -2
+sysprog: /proc/sysprog created (owner=Mahbub)
+sysprog: /proc/sysprog removed after 2 reads</pre>
+<p class="note">Forget TODO 4 and the first cat after rmmod runs code that is gone: an oops. In the VM that is a lesson; on the PC it would be a crash.</p>
+</section>
+<section class="card part" id="part-14-2">
+<div class="phead"><h3>Lab 14.2 <span class="dim">· The Device Driver Model</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_14.2.html">Present lecture 14.2</a>
+<a class="btn" href="../slides/lecture_14.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>cd lab14_2; make; ../guest/run_guest.sh . then insmod sp_dev.ko and sp_drv_starter.ko: no probe (why?)</li>
+<li>TODO 4 first: the driver&#x27;s .name must match the device&#x27;s name</li>
+<li>TODO 3: probe: devm_kzalloc the state, mutex_init, value = 7, set_drvdata</li>
+<li>TODO 1, 2: value_show with sysfs_emit; value_store with kstrtoint</li>
+<li>Test: cat, echo 42, echo abc, unbind, bind, rmmod in both orders</li>
+</ol>
+<p class="cap">the starter, before TODO 4  (real)</p><pre>$ insmod sp_dev.ko; insmod sp_drv_starter.ko
+$ ls /sys/bus/platform/drivers
+ac  acpi-fan  …  syscon
+sysprog-TODO  tpm_tis  …
+$ ls /sys/devices/platform/sysprog.0
+driver_override  power  uevent
+modalias  subsystem          # no driver!
+# after the lab:
+$ cat /sys/devices/platform/sysprog.0/value
+7
+$ echo 42 &gt; …/value; cat …/value
+42</pre>
+<p class="note">The starter loads but never binds (its driver is called sysprog-TODO). Finding out why, with ls /sys/bus/platform/drivers and dmesg, is part of the lab.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab14_files.zip">lab14_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab14_files.zip">Download lab14_files.zip (1.1 MB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab13.html">← Lab 13</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab15.html">Lab 15 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 14, "readme": "CSE 4105 System Programming - Lab 14 (Lectures 14.1 and 14.2): kernel modules and the device driver model\n=========================================================================================================\nWorks offline. Needs: gcc, make, the kernel headers of this PC (/lib/modules/$(uname -r)/build must exist;\nUbuntu installs them with the kernel: package linux-headers-$(uname -r)), and qemu-system-x86_64.\n\nRULE: build on the PC, LOAD ONLY IN THE VIRTUAL MACHINE. A bug in a module is a bug in the kernel.\n\nONCE PER PC (needs sudo, or the instructor does it): a readable copy of this PC's kernel for the VM\n  sudo cp /boot/vmlinuz-$(uname -r) guest/vmlinuz && sudo chmod a+r guest/vmlinuz\n\nHOW TO TEST ANY MODULE\n  cd demo/hello && make                      (makes hello.ko; a \"compiler differs\" warning is harmless)\n  ../../guest/run_guest.sh .                 boots the VM with every .ko of this folder in /mod, root shell\n  in the VM:  insmod hello.ko ; dmesg | tail ; lsmod ; rmmod hello ; poweroff -f\n  (guest/busybox is a static busybox 1.36.1 from Ubuntu; run_guest.sh puts it in the VM)\n\nLAB 14.1  /proc/sysprog                    cd lab14_1 && make && ../guest/run_guest.sh .\n  (gcc warns that owner and sysprog_show are unused until TODO 1-3: expected)\n  TODO 1 module_param(owner, charp, 0444)   TODO 2 four seq_printf lines\n  TODO 3 proc_create_single in init         TODO 4 remove_proc_entry in exit\n  Test: insmod sysprog_proc_starter.ko owner=YourName ; cat /proc/sysprog (twice) ; rmmod sysprog_proc_starter ; cat /proc/sysprog\n\nLAB 14.2  a platform driver with a sysfs file      cd lab14_2 && make && ../guest/run_guest.sh .\n  insmod sp_dev.ko ; insmod sp_drv_starter.ko : no probe yet. Find out why (ls /sys/bus/platform/drivers).\n  TODO 4 the driver's name   TODO 3 probe: state + drvdata   TODO 1 value_show   TODO 2 value_store\n  Test: cat /sys/devices/platform/sysprog.0/value ; echo 42 > …/value ; echo abc > …/value\n        echo sysprog.0 > /sys/bus/platform/drivers/sysprog/unbind ; … /bind ; rmmod in both orders\n  Kernel 6.11 or newer: the driver uses .remove instead of .remove_new (the reference handles both with #if).\n\nDEMOS (demo/): hello, param (who=... times=...), export (counter.ko + user.ko; insmod user.ko first: it fails),\n  oops (crashes the VM's kernel on purpose: only in the VM!)\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 14 (Lectures 14.1 and 14.2): kernel modules and the device driver model\n=========================================================================================================\nWorks offline. Needs: gcc, make, the kernel headers of this PC (/lib/modules/$(uname -r)/build must exist;\nUbuntu installs them with the kernel: package linux-headers-$(uname -r)), and qemu-system-x86_64.\n\nRULE: build on the PC, LOAD ONLY IN THE VIRTUAL MACHINE. A bug in a module is a bug in the kernel.\n\nONCE PER PC (needs sudo, or the instructor does it): a readable copy of this PC's kernel for the VM\n  sudo cp /boot/vmlinuz-$(uname -r) guest/vmlinuz && sudo chmod a+r guest/vmlinuz\n\nHOW TO TEST ANY MODULE\n  cd demo/hello && make                      (makes hello.ko; a \"compiler differs\" warning is harmless)\n  ../../guest/run_guest.sh .                 boots the VM with every .ko of this folder in /mod, root shell\n  in the VM:  insmod hello.ko ; dmesg | tail ; lsmod ; rmmod hello ; poweroff -f\n  (guest/busybox is a static busybox 1.36.1 from Ubuntu; run_guest.sh puts it in the VM)\n\nLAB 14.1  /proc/sysprog                    cd lab14_1 && make && ../guest/run_guest.sh .\n  (gcc warns that owner and sysprog_show are unused until TODO 1-3: expected)\n  TODO 1 module_param(owner, charp, 0444)   TODO 2 four seq_printf lines\n  TODO 3 proc_create_single in init         TODO 4 remove_proc_entry in exit\n  Test: insmod sysprog_proc_starter.ko owner=YourName ; cat /proc/sysprog (twice) ; rmmod sysprog_proc_starter ; cat /proc/sysprog\n\nLAB 14.2  a platform driver with a sysfs file      cd lab14_2 && make && ../guest/run_guest.sh .\n  insmod sp_dev.ko ; insmod sp_drv_starter.ko : no probe yet. Find out why (ls /sys/bus/platform/drivers).\n  TODO 4 the driver's name   TODO 3 probe: state + drvdata   TODO 1 value_show   TODO 2 value_store\n  Test: cat /sys/devices/platform/sysprog.0/value ; echo 42 > …/value ; echo abc > …/value\n        echo sysprog.0 > /sys/bus/platform/drivers/sysprog/unbind ; … /bind ; rmmod in both orders\n  Kernel 6.11 or newer: the driver uses .remove instead of .remove_new (the reference handles both with #if).\n\nDEMOS (demo/): hello, param (who=... times=...), export (counter.ko + user.ko; insmod user.ko first: it fails),\n  oops (crashes the VM's kernel on purpose: only in the VM!)\n", "demo/export/Makefile": "obj-m += counter.o user.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "demo/export/counter.c": "// SPDX-License-Identifier: GPL-2.0\n/* counter.c - a module that EXPORTS a function for other modules */\n#include <linux/atomic.h>\n#include <linux/module.h>\n#include \"counter.h\"\n\nstatic atomic_t value = ATOMIC_INIT(0);\n\nint sysprog_next(void)\n{\n    return atomic_inc_return(&value);\n}\nEXPORT_SYMBOL_GPL(sysprog_next);           /* now other GPL modules can call it */\n\nstatic int __init counter_init(void) { pr_info(\"counter: ready\\n\"); return 0; }\nstatic void __exit counter_exit(void) { pr_info(\"counter: gone after %d calls\\n\", atomic_read(&value)); }\nmodule_init(counter_init);\nmodule_exit(counter_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.1: an exported symbol\");\n", "demo/export/counter.h": "/* counter.h - the interface of counter.ko, shared with the modules that use it (like any C header) */\n#ifndef SYSPROG_COUNTER_H\n#define SYSPROG_COUNTER_H\nint sysprog_next(void);\n#endif\n", "demo/export/counter.mod.c": "#include <linux/module.h>\n#define INCLUDE_VERMAGIC\n#include <linux/build-salt.h>\n#include <linux/elfnote-lto.h>\n#include <linux/export-internal.h>\n#include <linux/vermagic.h>\n#include <linux/compiler.h>\n\n#ifdef CONFIG_UNWINDER_ORC\n#include <asm/orc_header.h>\nORC_HEADER;\n#endif\n\nBUILD_SALT;\nBUILD_LTO_INFO;\n\nMODULE_INFO(vermagic, VERMAGIC_STRING);\nMODULE_INFO(name, KBUILD_MODNAME);\n\n__visible struct module __this_module\n__section(\".gnu.linkonce.this_module\") = {\n\t.name = KBUILD_MODNAME,\n\t.init = init_module,\n#ifdef CONFIG_MODULE_UNLOAD\n\t.exit = cleanup_module,\n#endif\n\t.arch = MODULE_ARCH_INIT,\n};\n\n#ifdef CONFIG_MITIGATION_RETPOLINE\nMODULE_INFO(retpoline, \"Y\");\n#endif\n\nKSYMTAB_FUNC(sysprog_next, \"_gpl\", \"\");\n\nSYMBOL_CRC(sysprog_next, 0x4fd609bc, \"_gpl\");\n\nstatic const char ____versions[]\n__used __section(\"__versions\") =\n\t\"\\x1c\\x00\\x00\\x00\\xca\\x39\\x82\\x5b\"\n\t\"__x86_return_thunk\\0\\0\"\n\t\"\\x10\\x00\\x00\\x00\\x7e\\x3a\\x2c\\x12\"\n\t\"_printk\\0\"\n\t\"\\x14\\x00\\x00\\x00\\xbb\\x6d\\xfb\\xbd\"\n\t\"__fentry__\\0\\0\"\n\t\"\\x18\\x00\\x00\\x00\\x13\\xc9\\x9a\\x0d\"\n\t\"module_layout\\0\\0\\0\"\n\t\"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\";\n\nMODULE_INFO(depends, \"\");\n\n\nMODULE_INFO(srcversion, \"9A37D2BCDD781DDEA1437E4\");\n", "demo/export/user.c": "// SPDX-License-Identifier: GPL-2.0\n/* user.c - a module that USES a symbol exported by counter.ko */\n#include <linux/module.h>\n#include \"counter.h\"\n\n/* sysprog_next() is declared in counter.h and defined in counter.ko */\n\nstatic int __init user_init(void)\n{\n    pr_info(\"user: sysprog_next() = %d, %d, %d\\n\", sysprog_next(), sysprog_next(), sysprog_next());\n    return 0;\n}\nstatic void __exit user_exit(void) { pr_info(\"user: bye\\n\"); }\nmodule_init(user_init);\nmodule_exit(user_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.1: uses counter.ko\");\n", "demo/export/user.mod.c": "#include <linux/module.h>\n#define INCLUDE_VERMAGIC\n#include <linux/build-salt.h>\n#include <linux/elfnote-lto.h>\n#include <linux/export-internal.h>\n#include <linux/vermagic.h>\n#include <linux/compiler.h>\n\n#ifdef CONFIG_UNWINDER_ORC\n#include <asm/orc_header.h>\nORC_HEADER;\n#endif\n\nBUILD_SALT;\nBUILD_LTO_INFO;\n\nMODULE_INFO(vermagic, VERMAGIC_STRING);\nMODULE_INFO(name, KBUILD_MODNAME);\n\n__visible struct module __this_module\n__section(\".gnu.linkonce.this_module\") = {\n\t.name = KBUILD_MODNAME,\n\t.init = init_module,\n#ifdef CONFIG_MODULE_UNLOAD\n\t.exit = cleanup_module,\n#endif\n\t.arch = MODULE_ARCH_INIT,\n};\n\n#ifdef CONFIG_MITIGATION_RETPOLINE\nMODULE_INFO(retpoline, \"Y\");\n#endif\n\n\n\nstatic const char ____versions[]\n__used __section(\"__versions\") =\n\t\"\\x10\\x00\\x00\\x00\\x7e\\x3a\\x2c\\x12\"\n\t\"_printk\\0\"\n\t\"\\x1c\\x00\\x00\\x00\\xca\\x39\\x82\\x5b\"\n\t\"__x86_return_thunk\\0\\0\"\n\t\"\\x14\\x00\\x00\\x00\\xbb\\x6d\\xfb\\xbd\"\n\t\"__fentry__\\0\\0\"\n\t\"\\x18\\x00\\x00\\x00\\xbc\\x09\\xd6\\x4f\"\n\t\"sysprog_next\\0\\0\\0\\0\"\n\t\"\\x18\\x00\\x00\\x00\\x13\\xc9\\x9a\\x0d\"\n\t\"module_layout\\0\\0\\0\"\n\t\"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\";\n\nMODULE_INFO(depends, \"counter\");\n\n\nMODULE_INFO(srcversion, \"7D6AE570028D73AF6536346\");\n", "demo/hello/Makefile": "# Kbuild: build hello.ko against the headers of a kernel (default: the running one)\nobj-m += hello.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\n\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "demo/hello/hello.c": "// SPDX-License-Identifier: GPL-2.0\n/* hello.c - the smallest useful kernel module: a message when it is loaded and when it is removed */\n#include <linux/init.h>\n#include <linux/module.h>\n#include <linux/printk.h>\n\nstatic int __init hello_init(void)\n{\n    pr_info(\"hello: loaded into the kernel, HZ = %d\\n\", HZ);\n    return 0;                          /* 0 = success; a negative errno makes insmod fail */\n}\n\nstatic void __exit hello_exit(void)\n{\n    pr_info(\"hello: removed\\n\");\n}\n\nmodule_init(hello_init);\nmodule_exit(hello_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_AUTHOR(\"CSE 4105, University of Barishal\");\nMODULE_DESCRIPTION(\"Lecture 14.1: hello, kernel\");\n", "demo/hello/hello.mod.c": "#include <linux/module.h>\n#define INCLUDE_VERMAGIC\n#include <linux/build-salt.h>\n#include <linux/elfnote-lto.h>\n#include <linux/export-internal.h>\n#include <linux/vermagic.h>\n#include <linux/compiler.h>\n\n#ifdef CONFIG_UNWINDER_ORC\n#include <asm/orc_header.h>\nORC_HEADER;\n#endif\n\nBUILD_SALT;\nBUILD_LTO_INFO;\n\nMODULE_INFO(vermagic, VERMAGIC_STRING);\nMODULE_INFO(name, KBUILD_MODNAME);\n\n__visible struct module __this_module\n__section(\".gnu.linkonce.this_module\") = {\n\t.name = KBUILD_MODNAME,\n\t.init = init_module,\n#ifdef CONFIG_MODULE_UNLOAD\n\t.exit = cleanup_module,\n#endif\n\t.arch = MODULE_ARCH_INIT,\n};\n\n#ifdef CONFIG_MITIGATION_RETPOLINE\nMODULE_INFO(retpoline, \"Y\");\n#endif\n\n\n\nstatic const char ____versions[]\n__used __section(\"__versions\") =\n\t\"\\x1c\\x00\\x00\\x00\\xca\\x39\\x82\\x5b\"\n\t\"__x86_return_thunk\\0\\0\"\n\t\"\\x14\\x00\\x00\\x00\\xbb\\x6d\\xfb\\xbd\"\n\t\"__fentry__\\0\\0\"\n\t\"\\x10\\x00\\x00\\x00\\x7e\\x3a\\x2c\\x12\"\n\t\"_printk\\0\"\n\t\"\\x18\\x00\\x00\\x00\\x13\\xc9\\x9a\\x0d\"\n\t\"module_layout\\0\\0\\0\"\n\t\"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\";\n\nMODULE_INFO(depends, \"\");\n\n\nMODULE_INFO(srcversion, \"ACB9CC0B7768E8CC0DA87BC\");\n", "demo/oops/Makefile": "obj-m += oops.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "demo/oops/oops.c": "// SPDX-License-Identifier: GPL-2.0\n/* oops.c - a bug in kernel code: dereference NULL. RUN THIS ONLY IN THE VIRTUAL MACHINE. */\n#include <linux/module.h>\n\nstruct thing { int a, b; };\nstatic struct thing *find_thing(void) { return NULL; }   /* \"forgot\" to check the result */\n\nstatic int __init oops_init(void)\n{\n    struct thing *t = find_thing();\n    pr_info(\"oops: about to read t->b\\n\");\n    pr_info(\"oops: t->b = %d\\n\", t->b);                   /* NULL + 4: page fault in kernel mode */\n    return 0;\n}\nmodule_init(oops_init);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.1: a kernel oops on purpose\");\n", "demo/oops/oops.mod.c": "#include <linux/module.h>\n#define INCLUDE_VERMAGIC\n#include <linux/build-salt.h>\n#include <linux/elfnote-lto.h>\n#include <linux/export-internal.h>\n#include <linux/vermagic.h>\n#include <linux/compiler.h>\n\n#ifdef CONFIG_UNWINDER_ORC\n#include <asm/orc_header.h>\nORC_HEADER;\n#endif\n\nBUILD_SALT;\nBUILD_LTO_INFO;\n\nMODULE_INFO(vermagic, VERMAGIC_STRING);\nMODULE_INFO(name, KBUILD_MODNAME);\n\n__visible struct module __this_module\n__section(\".gnu.linkonce.this_module\") = {\n\t.name = KBUILD_MODNAME,\n\t.init = init_module,\n\t.arch = MODULE_ARCH_INIT,\n};\n\n#ifdef CONFIG_MITIGATION_RETPOLINE\nMODULE_INFO(retpoline, \"Y\");\n#endif\n\n\n\nstatic const char ____versions[]\n__used __section(\"__versions\") =\n\t\"\\x10\\x00\\x00\\x00\\x7e\\x3a\\x2c\\x12\"\n\t\"_printk\\0\"\n\t\"\\x1c\\x00\\x00\\x00\\xca\\x39\\x82\\x5b\"\n\t\"__x86_return_thunk\\0\\0\"\n\t\"\\x14\\x00\\x00\\x00\\xbb\\x6d\\xfb\\xbd\"\n\t\"__fentry__\\0\\0\"\n\t\"\\x18\\x00\\x00\\x00\\x13\\xc9\\x9a\\x0d\"\n\t\"module_layout\\0\\0\\0\"\n\t\"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\";\n\nMODULE_INFO(depends, \"\");\n\n\nMODULE_INFO(srcversion, \"BEA7BDF80C787EB569F4450\");\n", "demo/param/Makefile": "obj-m += hello_param.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "demo/param/hello_param.c": "// SPDX-License-Identifier: GPL-2.0\n/* hello_param.c - module parameters: values given at insmod time, visible in /sys/module/NAME/parameters */\n#include <linux/module.h>\n#include <linux/moduleparam.h>\n\nstatic char *who = \"world\";\nstatic int times = 1;\nmodule_param(who, charp, 0644);            /* 0644: root may change it later through sysfs */\nMODULE_PARM_DESC(who, \"whom to greet\");\nmodule_param(times, int, 0444);            /* 0444: read-only in sysfs */\nMODULE_PARM_DESC(times, \"how many greetings\");\n\nstatic int __init hp_init(void)\n{\n    int i;\n    if (times < 1 || times > 5) {\n        pr_err(\"hello_param: times must be 1..5, got %d\\n\", times);\n        return -EINVAL;                    /* insmod fails with \"Invalid argument\" */\n    }\n    for (i = 0; i < times; i++)\n        pr_info(\"hello_param: hello, %s (%d of %d)\\n\", who, i + 1, times);\n    return 0;\n}\nstatic void __exit hp_exit(void)\n{\n    pr_info(\"hello_param: goodbye, %s\\n\", who);\n}\nmodule_init(hp_init);\nmodule_exit(hp_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.1: module parameters\");\n", "demo/param/hello_param.mod.c": "#include <linux/module.h>\n#define INCLUDE_VERMAGIC\n#include <linux/build-salt.h>\n#include <linux/elfnote-lto.h>\n#include <linux/export-internal.h>\n#include <linux/vermagic.h>\n#include <linux/compiler.h>\n\n#ifdef CONFIG_UNWINDER_ORC\n#include <asm/orc_header.h>\nORC_HEADER;\n#endif\n\nBUILD_SALT;\nBUILD_LTO_INFO;\n\nMODULE_INFO(vermagic, VERMAGIC_STRING);\nMODULE_INFO(name, KBUILD_MODNAME);\n\n__visible struct module __this_module\n__section(\".gnu.linkonce.this_module\") = {\n\t.name = KBUILD_MODNAME,\n\t.init = init_module,\n#ifdef CONFIG_MODULE_UNLOAD\n\t.exit = cleanup_module,\n#endif\n\t.arch = MODULE_ARCH_INIT,\n};\n\n#ifdef CONFIG_MITIGATION_RETPOLINE\nMODULE_INFO(retpoline, \"Y\");\n#endif\n\n\n\nstatic const char ____versions[]\n__used __section(\"__versions\") =\n\t\"\\x1c\\x00\\x00\\x00\\xca\\x39\\x82\\x5b\"\n\t\"__x86_return_thunk\\0\\0\"\n\t\"\\x18\\x00\\x00\\x00\\x40\\xe8\\xe4\\x1c\"\n\t\"param_ops_int\\0\\0\\0\"\n\t\"\\x18\\x00\\x00\\x00\\xdf\\xf9\\x04\\x2d\"\n\t\"param_ops_charp\\0\"\n\t\"\\x14\\x00\\x00\\x00\\xbb\\x6d\\xfb\\xbd\"\n\t\"__fentry__\\0\\0\"\n\t\"\\x10\\x00\\x00\\x00\\x7e\\x3a\\x2c\\x12\"\n\t\"_printk\\0\"\n\t\"\\x18\\x00\\x00\\x00\\x13\\xc9\\x9a\\x0d\"\n\t\"module_layout\\0\\0\\0\"\n\t\"\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\";\n\nMODULE_INFO(depends, \"\");\n\n\nMODULE_INFO(srcversion, \"D962A123415819E0B1F2BAA\");\n", "guest/run_guest.sh": "#!/bin/sh\n# run_guest.sh - boot the lab PC's own kernel in QEMU with busybox and your .ko files, and give you a root shell.\n#   ./run_guest.sh DIR...      every *.ko found in the DIRs is copied to /mod in the guest\n# KERNEL: a readable copy of this PC's kernel (once, by the instructor or with sudo):\n#   sudo cp /boot/vmlinuz-$(uname -r) guest/vmlinuz && sudo chmod a+r guest/vmlinuz   (next to this script)\n# Leave the guest with:  poweroff -f      (or Ctrl-A then X)\nset -e\nHERE=$(cd \"$(dirname \"$0\")\" && pwd)\nKERNEL=${KERNEL:-$HERE/vmlinuz}\nBB=${BUSYBOX:-$HERE/busybox}\n[ -r \"$KERNEL\" ] || { echo \"no readable kernel at $KERNEL (see the comment at the top)\"; exit 1; }\nR=$(mktemp -d)\nchmod 755 $R; mkdir -p $R/bin $R/proc $R/sys $R/dev $R/tmp $R/mod\ncp \"$BB\" $R/bin/busybox\nfor a in $($R/bin/busybox --list); do [ \"$a\" = busybox ] || ln -sf busybox $R/bin/$a; done\nfor d in \"$@\"; do find \"$d\" -name '*.ko' -exec cp {} $R/mod/ \\; ; done\ncat > $R/init <<'EOI'\n#!/bin/sh\nmount -t proc proc /proc\nmount -t sysfs sysfs /sys\nmount -t devtmpfs devtmpfs /dev\nexport PATH=/bin\ncd /mod\necho; echo \"guest $(uname -r): your modules are in /mod:\"; ls /mod; echo \"(poweroff -f to leave)\"\nexec setsid cttyhack sh\nEOI\nchmod +x $R/init\n(cd $R && find . | cpio -o -H newc 2>/dev/null | gzip > \"$HERE/guest.cpio.gz\")\nrm -rf $R\nexec qemu-system-x86_64 -m 512 -nographic -no-reboot -kernel \"$KERNEL\" -initrd \"$HERE/guest.cpio.gz\" \\\n     -append \"console=ttyS0 quiet panic=-1\"\n", "lab14_1/Makefile": "# Lab 14.1: build sysprog_proc_starter.ko for the kernel of THIS PC\nobj-m += sysprog_proc_starter.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "lab14_1/sysprog_proc_starter.c": "// SPDX-License-Identifier: GPL-2.0\n/*\n * sysprog_proc.c - a kernel module that adds the file /proc/sysprog\n * CSE 4105 System Programming, Lab 14.1   (STARTER: fill in the parts marked TODO)\n *\n * Build:  make            (needs the kernel headers: linux-headers-$(uname -r))\n * Run:    in the QEMU guest (or as root):  insmod sysprog_proc.ko owner=Mahbub ; cat /proc/sysprog ; rmmod sysprog_proc\n */\n#include <linux/atomic.h>\n#include <linux/jiffies.h>\n#include <linux/module.h>\n#include <linux/proc_fs.h>\n#include <linux/sched.h>\n#include <linux/seq_file.h>\n\nstatic char *owner = \"nobody\";\n/* TODO 1: make owner a module parameter: module_param(owner, charp, 0444); and a MODULE_PARM_DESC.\n *         Then  insmod sysprog_proc.ko owner=YourName  sets it, and /sys/module/sysprog_proc/parameters/owner shows it. */\n\nstatic atomic_t reads = ATOMIC_INIT(0);\nstatic unsigned long loaded_at;                      /* jiffies when the module was loaded */\n\n/* called every time someone reads /proc/sysprog: print into the seq_file, not into a user pointer */\nstatic int sysprog_show(struct seq_file *m, void *v)\n{\n    /* TODO 2: print four lines with seq_printf(m, ...), like printf into the file:\n     *   owner:      <owner>\n     *   reads:      <atomic_inc_return(&reads)>\n     *   loaded for: <jiffies - loaded_at> jiffies = <jiffies_to_msecs(...)> ms (HZ = <HZ>)\n     *   reader:     <current->comm> (pid <current->pid>)                                   */\n    seq_puts(m, \"nothing here yet: TODO 2\\n\");\n    return 0;\n}\n\nstatic int __init sysprog_init(void)\n{\n    loaded_at = jiffies;\n    /* TODO 3: create the file: proc_create_single(\"sysprog\", 0444, NULL, sysprog_show).\n     *         It returns NULL on failure: then return -ENOMEM (insmod will fail).             */\n    pr_info(\"sysprog: loaded, but /proc/sysprog is not created yet: TODO 3\\n\");\n    return 0;\n}\n\nstatic void __exit sysprog_exit(void)\n{\n    /* TODO 4: remove_proc_entry(\"sysprog\", NULL); -- forget this and the next cat of /proc/sysprog\n     *         after rmmod calls code that is no longer there: the kernel oopses.             */\n    pr_info(\"sysprog: /proc/sysprog removed after %d reads\\n\", atomic_read(&reads));\n}\n\nmodule_init(sysprog_init);\nmodule_exit(sysprog_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.1 lab: /proc/sysprog\");\n", "lab14_2/Makefile": "# Lab 14.2: the device (sp_dev.ko) and your driver (sp_drv_starter.ko)\nobj-m += sp_dev.o sp_drv_starter.o\nKDIR ?= /lib/modules/$(shell uname -r)/build\nall:\n\t$(MAKE) -C $(KDIR) M=$(PWD) modules\nclean:\n\t$(MAKE) -C $(KDIR) M=$(PWD) clean\n", "lab14_2/sp_dev.c": "// SPDX-License-Identifier: GPL-2.0\n/* sp_dev.c - register a DEVICE called \"sysprog\" on the platform bus (no driver yet) */\n#include <linux/module.h>\n#include <linux/platform_device.h>\n\nstatic struct platform_device *pdev;\n\nstatic int __init sp_dev_init(void)\n{\n    pdev = platform_device_register_simple(\"sysprog\", 0, NULL, 0);   /* name \"sysprog\", id 0: sysprog.0 */\n    if (IS_ERR(pdev))\n        return PTR_ERR(pdev);\n    pr_info(\"sp_dev: device %s registered\\n\", dev_name(&pdev->dev));\n    return 0;\n}\nstatic void __exit sp_dev_exit(void)\n{\n    platform_device_unregister(pdev);\n    pr_info(\"sp_dev: device unregistered\\n\");\n}\nmodule_init(sp_dev_init);\nmodule_exit(sp_dev_exit);\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.2: a platform device\");\n", "lab14_2/sp_drv_starter.c": "// SPDX-License-Identifier: GPL-2.0\n/*\n * sp_drv.c - a platform DRIVER for devices named \"sysprog\", with a sysfs file \"value\"\n * CSE 4105 System Programming, Lab 14.2   (STARTER: fill in the parts marked TODO)\n *\n * In the QEMU guest:  insmod sp_drv.ko ; insmod sp_dev.ko      (either order: the bus matches them)\n *                     cat /sys/devices/platform/sysprog.0/value ; echo 42 > /sys/devices/platform/sysprog.0/value\n */\n#include <linux/device.h>\n#include <linux/module.h>\n#include <linux/mutex.h>\n#include <linux/platform_device.h>\n#include <linux/version.h>\n\nstruct sysprog_state {                         /* one per bound device */\n    struct mutex lock;\n    int value;\n    int writes;\n};\n\n/* sysfs: cat .../value  ->  value_show */\nstatic ssize_t value_show(struct device *dev, struct device_attribute *attr, char *buf)\n{\n    /* TODO 1: get our state with dev_get_drvdata(dev), read st->value under st->lock,\n     *         and return sysfs_emit(buf, \"%d\\n\", value).                                   */\n    return sysfs_emit(buf, \"TODO 1\\n\");\n}\n\n/* sysfs: echo 42 > .../value  ->  value_store */\nstatic ssize_t value_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)\n{\n    /* TODO 2: convert buf to an int with kstrtoint(buf, 10, &v); on error return that error.\n     *         Then, under st->lock, set st->value = v and st->writes++. Print it with dev_info.\n     *         Return count: \"all bytes used\".                                                 */\n    return -EINVAL;\n}\nstatic DEVICE_ATTR_RW(value);                  /* makes dev_attr_value with value_show / value_store */\n\nstatic struct attribute *sysprog_attrs[] = { &dev_attr_value.attr, NULL };\nATTRIBUTE_GROUPS(sysprog);                     /* makes sysprog_groups */\n\nstatic int sysprog_probe(struct platform_device *pdev)\n{\n    /* TODO 3: allocate our state with devm_kzalloc(&pdev->dev, sizeof(*st), GFP_KERNEL) (NULL: return -ENOMEM),\n     *         mutex_init(&st->lock), st->value = 7, and platform_set_drvdata(pdev, st).\n     *         Without set_drvdata, value_show gets NULL from dev_get_drvdata: an oops (Lecture 14.1). */\n    dev_info(&pdev->dev, \"probe: called, but nothing is set up yet: TODO 3\\n\");\n    return 0;\n}\n\nstatic void sysprog_remove(struct platform_device *pdev)\n{\n    struct sysprog_state *st = platform_get_drvdata(pdev);\n    if (st)                                    /* NULL until TODO 3 is done */\n        dev_info(&pdev->dev, \"remove: last value %d after %d writes\\n\", st->value, st->writes);\n}\n\nstatic struct platform_driver sysprog_driver = {\n    .probe = sysprog_probe,\n#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)\n    .remove = sysprog_remove,                  /* 6.11 and newer: remove returns void */\n#else\n    .remove_new = sysprog_remove,              /* 6.8 (Ubuntu 24.04): the void version is called remove_new */\n#endif\n    .driver = {\n        .name = \"sysprog-TODO\",                /* TODO 4: the bus matches drivers and devices by NAME:\n                                                  use the device's name \"sysprog\" (see sp_dev.c) */\n        .dev_groups = sysprog_groups,          /* sysfs files created at bind time */\n    },\n};\nmodule_platform_driver(sysprog_driver);        /* module_init/exit that (un)register the driver */\n\nMODULE_LICENSE(\"GPL\");\nMODULE_DESCRIPTION(\"Lecture 14.2 lab: a platform driver with a sysfs attribute\");\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* tools.js - small, tested calculators used by the interactive labs (Lectures 1, 7-15).
+   Every constant comes from the Linux v6.8 source or the C/x86-64 ABI; see the lab pages for the files. */
+(function (root) {
+"use strict";
+const T = {};
+const hx = (v, w = 0) => (typeof v === "bigint" ? BigInt.asUintN(64, v) : BigInt(v >>> 0)).toString(16).padStart(w, "0");
+T.hx = hx;
+
+/* ---------------- Lecture 1: C types in memory (x86-64, LP64, little-endian) ---------------- */
+T.CTYPES = {
+  "char": { size: 1, signed: true, int: true }, "unsigned char": { size: 1, signed: false, int: true },
+  "short": { size: 2, signed: true, int: true }, "unsigned short": { size: 2, signed: false, int: true },
+  "int": { size: 4, signed: true, int: true }, "unsigned int": { size: 4, signed: false, int: true },
+  "long": { size: 8, signed: true, int: true }, "unsigned long": { size: 8, signed: false, int: true },
+  "float": { size: 4, int: false }, "double": { size: 8, int: false }, "pointer (void *)": { size: 8, signed: false, int: true }
+};
+/* bytes as C would store the value (integers wrap modulo 2^bits, like a conversion to that type) */
+T.cBytes = function (text, type) {
+  const t = T.CTYPES[type]; const n = t.size; const bytes = new Uint8Array(n);
+  let note = "";
+  if (t.int) {
+    let v;
+    const s = String(text).trim();
+    if (/^'.'$/.test(s)) v = BigInt(s.charCodeAt(1));
+    else if (/^[-+]?(0x[0-9a-f]+|\d+)$/i.test(s)) { const neg = s.startsWith("-"); v = BigInt(s.replace(/^[-+]/, "")); if (neg) v = -v; }
+    else throw new Error("type an integer, e.g. 1000, -1, 0x7f or 'A'");
+    const bits = BigInt(8 * n);
+    const u = BigInt.asUintN(8 * n, v);
+    const back = t.signed ? BigInt.asIntN(8 * n, v) : u;
+    if (back !== v) note = `does not fit in ${type}: C keeps the low ${8 * n} bits, so the variable holds ${back}`;
+    for (let i = 0; i < n; i++) bytes[i] = Number((u >> BigInt(8 * i)) & 0xffn);
+    return { bytes, value: back.toString(), note, bits: Number(bits) };
+  }
+  const x = Number(text);
+  if (String(text).trim() === "" || Number.isNaN(x) && !/^nan$/i.test(String(text).trim())) throw new Error("type a number, e.g. 3.5 or -0.1");
+  const dv = new DataView(new ArrayBuffer(8));
+  if (n === 4) { dv.setFloat32(0, x, true); for (let i = 0; i < 4; i++) bytes[i] = dv.getUint8(i); const back = dv.getFloat32(0, true); if (back !== x && !Number.isNaN(x)) note = `float cannot hold ${x} exactly: it stores ${back}`; return { bytes, value: String(back), note, bits: 32 }; }
+  dv.setFloat64(0, x, true); for (let i = 0; i < 8; i++) bytes[i] = dv.getUint8(i); return { bytes, value: String(dv.getFloat64(0, true)), note, bits: 64 };
+};
+T.ieee = function (bytes) {   // little-endian bytes of a float (4) or double (8)
+  const n = bytes.length; let bits = 0n;
+  for (let i = n - 1; i >= 0; i--) bits = (bits << 8n) | BigInt(bytes[i]);
+  const eb = n === 4 ? 8 : 11, mb = n === 4 ? 23 : 52, bias = n === 4 ? 127 : 1023;
+  const sign = Number(bits >> BigInt(eb + mb)), exp = Number((bits >> BigInt(mb)) & ((1n << BigInt(eb)) - 1n)), man = bits & ((1n << BigInt(mb)) - 1n);
+  return { sign, exp, expUnbiased: exp - bias, man, eb, mb, bias, kind: exp === 0 ? (man === 0n ? "zero" : "subnormal") : (exp === (1 << eb) - 1 ? (man === 0n ? "infinity" : "NaN") : "normal") };
+};
+
+/* ---------------- Lecture 7: /proc/<pid>/stat and process flags ---------------- */
+T.STAT_FIELDS = ["pid", "comm", "state", "ppid", "pgrp", "session", "tty_nr", "tpgid", "flags", "minflt", "cminflt", "majflt", "cmajflt", "utime", "stime", "cutime", "cstime", "priority", "nice", "num_threads", "itrealvalue", "starttime", "vsize", "rss", "rsslim", "startcode", "endcode", "startstack", "kstkesp", "kstkeip", "signal", "blocked", "sigignore", "sigcatch", "wchan", "nswap", "cnswap", "exit_signal", "processor", "rt_priority", "policy", "delayacct_blkio_ticks", "guest_time", "cguest_time", "start_data", "end_data", "start_brk", "arg_start", "arg_end", "env_start", "env_end", "exit_code"];
+T.STAT_HELP = { pid: "process ID", comm: "program name (in parentheses; may contain spaces)", state: "R running, S sleeping, D disk sleep, Z zombie, T stopped, I idle kernel thread", ppid: "parent's PID",
+  flags: "PF_* bits from include/linux/sched.h (decoded below)", minflt: "minor page faults", majflt: "major page faults (needed the disk)", utime: "CPU time in user mode, in clock ticks (usually 1/100 s)",
+  stime: "CPU time in kernel mode, in clock ticks", priority: "kernel priority (20 + nice for normal tasks)", nice: "nice value, -20 .. 19", num_threads: "threads in this process", starttime: "start time after boot, in clock ticks",
+  vsize: "virtual memory size in bytes", rss: "resident set size in pages", processor: "CPU it last ran on", policy: "0 SCHED_OTHER (CFS), 1 FIFO, 2 RR, 3 BATCH, 5 IDLE" };
+T.PF = [[0x1, "PF_VCPU"], [0x2, "PF_IDLE"], [0x4, "PF_EXITING"], [0x8, "PF_POSTCOREDUMP"], [0x10, "PF_IO_WORKER"], [0x20, "PF_WQ_WORKER"], [0x40, "PF_FORKNOEXEC"], [0x80, "PF_MCE_PROCESS"], [0x100, "PF_SUPERPRIV"], [0x200, "PF_DUMPCORE"], [0x400, "PF_SIGNALED"], [0x800, "PF_MEMALLOC"], [0x1000, "PF_NPROC_EXCEEDED"], [0x2000, "PF_USED_MATH"], [0x4000, "PF_USER_WORKER"], [0x8000, "PF_NOFREEZE"], [0x20000, "PF_KSWAPD"], [0x40000, "PF_MEMALLOC_NOFS"], [0x80000, "PF_MEMALLOC_NOIO"], [0x100000, "PF_LOCAL_THROTTLE"], [0x200000, "PF_KTHREAD"], [0x400000, "PF_RANDOMIZE"], [0x4000000, "PF_NO_SETAFFINITY"], [0x8000000, "PF_MCE_EARLY"], [0x10000000, "PF_MEMALLOC_PIN"], [0x80000000, "PF_SUSPEND_TASK"]];
+T.parseStat = function (line) {
+  line = line.trim();
+  const a = line.indexOf("("), b = line.lastIndexOf(")");
+  if (a < 0 || b < a) throw new Error("a /proc/<pid>/stat line looks like: 1 (systemd) S 0 1 1 0 -1 4194560 …");
+  const head = line.slice(0, a).trim(), comm = line.slice(a + 1, b), rest = line.slice(b + 1).trim().split(/\s+/);
+  const vals = [head, comm, ...rest];
+  const fields = vals.map((v, i) => ({ n: i + 1, name: T.STAT_FIELDS[i] || "field " + (i + 1), value: v, help: T.STAT_HELP[T.STAT_FIELDS[i]] || "" }));
+  const flags = Number(vals[8] || 0) >>> 0;
+  return { fields, flags, flagNames: T.PF.filter(([bit]) => (flags & bit) >>> 0).map(([, n]) => n), kthread: !!(flags & 0x200000) };
+};
+T.parseMeminfo = function (text) {
+  const m = {}; for (const l of text.split(/\n/)) { const r = l.match(/^(\w[\w()]*):\s+(\d+)/); if (r) m[r[1]] = Number(r[2]); }
+  return m;
+};
+
+/* ---------------- Lecture 8: fork trees and the CFS share ---------------- */
+T.forkTree = function (pattern, n) {
+  // pattern "loop": for (i = 0; i < n; i++) fork();     every process continues the loop
+  // "child": for (...) if (fork() != 0) break;   only the child goes on: a chain
+  // "parent": for (...) if (fork() == 0) break;  only the parent goes on: a fan
+  let next = 1; const nodes = [{ id: 1, parent: 0, born: -1 }];
+  function run(id, from) {
+    for (let i = from; i < n; i++) {
+      const child = ++next; nodes.push({ id: child, parent: id, born: i });
+      if (pattern === "loop") run(child, i + 1);
+      else if (pattern === "child") { run(child, i + 1); return; }
+      else if (pattern === "parent") { /* child breaks out of the loop */ }
+    }
+  }
+  run(1, 0);
+  return nodes;
+};
+T.WEIGHT = [88761, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916, 9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 1024, 820, 655, 526, 423, 335, 272, 215, 172, 137, 110, 87, 70, 56, 45, 36, 29, 23, 18, 15];
+T.weightOf = nice => T.WEIGHT[nice + 20];
+/* a simplified CFS on one CPU: run the task with the smallest vruntime for one tick (ms);
+   vruntime grows by tick * 1024 / weight. Returns the timeline and CPU shares. */
+T.cfs = function (tasks, ms) {
+  const st = tasks.map((t, i) => ({ ...t, i, vr: 0, ran: 0 }));
+  const timeline = [];
+  for (let t = 0; t < ms; t++) {
+    const ready = st.filter(x => (x.arrive || 0) <= t && (x.work === undefined || x.ran < x.work));
+    if (!ready.length) { timeline.push(-1); continue; }
+    const minv = Math.min(...ready.map(x => x.vr));
+    for (const x of st) if ((x.arrive || 0) === t && t > 0) x.vr = Math.max(x.vr, minv);   // a newcomer starts at the current minimum
+    let best = ready[0]; for (const x of ready) if (x.vr < best.vr - 1e-12) best = x;
+    best.vr += 1024 / T.weightOf(best.nice); best.ran++; timeline.push(best.i);
+  }
+  const total = st.reduce((s, x) => s + x.ran, 0) || 1;
+  return { timeline, tasks: st.map(x => ({ name: x.name, nice: x.nice, weight: T.weightOf(x.nice), ran: x.ran, share: x.ran / total, vr: x.vr })) };
+};
+
+/* ---------------- Lecture 9: system calls ---------------- */
+T.parseTbl = function (text) {
+  const rows = [];
+  for (const l of text.split("\n")) { const m = l.match(/^(\d+)\s+(\w+)\s+(\w+)(?:\s+(\S+))?/); if (m) rows.push({ nr: Number(m[1]), abi: m[2], name: m[3], entry: m[4] || "" }); }
+  return rows;
+};
+T.ARGREGS = ["rdi", "rsi", "rdx", "r10", "r8", "r9"];
+T.splitArgs = function (s) { const out = []; let cur = "", q = false, d = 0; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '"' && s[i - 1] !== "\\") q = !q; if (!q && (c === "(" || c === "[" || c === "{")) d++; if (!q && (c === ")" || c === "]" || c === "}")) d--; if (c === "," && !q && d === 0) { out.push(cur.trim()); cur = ""; } else cur += c; } if (cur.trim()) out.push(cur.trim()); return out; };
+T.parseStrace = function (line, table, errnos) {
+  const m = line.trim().match(/^(?:\[pid\s+\d+\]\s+)?(?:\d+\s+)?(\w+)\((.*)\)\s*=\s*(-?\w+|\?)(?:\s+(\w+)\s+\((.*)\))?/);
+  if (!m) throw new Error('paste one strace line, e.g.  write(1, "hi\\n", 3) = 3');
+  const [, name, args, ret, errName, errText] = m;
+  const row = table.find(r => r.name === name && r.abi !== "x32");
+  const a = T.splitArgs(args);
+  const regs = a.slice(0, 6).map((v, i) => ({ reg: T.ARGREGS[i], value: v }));
+  let rax;
+  if (ret === "?") rax = "(the call did not return)";
+  else if (ret === "-1" && errName) { const e = errnos.find(x => x.name === errName); rax = e ? `-${e.nr}  (the kernel returned −${errName}; libc stores ${e.nr} in errno and returns -1)` : "-1"; }
+  else rax = ret;
+  return { name, nr: row ? row.nr : null, abi: row ? row.abi : null, entry: row ? row.entry : "", regs, ret: rax, errName, errText };
+};
+
+/* ---------------- Lecture 10: pipes and signals ---------------- */
+T.SIGNALS = [[1, "SIGHUP", "terminate", "terminal hung up"], [2, "SIGINT", "terminate", "Ctrl-C"], [3, "SIGQUIT", "core", "Ctrl-\\"], [4, "SIGILL", "core", "illegal instruction"], [5, "SIGTRAP", "core", "breakpoint"], [6, "SIGABRT", "core", "abort()"], [7, "SIGBUS", "core", "bus error"], [8, "SIGFPE", "core", "divide by zero"], [9, "SIGKILL", "terminate", "cannot be caught, blocked or ignored"], [10, "SIGUSR1", "terminate", "for your programs"], [11, "SIGSEGV", "core", "bad memory access"], [12, "SIGUSR2", "terminate", "for your programs"], [13, "SIGPIPE", "terminate", "write to a pipe nobody reads"], [14, "SIGALRM", "terminate", "alarm()"], [15, "SIGTERM", "terminate", "kill's default"], [16, "SIGSTKFLT", "terminate", "unused"], [17, "SIGCHLD", "ignore", "a child stopped or exited"], [18, "SIGCONT", "continue", "continue a stopped process"], [19, "SIGSTOP", "stop", "cannot be caught, blocked or ignored"], [20, "SIGTSTP", "stop", "Ctrl-Z"], [21, "SIGTTIN", "stop", "background read from terminal"], [22, "SIGTTOU", "stop", "background write to terminal"], [23, "SIGURG", "ignore", "urgent socket data"], [24, "SIGXCPU", "core", "CPU time limit"], [25, "SIGXFSZ", "core", "file size limit"], [26, "SIGVTALRM", "terminate", "virtual timer"], [27, "SIGPROF", "terminate", "profiling timer"], [28, "SIGWINCH", "ignore", "window size changed"], [29, "SIGIO", "terminate", "I/O possible"], [30, "SIGPWR", "terminate", "power failure"], [31, "SIGSYS", "core", "bad system call"]];
+/* one step-based pipe: capacity bytes, a writer that wants `write` bytes per step, a reader `read` per step */
+T.pipeSim = function ({ capacity = 65536, total = 200000, wchunk = 4096, rchunk = 1024, rdelay = 0, closeReader = -1, steps = 400 }) {
+  let inPipe = 0, written = 0, readBytes = 0, wDone = false, rClosed = false; const log = [];
+  for (let t = 0; t < steps; t++) {
+    let w = "", r = "";
+    if (t === closeReader) { rClosed = true; r = "reader closes its end"; }
+    if (!wDone) {
+      if (rClosed) { w = "write() → SIGPIPE: the writer is killed (or gets EPIPE)"; wDone = true; }
+      else { const want = Math.min(wchunk, total - written), room = capacity - inPipe; if (room === 0) w = "write() blocks: pipe full"; else { const n = Math.min(want, room); inPipe += n; written += n; w = n < want ? `wrote ${n} of ${want} (pipe filled up)` : `wrote ${n}`; if (written >= total) { wDone = true; w += "; writer closes its end"; } } }
+    }
+    if (!rClosed && t >= rdelay) {
+      if (inPipe > 0) { const n = Math.min(rchunk, inPipe); inPipe -= n; readBytes += n; r = `read ${n}`; }
+      else if (wDone) { r = "read() returns 0: end of file"; rClosed = true; }
+      else r = "read() blocks: pipe empty";
+    }
+    log.push({ t, inPipe, written, read: readBytes, w, r });
+    if (wDone && rClosed) break;
+  }
+  return log;
+};
+
+/* ---------------- Lecture 11: addresses, pagemap, a heap ---------------- */
+T.splitVA = function (vaText) {
+  const s = vaText.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type a hex address, e.g. 0x7ffd3c2a1b40");
+  const va = BigInt("0x" + s);
+  if (va >> 64n) throw new Error("more than 64 bits");
+  const top = va >> 47n; const canonical = top === 0n || top === (1n << 17n) - 1n;
+  const idx = k => Number((va >> BigInt(12 + 9 * k)) & 511n);
+  return { va, canonical, half: (va >> 63n) ? "kernel half" : "user half", pml4: idx(3), pdpt: idx(2), pd: idx(1), pt: idx(0), off: Number(va & 4095n), vpn: va >> 12n, pagemapOffset: (va >> 12n) * 8n };
+};
+T.pagemap = function (text) {
+  const s = text.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type the 64-bit entry in hex, e.g. 0x8600000000123456");
+  const e = BigInt("0x" + s);
+  const bit = n => Number((e >> BigInt(n)) & 1n);
+  return { present: bit(63), swapped: bit(62), filePage: bit(61), exclusive: bit(56), softDirty: bit(55), pfn: e & ((1n << 55n) - 1n) };
+};
+/* the Lab 11.2 allocator (header 32 bytes, first fit, split, merge with next), on a simulated sbrk heap */
+T.Heap = class {
+  constructor(base = 0x5000) { this.base = base; this.brk = base; this.blocks = []; this.log = []; }
+  align16(n) { return (n + 15) & ~15; }
+  malloc(n) {
+    if (n <= 0) return null; n = this.align16(n);
+    let h = this.blocks.find(b => b.free && b.size >= n);
+    if (h) { h.free = false; this.split(h, n); this.log.push(`malloc: first fit reuses the block at +${h.addr - this.base}`); }
+    else { h = { addr: this.brk, size: n, free: false }; this.brk += 32 + n; this.blocks.push(h); this.log.push(`malloc: nothing fits → sbrk(${32 + n}), program break now +${this.brk - this.base}`); }
+    return h.addr + 32;
+  }
+  split(h, n) { if (h.size >= n + 32 + 32) { const rest = { addr: h.addr + 32 + n, size: h.size - n - 32, free: true }; this.blocks.splice(this.blocks.indexOf(h) + 1, 0, rest); h.size = n; this.log.push(`split: the unused ${rest.size} bytes become a new free block`); } }
+  free(p) {
+    const h = this.blocks.find(b => b.addr + 32 === p); if (!h) throw new Error("free() of a pointer that malloc did not return"); if (h.free) throw new Error("double free");
+    h.free = true; let i = this.blocks.indexOf(h);
+    while (i + 1 < this.blocks.length) { const nx = this.blocks[i + 1]; if (nx.free && nx.addr === h.addr + 32 + h.size) { h.size += 32 + nx.size; this.blocks.splice(i + 1, 1); this.log.push(`free: merged with the next free block, now ${h.size} bytes`); } else break; }
+  }
+};
+
+/* ---------------- Lecture 12: ext2 ---------------- */
+T.modeString = function (mode) {
+  const t = { 0o140000: "s", 0o120000: "l", 0o100000: "-", 0o060000: "b", 0o040000: "d", 0o020000: "c", 0o010000: "p" }[mode & 0o170000] || "?";
+  const r = (m, s) => ((mode & m) ? s : "-");
+  let p = r(0o400, "r") + r(0o200, "w") + ((mode & 0o4000) ? ((mode & 0o100) ? "s" : "S") : r(0o100, "x"));
+  p += r(0o40, "r") + r(0o20, "w") + ((mode & 0o2000) ? ((mode & 0o10) ? "s" : "S") : r(0o10, "x"));
+  p += r(0o4, "r") + r(0o2, "w") + ((mode & 0o1000) ? ((mode & 0o1) ? "t" : "T") : r(0o1, "x"));
+  return t + p;
+};
+T.blockPath = function (lblock, blockSize) {   // which pointer of the inode holds logical block lblock
+  const P = blockSize / 4;
+  if (lblock < 12) return { level: 0, path: [lblock], text: `i_block[${lblock}] (direct)` };
+  lblock -= 12;
+  if (lblock < P) return { level: 1, path: [12, lblock], text: `i_block[12] (single indirect) → entry ${lblock}` };
+  lblock -= P;
+  if (lblock < P * P) return { level: 2, path: [13, Math.floor(lblock / P), lblock % P], text: `i_block[13] (double indirect) → entry ${Math.floor(lblock / P)} → entry ${lblock % P}` };
+  lblock -= P * P;
+  return { level: 3, path: [14, Math.floor(lblock / (P * P)), Math.floor(lblock / P) % P, lblock % P], text: `i_block[14] (triple indirect) → ${Math.floor(lblock / (P * P))} → ${Math.floor(lblock / P) % P} → ${lblock % P}` };
+};
+T.fileBlocks = function (size, blockSize) {   // data blocks and pointer blocks a file of `size` bytes needs
+  const P = blockSize / 4, n = Math.ceil(size / blockSize);
+  let ind = 0; let rest = n - 12;
+  if (rest > 0) { ind += 1; rest -= P; }
+  if (rest > 0) { const k = Math.min(Math.ceil(rest / P), P); ind += 1 + k; rest -= P * P; }
+  if (rest > 0) { const k2 = Math.ceil(rest / P); ind += 1 + Math.ceil(k2 / P) + k2; }
+  return { data: n, pointer: ind, total: n + ind, maxDirect: 12 * blockSize, maxSingle: (12 + P) * blockSize, maxDouble: (12 + P + P * P) * blockSize };
+};
+T.Ext2 = class {
+  constructor(bytes) {
+    this.b = bytes; this.dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const d = this.dv, o = 1024;
+    if (bytes.length < 2048 || d.getUint16(o + 56, true) !== 0xEF53) throw new Error("not an ext2/3/4 image (no magic EF53 at byte 1080)");
+    this.sb = { inodes: d.getUint32(o, true), blocks: d.getUint32(o + 4, true), firstData: d.getUint32(o + 20, true), logBlock: d.getUint32(o + 24, true), blocksPerGroup: d.getUint32(o + 32, true), inodesPerGroup: d.getUint32(o + 40, true), magic: 0xEF53, rev: d.getUint32(o + 76, true), inodeSize: d.getUint32(o + 76, true) >= 1 ? d.getUint16(o + 88, true) : 128, freeBlocks: d.getUint32(o + 12, true), freeInodes: d.getUint32(o + 16, true), featIncompat: d.getUint32(o + 96, true) };
+    this.bs = 1024 << this.sb.logBlock;
+    this.groups = Math.ceil((this.sb.blocks - this.sb.firstData) / this.sb.blocksPerGroup);
+    this.gdt = (this.sb.firstData + 1) * this.bs;
+  }
+  u32(o) { return this.dv.getUint32(o, true); } u16(o) { return this.dv.getUint16(o, true); }
+  group(g) { const o = this.gdt + 32 * g; return { blockBitmap: this.u32(o), inodeBitmap: this.u32(o + 4), inodeTable: this.u32(o + 8), freeBlocks: this.u16(o + 12), freeInodes: this.u16(o + 14), dirs: this.u16(o + 16) }; }
+  inodeLoc(ino) { const g = Math.floor((ino - 1) / this.sb.inodesPerGroup), idx = (ino - 1) % this.sb.inodesPerGroup; const gd = this.group(g); const off = gd.inodeTable * this.bs + idx * this.sb.inodeSize; return { group: g, index: idx, table: gd.inodeTable, block: gd.inodeTable + Math.floor(idx * this.sb.inodeSize / this.bs), offset: off }; }
+  inode(ino) {
+    const L = this.inodeLoc(ino), o = L.offset;
+    const blocks = []; for (let i = 0; i < 15; i++) blocks.push(this.u32(o + 40 + 4 * i));
+    return { ino, loc: L, mode: this.u16(o), uid: this.u16(o + 2), size: this.u32(o + 4), links: this.u16(o + 26), sectors: this.u32(o + 28), flags: this.u32(o + 32), block: blocks, mtime: this.u32(o + 16) };
+  }
+  dataBlocks(inode, limit = 1 << 20) {   // logical order, follows indirect blocks
+    if (this.isFastSymlink(inode)) return { data: [], meta: [] };
+    const P = this.bs / 4, out = [], meta = [];
+    const need = Math.ceil(inode.size / this.bs);
+    const walk = (blk, level) => { if (out.length >= need || out.length >= limit) return; if (!blk) { return; } if (level === 0) { out.push(blk); return; } meta.push({ blk, level }); for (let i = 0; i < P && out.length < need; i++) walk(this.u32(blk * this.bs + 4 * i), level - 1); };
+    for (let i = 0; i < 12 && out.length < need; i++) walk(inode.block[i], 0);
+    walk(inode.block[12], 1); walk(inode.block[13], 2); walk(inode.block[14], 3);
+    return { data: out, meta };
+  }
+  isFastSymlink(inode) { return (inode.mode & 0o170000) === 0o120000 && inode.sectors === 0 && inode.size < 60; }
+  readlink(inode) { const o = inode.loc.offset + 40; return String.fromCharCode(...this.b.subarray(o, o + inode.size)); }
+  read(inode) { if (this.isFastSymlink(inode)) return new TextEncoder().encode(this.readlink(inode)); const { data } = this.dataBlocks(inode); const res = new Uint8Array(inode.size); data.forEach((blk, i) => { const n = Math.min(this.bs, inode.size - i * this.bs); res.set(this.b.subarray(blk * this.bs, blk * this.bs + n), i * this.bs); }); return res; }
+  dir(inode) {
+    const bytes = this.read(inode), dv = new DataView(bytes.buffer), out = [];
+    for (let o = 0; o + 8 <= bytes.length;) { const ino = dv.getUint32(o, true), rec = dv.getUint16(o + 4, true), nl = bytes[o + 6], ft = bytes[o + 7]; if (rec < 8) break; if (ino) out.push({ ino, name: String.fromCharCode(...bytes.subarray(o + 8, o + 8 + nl)), type: ft, rec, at: o }); o += rec; }
+    return out;
+  }
+  lookup(path) {
+    let ino = 2; const steps = [{ name: "/", ino: 2 }];
+    for (const part of path.split("/").filter(Boolean)) {
+      const ent = this.dir(this.inode(ino)).find(e => e.name === part);
+      if (!ent) throw new Error(`"${part}" not found in directory inode ${ino}`);
+      ino = ent.ino; steps.push({ name: part, ino });
+    }
+    return { ino, steps };
+  }
+};
+
+/* ---------------- Lecture 13: page-fault error code, /proc/interrupts ---------------- */
+T.PF_BITS = [[0, "P", "1: protection violation on a present page / 0: the page is not present"], [1, "W", "1: write access / 0: read access"], [2, "U", "1: user mode / 0: kernel (supervisor) mode"], [3, "RSVD", "a reserved bit was set in a page-table entry"], [4, "I", "instruction fetch"], [5, "PK", "protection-key violation"], [6, "SS", "shadow-stack access"], [15, "SGX", "SGX violation"]];
+T.decodePF = function (code) { return T.PF_BITS.map(([b, n, d]) => ({ bit: b, name: n, on: !!(code & (1 << b)), help: d })); };
+T.describePF = function (code) {
+  const p = code & 1, w = code & 2, u = code & 4, i = code & 16;
+  return `${u ? "user" : "kernel (supervisor)"} ${i ? "instruction fetch" : (w ? "write" : "read")} of ${p ? "a present page it may not access (protection)" : "a page that is not present"}`;
+};
+T.VECTORS = ["#DE divide error", "#DB debug", "NMI non-maskable interrupt", "#BP breakpoint (int3)", "#OF overflow", "#BR bound range", "#UD invalid opcode", "#NM device not available (FPU)", "#DF double fault", "coprocessor segment overrun (old)", "#TS invalid TSS", "#NP segment not present", "#SS stack segment fault", "#GP general protection", "#PF page fault", "(reserved)", "#MF x87 floating-point error", "#AC alignment check", "#MC machine check", "#XM SIMD floating-point", "#VE virtualization exception", "#CP control protection"];
+T.parseInterrupts = function (text) {
+  const lines = text.split("\n").filter(l => l.trim()); if (!lines.length) return { cpus: 0, rows: [] };
+  const cpus = (lines[0].match(/CPU\d+/g) || []).length; const rows = [];
+  for (const l of lines.slice(1)) {
+    const m = l.match(/^\s*([^:]+):\s*(.*)$/); if (!m) continue;
+    const parts = m[2].trim().split(/\s+/); const nums = [];
+    while (nums.length < cpus && parts.length && /^\d+$/.test(parts[0])) nums.push(Number(parts.shift()));
+    rows.push({ id: m[1].trim(), sum: nums.reduce((a, b) => a + b, 0), name: parts.join(" ") });
+  }
+  return { cpus, rows };
+};
+T.diffInterrupts = function (a, b, seconds) {
+  const A = T.parseInterrupts(a), B = T.parseInterrupts(b); const map = new Map(A.rows.map(r => [r.id, r]));
+  return B.rows.map(r => ({ ...r, delta: r.sum - (map.get(r.id) ? map.get(r.id).sum : 0), rate: (r.sum - (map.get(r.id) ? map.get(r.id).sum : 0)) / seconds })).filter(r => r.delta > 0).sort((x, y) => y.delta - x.delta);
+};
+
+/* ---------------- Lecture 14: relocation and taint ---------------- */
+T.reloc = function (S, A, P) {   // R_X86_64_PC32 / PLT32: the 32-bit value S + A - P
+  const v = BigInt.asUintN(64, S + A - P); const signed = BigInt.asIntN(64, S + A - P);
+  const fits = signed >= -(1n << 31n) && signed < (1n << 31n);
+  const v32 = BigInt.asUintN(32, signed); const bytes = []; for (let i = 0; i < 4; i++) bytes.push(Number((v32 >> BigInt(8 * i)) & 0xffn));
+  return { value: signed, v32, bytes, fits, target: P + 4n + BigInt.asIntN(32, v32) };
+};
+T.TAINT = [["P", "proprietary module loaded (G if all GPL)"], ["F", "module force-loaded"], ["S", "CPU out of specification"], ["R", "module force-removed"], ["M", "machine check exception"], ["B", "bad page"], ["U", "user asked for taint"], ["D", "kernel died (oops)"], ["A", "ACPI table overridden"], ["W", "a WARN() happened"], ["C", "staging driver loaded"], ["I", "firmware workaround"], ["O", "out-of-tree module loaded"], ["E", "unsigned module loaded"], ["L", "soft lockup"], ["K", "live patched"], ["X", "auxiliary taint (distribution)"], ["T", "built with randstruct"], ["N", "test module loaded"]];
+T.decodeTaint = function (v) { v = Number(v); return T.TAINT.map(([c, d], bit) => ({ bit, letter: (bit === 0 && !(v & 1)) ? "G" : c, on: !!(Math.floor(v / Math.pow(2, bit)) % 2), help: d })); };
+
+/* ---------------- Lecture 15: ioctl numbers, dev_t, open flags, sectors, USB ---------------- */
+T.ioctl = function (dir, type, nr, size) { return (((dir << 30) | (size << 16) | (type << 8) | nr) >>> 0); };
+T.ioctlDecode = function (n) { n = n >>> 0; const dir = n >>> 30; return { dir, dirName: ["_IO (none)", "_IOW (write: user → driver)", "_IOR (read: driver → user)", "_IOWR (both)"][dir], size: (n >>> 16) & 0x3fff, type: (n >>> 8) & 0xff, nr: n & 0xff }; };
+T.mkdev = (ma, mi) => (((ma << 20) | mi) >>> 0);
+T.OFLAGS = [[0o100, "O_CREAT"], [0o200, "O_EXCL"], [0o400, "O_NOCTTY"], [0o1000, "O_TRUNC"], [0o2000, "O_APPEND"], [0o4000, "O_NONBLOCK"], [0o10000, "O_DSYNC"], [0o20000, "O_ASYNC"], [0o40000, "O_DIRECT"], [0o100000, "O_LARGEFILE"], [0o200000, "O_DIRECTORY"], [0o400000, "O_NOFOLLOW"], [0o1000000, "O_NOATIME"], [0o2000000, "O_CLOEXEC"], [0o4010000, "O_SYNC"], [0o10000000, "O_PATH"], [0o20200000, "O_TMPFILE"]];
+T.openFlags = function (v) {
+  v = v >>> 0; const acc = ["O_RDONLY", "O_WRONLY", "O_RDWR", "(3: invalid)"][v & 3]; const names = [acc]; let rest = v & ~3;
+  for (const [bit, n] of T.OFLAGS.slice().sort((a, b) => b[0] - a[0])) if ((rest & bit) === bit && bit) { names.push(n); rest &= ~bit; }
+  if (rest) names.push("0x" + rest.toString(16) + " (unknown)");
+  return names;
+};
+T.sectors = function (offset, length) { return { first: Math.floor(offset / 512), count: Math.ceil((offset % 512 + length) / 512), aligned: offset % 512 === 0 && length % 512 === 0, page: Math.floor(offset / 4096) }; };
+T.USAGE = (() => { const m = { 0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Space", 0x2d: "-", 0x2e: "=", 0x2f: "[", 0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock", 0x4f: "Right", 0x50: "Left", 0x51: "Down", 0x52: "Up" }; for (let i = 0; i < 26; i++) m[4 + i] = String.fromCharCode(97 + i); for (let i = 0; i < 9; i++) m[0x1e + i] = String(i + 1); m[0x27] = "0"; for (let i = 0; i < 12; i++) m[0x3a + i] = "F" + (i + 1); return m; })();
+T.MODS = ["Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", "Right GUI"];
+T.kbdReport = function (bytes) {
+  const mods = T.MODS.filter((_, i) => bytes[0] & (1 << i)); const keys = bytes.slice(2, 8).filter(k => k);
+  return { mods, keys: keys.map(k => ({ code: k, name: k === 1 ? "ErrorRollOver" : (T.USAGE[k] || "usage 0x" + k.toString(16)) })) };
+};
+T.mouseReport = function (bytes) { const s = v => (v & 0x80 ? v - 256 : v); return { left: !!(bytes[0] & 1), right: !!(bytes[0] & 2), middle: !!(bytes[0] & 4), dx: s(bytes[1] || 0), dy: s(bytes[2] || 0), wheel: s(bytes[3] || 0) }; };
+T.modalias = function (s) {
+  const m = s.trim().match(/^usb:v([0-9A-F]{4})p([0-9A-F]{4})d([0-9A-F]{4})dc([0-9A-F]{2})dsc([0-9A-F]{2})dp([0-9A-F]{2})ic([0-9A-F]{2})isc([0-9A-F]{2})ip([0-9A-F]{2})in([0-9A-F]{2})$/i);
+  if (!m) throw new Error("a USB modalias looks like usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00");
+  const k = ["vendor", "product", "bcdDevice", "devClass", "devSubClass", "devProtocol", "ifClass", "ifSubClass", "ifProtocol", "ifNumber"]; const o = {}; k.forEach((n, i) => { o[n] = m[i + 1].toUpperCase(); }); return o;
+};
+T.USBCLASS = { "00": "defined per interface", "01": "audio", "02": "communications", "03": "HID (keyboard, mouse …)", "07": "printer", "08": "mass storage", "09": "hub", "0A": "CDC data", "0E": "video", "E0": "wireless", "EF": "miscellaneous", "FF": "vendor specific" };
+
+if (typeof module !== "undefined" && module.exports) module.exports = T; else root.TOOLS = T;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 14: what insmod does to your module's code (a relocation), and what "tainted" means */
+TOOLS_UI.push({
+  id: "reloc", title: "Relocating a module",
+  build(p) {
+    const { el, esc } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">Your module calls <code>_printk</code>, but the compiler does not know where the kernel put it. It leaves 4 zero bytes and a relocation <code>R_X86_64_PLT32 _printk-0x4</code>. At <code>insmod</code> the kernel writes <b>S + A − P</b> there. The default values are the real ones from Lecture 14.1.</p>
+<div class="grid2"><div>
+<label>S: address of the symbol (from /proc/kallsyms) <input id="s14" class="mono" value="ffffffff929b84b0" size="20"></label><br>
+<label>A: addend <input id="a14" class="mono" value="-4" size="6"></label><br>
+<label>P: address of the 4 bytes being patched <input id="p14" class="mono" value="ffffffffc0314026" size="20"></label>
+</div><div id="o14"></div></div>
+<p class="note small">Why −4? The CPU adds the offset to the address of the <b>next</b> instruction, which is 4 bytes after the offset field. A module must lie within ±2 GiB of the kernel for a 32-bit offset to reach it: that is why modules are loaded just above the kernel image.</p>`;
+    const $ = s => p.querySelector(s);
+    const big = s => { s = s.trim().toLowerCase(); const neg = s.startsWith("-"); s = s.replace(/^[-+]/, "").replace(/^0x/, ""); if (!/^[0-9a-f]+$/.test(s)) throw new Error("hex numbers only"); const v = BigInt("0x" + s); return neg ? -v : v; };
+    function go() {
+      const o = $("#o14");
+      try {
+        const S = big($("#s14").value), A = BigInt(parseInt($("#a14").value, 10) || 0), P = big($("#p14").value);
+        const r = T.reloc(S, A, P);
+        o.innerHTML = `<table class="t"><tr><td>S + A − P</td><td class="mono">${r.value < 0n ? "−0x" + (-r.value).toString(16) : "0x" + r.value.toString(16)}</td></tr><tr><td>as a 32-bit value</td><td class="mono"><b>0x${r.v32.toString(16).padStart(8, "0")}</b></td></tr><tr><td>bytes written (little-endian)</td><td class="mono">${r.bytes.map(b => b.toString(16).padStart(2, "0")).join(" ")}</td></tr><tr><td>fits in 32 bits (signed)?</td><td class="${r.fits ? "ok" : "err"}">${r.fits ? "yes" : "no: the module is too far from the kernel"}</td></tr><tr><td>the call then jumps to P + 4 + offset</td><td class="mono">0x${BigInt.asUintN(64, r.target).toString(16)}</td></tr></table>
+<p class="small">objdump of the loaded module shows <code>e8 ${r.bytes.map(b => b.toString(16).padStart(2, "0")).join(" ")}</code> where the file had <code>e8 00 00 00 00</code>.</p>`;
+      } catch (x) { o.innerHTML = `<p class="err">${esc(x.message)}</p>`; }
+    }
+    p.querySelectorAll("input").forEach(i => i.addEventListener("input", go)); go();
+  }
+});
+TOOLS_UI.push({
+  id: "taint", title: "Kernel taint",
+  build(p) {
+    const { el } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">After your first <code>insmod</code>, <code>cat /proc/sys/kernel/tainted</code> is no longer 0, and every oops prints a line like <code>Tainted: G           OE</code>. Type the number or tick the flags (kernel/panic.c, taint_flags).</p>
+<div class="row"><label>/proc/sys/kernel/tainted <input id="t14" class="mono" value="12288" size="10"></label><span id="tl14" class="mono"></span></div>
+<div class="chips" style="margin-top:6px"><button class="chip" data-v="0">0: clean</button><button class="chip" data-v="12288">your lab module (O + E)</button><button class="chip" data-v="12416">… after an oops (D)</button><button class="chip" data-v="4097">a proprietary out-of-tree driver</button></div>
+<div class="scroll"><table class="t" id="tt14" style="margin-top:10px"></table></div>
+<p class="note small">Taint is a note for the people reading a bug report: "this kernel ran code we cannot vouch for". It never clears until reboot. Your modules set O (built outside the kernel tree) and, on a kernel with module signing, E (unsigned).</p>`;
+    const $ = s => p.querySelector(s);
+    let v = 12288;
+    function draw() {
+      const bits = T.decodeTaint(v);
+      $("#tl14").textContent = "Tainted: " + bits.map(b => (b.on || b.bit === 0) ? (b.bit === 0 ? (b.on ? "P" : "G") : b.letter) : " ").join("");
+      const t = $("#tt14"); t.innerHTML = "<tr><th></th><th>bit</th><th>value</th><th>letter</th><th>meaning</th></tr>";
+      bits.forEach(b => { const cb = el("input", { type: "checkbox", "aria-label": "bit " + b.bit }); cb.checked = b.on; cb.addEventListener("change", () => { v = cb.checked ? v + 2 ** b.bit : v - 2 ** b.bit; $("#t14").value = v; draw(); });
+        t.appendChild(el("tr", { class: b.on ? "cur" : "" }, el("td", {}, cb), el("td", { text: String(b.bit) }), el("td", { class: "mono", text: String(2 ** b.bit) }), el("td", { class: "mono", text: b.bit === 0 ? "P / G" : b.letter }), el("td", { class: "small", text: b.help }))); });
+    }
+    $("#t14").addEventListener("input", () => { const n = parseInt($("#t14").value, 10); if (!isNaN(n) && n >= 0) { v = n; draw(); } });
+    p.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => { v = +b.dataset.v; $("#t14").value = v; draw(); }));
+    draw();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "guest/busybox";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="../assets/fonts.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 11 · Virtual Memory · Memory Allocation</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 11: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part,h2{scroll-margin-top:64px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+.dcbar{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:#16233A;font:600 14px var(--sans);border-bottom:1px solid #0A1220}
+.dcbar a,.dcbar select{font:inherit;color:#F3F6FA;background:#21334F;border:1px solid #2E4566;border-radius:8px;height:32px;padding:0 11px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;cursor:pointer}
+.dcbar a:hover,.dcbar select:hover{border-color:#F28C38}
+.dcbar a:focus-visible,.dcbar select:focus-visible{outline:3px solid #F28C38;outline-offset:1px}
+.dcbar .slides{background:#C2410C;border-color:#E0742F}
+.dcbar .dis{opacity:.35;pointer-events:none}
+.dcbar .sp{flex:1}
+.dcbar select{max-width:300px}
+@media (max-width:640px){.dcbar .wide{display:none}.dcbar select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="dcbar" role="navigation" aria-label="Course navigation"><a href="../index.html" title="Course home">⌂<span class="wide">&nbsp;Course</span></a><a class="slides" href="../present/lecture_11.1.html" title="Lecture 11.1: Virtual Memory">◀ Lecture 11.1 slides</a><a class="slides" href="../present/lecture_11.2.html" title="Lecture 11.2: Memory Allocation">◀ 11.2</a><span class="sp"></span><a class="wide" href="lab10.html">◀ Lab 10</a><select aria-label="Go to lab" onchange="location.href=this.value"><option value="lab01.html">Lab 1: C programs that probe the machine</option><option value="lab02.html">Lab 2: your first nasm programs</option><option value="lab03.html">Lab 3: a two-pass SIC assembler in C</option><option value="lab04.html">Lab 4: a macro processor in C</option><option value="lab05.html">Lab 5: a SIC loader in C</option><option value="lab06.html">Lab 6: elfread</option><option value="lab07.html">Lab 7: kinfo (ask the kernel through /proc)</option><option value="lab08.html">Lab 8: mysh, a small shell</option><option value="lab09.html">Lab 9: a C program without the C library</option><option value="lab10.html">Lab 10: pipes in your shell</option><option value="lab11.html" selected>Lab 11: vtop (page tables through /proc/self/pagemap)</option><option value="lab12.html">Lab 12: myls (your own ls -li)</option><option value="lab13.html">Lab 13: irqtop</option><option value="lab14.html">Lab 14: a /proc module and a platform driver, loaded in a virtual machine</option><option value="lab15.html">Lab 15: a character device, a RAM disk and a USB keyboard driver, in a virtual machine</option></select><a href="lab12.html">Lab 12 ▶</a></div>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 11</div>
+<h1>Virtual Memory · Memory Allocation</h1>
+<p>vtop (page tables through /proc/self/pagemap); mymalloc.</p>
+<nav class="navlinks" aria-label="On this page"><a href="lab11_files.zip">Download the lab files (15 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-11-1">
+<div class="phead"><h3>Lab 11.1 <span class="dim">· Virtual Memory</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_11.1.html">Present lecture 11.1</a>
+<a class="btn" href="../slides/lecture_11.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>TODO 1 in vtop_starter.c: split v into the four 9-bit indices and the 12-bit offset</li>
+<li>TODO 2: read the 8-byte pagemap entry at offset (v / 4096) × 8 with pread</li>
+<li>TODO 3: decode bits 63 (present), 61 (file), 56 (only mine), 0–54 (frame)</li>
+<li>TODO 4: physical address = frame × 4096 + offset</li>
+<li>Run with sudo. Then: add a fork() and look at global_var before and after the child writes it</li>
+</ol>
+<p class="cap">sudo ./vtop  (real, shortened)</p><pre>name           [pgd pud pmd pte] offset
+main (code)    [171  69   8 502] +0x388
+   present  file 1  only mine 1
+printf (libc)  [255 482 169  96] +0x100
+   present  file 1  only mine 0
+global_var     [171  69   8 505] +0x010
+   present  file 0  only mine 1
+malloc(64)     [171  69 459 503] +0x2a0
+   present  file 0  only mine 1
+big, untouched [255 482 164   4] +0x010
+   not present
+big, touched   [255 482 164   4] +0x010
+   present  frame 0x135111
+   physical 0x135111010</pre>
+<p class="note">Without root every frame reads as 0: the kernel hides physical addresses from normal users. The present, file and &quot;only mine&quot; bits still work.</p>
+</section>
+<section class="card part" id="part-11-2">
+<div class="phead"><h3>Lab 11.2 <span class="dim">· Memory Allocation</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_11.2.html">Present lecture 11.2</a>
+<a class="btn" href="../slides/lecture_11.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>TODO 2 first (grow): sbrk(HDR_ALIGNED + n), fill in the header, append it to the list</li>
+<li>TODO 1 find_fit: walk the list; return the first free block with size ≥ n</li>
+<li>TODO 3 split: if the block is much bigger than n, cut the rest into a new free block</li>
+<li>TODO 4 free: mark it free; merge with the next block while it is free and adjacent</li>
+<li>Compare your heap dumps with the expected ones; then strace -e trace=brk ./mymalloc</li>
+</ol>
+<p class="cap">./mymalloc  (reference; real, shortened)</p><pre>1. a = 100, b = 1000, c = 50 bytes:
+   +0x000: 112 used  +0x090: 1008 used
+   +0x4a0:  64 used   break +0x500
+2. free(b):  +0x090: 1008 FREE
+3. d = malloc(200): first fit + split
+   +0x090: 208 used  +0x180: 768 FREE
+4. free(d): merges: +0x090: 1008 FREE
+5. free(a); e = malloc(3000):
+   +0x000: 1152 FREE  +0x4a0: 64 used
+   +0x500: 3008 used  break +0x10e0
+c still holds &quot;C&quot;</pre>
+<p class="note">Why a static stdout buffer? printf would call malloc for its buffer, and glibc&#x27;s malloc would move the same program break: two allocators fighting over one heap.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab11_files.zip">lab11_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab11_files.zip">Download lab11_files.zip (15 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab10.html">← Lab 10</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab12.html">Lab 12 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 11, "readme": "CSE 4105 System Programming - Lab 11 (Lectures 11.1 and 11.2): virtual memory and memory allocation\n====================================================================================================\nWorks offline. Needs: gcc, strace (gdb optional). Tested with gcc 13.3 and glibc 2.39 (Ubuntu 24.04).\n\nLAB 11.1  vtop: virtual address -> page-table indices -> physical frame\n  gcc -Wall -O0 -o vtop vtop_starter.c && sudo ./vtop\n  TODO 1 split the address into 4 x 9-bit indices + 12-bit offset\n  TODO 2 pread the 8-byte entry for the page from /proc/self/pagemap\n  TODO 3 decode the bits: 63 present, 62 swapped, 56 \"only mine\" (exclusively mapped), 0-54 frame number\n  TODO 4 physical address = frame * 4096 + offset\n  Without root the kernel hides frame numbers (they read as 0). If students have no sudo on the lab PCs,\n  build it static (gcc -static) and run it as root inside the QEMU guest from Lab 7.\n  Then: add a fork() and look at global_var in parent and child before and after the child writes it.\n\nLAB 11.2  mymalloc: your own malloc on top of sbrk\n  gcc -Wall -O0 -o mymalloc mymalloc_starter.c && ./mymalloc\n  (gcc warns that \"last\" is unused until TODO 2: expected. Until TODO 2 is done the program says so and stops.)\n  TODO 2 grow: sbrk(header + n), fill in the header, append to the list   (do this one first)\n  TODO 1 find_fit: first free block with size >= n\n  TODO 3 split: if the block is much bigger than n, cut the rest into a new free block\n  TODO 4 free: mark it free; merge with the next block while it is free and adjacent\n  Test:  ./mymalloc       strace -e trace=brk ./mymalloc\n  The program uses a static stdout buffer on purpose: printf would otherwise call glibc malloc,\n  and two allocators would fight over the same program break.\n\nDEMO PROGRAMS (demo/), the ones on the slides:\n  cd demo && for f in *.c; do gcc -Wall -O2 -o ${f%.c} $f; done\n  then rebuild these two at -O0 (at -O2 gcc removes or changes the very bug we want to see):\n    gcc -Wall -O0 -o segv2 segv2.c\n    gcc -Wall -O0 -o bugs bugs.c        and with AddressSanitizer:   gcc -O0 -g -fsanitize=address -o bugs_asan bugs.c\n  (gcc -Wall warns about bugs.c: use-after-free and overflow. That is the point: read the warnings.)\n  11.1: vmphys (sudo for frame numbers)  layout  rss  major  cow  segv2  mmapfile\n  11.2: mallocsz (try: strace -e trace=brk,mmap,munmap ./mallocsz)  chunk  bugs double|overflow|uaf\n        overcommit: \"./overcommit\" tries big mallocs; \"./overcommit touch 600\" touches 600 MiB.\n        CAREFUL: touch mode on a lab PC can start the OOM killer. Use a size below free RAM,\n        or run it in the QEMU guest (512 MiB), as on the slides.\n\nHOMEWORK (homework/):\n  gcc -Wall -O2 -o thp thp.c\n  gcc -Wall -O0 -Wno-infinite-recursion -o deep deep.c       (try ulimit -s first; then ulimit -s 16384)\n  gcc -Wall -O2 -o usable usable.c      (a -Warray-bounds warning is expected: it reads the chunk header at p[-1] on purpose)\n  gcc -Wall -O2 -o threshold threshold.c && strace -e trace=brk,mmap,munmap ./threshold\n  thp shows huge pages only if /sys/kernel/mm/transparent_hugepage/enabled is \"madvise\" or \"always\".\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 11 (Lectures 11.1 and 11.2): virtual memory and memory allocation\n====================================================================================================\nWorks offline. Needs: gcc, strace (gdb optional). Tested with gcc 13.3 and glibc 2.39 (Ubuntu 24.04).\n\nLAB 11.1  vtop: virtual address -> page-table indices -> physical frame\n  gcc -Wall -O0 -o vtop vtop_starter.c && sudo ./vtop\n  TODO 1 split the address into 4 x 9-bit indices + 12-bit offset\n  TODO 2 pread the 8-byte entry for the page from /proc/self/pagemap\n  TODO 3 decode the bits: 63 present, 62 swapped, 56 \"only mine\" (exclusively mapped), 0-54 frame number\n  TODO 4 physical address = frame * 4096 + offset\n  Without root the kernel hides frame numbers (they read as 0). If students have no sudo on the lab PCs,\n  build it static (gcc -static) and run it as root inside the QEMU guest from Lab 7.\n  Then: add a fork() and look at global_var in parent and child before and after the child writes it.\n\nLAB 11.2  mymalloc: your own malloc on top of sbrk\n  gcc -Wall -O0 -o mymalloc mymalloc_starter.c && ./mymalloc\n  (gcc warns that \"last\" is unused until TODO 2: expected. Until TODO 2 is done the program says so and stops.)\n  TODO 2 grow: sbrk(header + n), fill in the header, append to the list   (do this one first)\n  TODO 1 find_fit: first free block with size >= n\n  TODO 3 split: if the block is much bigger than n, cut the rest into a new free block\n  TODO 4 free: mark it free; merge with the next block while it is free and adjacent\n  Test:  ./mymalloc       strace -e trace=brk ./mymalloc\n  The program uses a static stdout buffer on purpose: printf would otherwise call glibc malloc,\n  and two allocators would fight over the same program break.\n\nDEMO PROGRAMS (demo/), the ones on the slides:\n  cd demo && for f in *.c; do gcc -Wall -O2 -o ${f%.c} $f; done\n  then rebuild these two at -O0 (at -O2 gcc removes or changes the very bug we want to see):\n    gcc -Wall -O0 -o segv2 segv2.c\n    gcc -Wall -O0 -o bugs bugs.c        and with AddressSanitizer:   gcc -O0 -g -fsanitize=address -o bugs_asan bugs.c\n  (gcc -Wall warns about bugs.c: use-after-free and overflow. That is the point: read the warnings.)\n  11.1: vmphys (sudo for frame numbers)  layout  rss  major  cow  segv2  mmapfile\n  11.2: mallocsz (try: strace -e trace=brk,mmap,munmap ./mallocsz)  chunk  bugs double|overflow|uaf\n        overcommit: \"./overcommit\" tries big mallocs; \"./overcommit touch 600\" touches 600 MiB.\n        CAREFUL: touch mode on a lab PC can start the OOM killer. Use a size below free RAM,\n        or run it in the QEMU guest (512 MiB), as on the slides.\n\nHOMEWORK (homework/):\n  gcc -Wall -O2 -o thp thp.c\n  gcc -Wall -O0 -Wno-infinite-recursion -o deep deep.c       (try ulimit -s first; then ulimit -s 16384)\n  gcc -Wall -O2 -o usable usable.c      (a -Warray-bounds warning is expected: it reads the chunk header at p[-1] on purpose)\n  gcc -Wall -O2 -o threshold threshold.c && strace -e trace=brk,mmap,munmap ./threshold\n  thp shows huge pages only if /sys/kernel/mm/transparent_hugepage/enabled is \"madvise\" or \"always\".\n", "demo/bugs.c": "/* bugs.c - three classic heap bugs: ./bugs double | overflow | uaf */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\nint main(int argc, char *argv[])\n{\n    const char *what = argc > 1 ? argv[1] : \"double\";\n    if (strcmp(what, \"double\") == 0) {            /* free the same pointer twice */\n        char *p = malloc(32);\n        free(p);\n        free(p);\n    } else if (strcmp(what, \"overflow\") == 0) {   /* write past the end: into the next chunk's header */\n        char *p = malloc(24);\n        memset(p, 'A', 24 + 8 + 8);               /* 16 bytes too many */\n        char *q = malloc(5000);                   /* malloc now trips over the damage */\n        printf(\"q = %p\\n\", (void *)q);\n    } else {                                      /* use after free */\n        char *p = malloc(32);\n        strcpy(p, \"secret\");\n        free(p);\n        char *q = malloc(32);                     /* gets the same chunk back */\n        strcpy(q, \"new data\");\n        printf(\"p still points to: \\\"%s\\\"\\n\", p);\n    }\n    printf(\"%s: the program went on\\n\", what);\n    return 0;\n}\n", "demo/chunk.c": "/* chunk.c - look at glibc's chunk headers: the 8 bytes just before what malloc returns */\n#include <malloc.h>\n#include <stdio.h>\n#include <stdlib.h>\nstatic void show(const char *name, void *p)\n{\n    size_t field = ((size_t *)p)[-1];                     /* the size field of this chunk */\n    printf(\"%-6s %p  size field 0x%03zx = chunk %4zu bytes, flags %zu   usable %zu\\n\",\n           name, p, field, field & ~(size_t)7, field & 7, malloc_usable_size(p));\n}\nint main(void)\n{\n    char *a = malloc(1), *b = malloc(24), *c = malloc(25), *d = malloc(100);\n    show(\"a(1)\", a); show(\"b(24)\", b); show(\"c(25)\", c); show(\"d(100)\", d);\n    printf(\"b - a = %ld, c - b = %ld, d - c = %ld\\n\", (long)(b - a), (long)(c - b), (long)(d - c));\n    free(b);\n    char *e = malloc(20);                                 /* same size class as b */\n    printf(\"free(b); malloc(20) = %p  (%s)\\n\", (void *)e, e == b ? \"the same place as b\" : \"somewhere else\");\n    char *big = malloc(200000);\n    show(\"big\", big);\n    return 0;\n}\n", "demo/cow.c": "/* cow.c - copy-on-write, counted: who pays for the copy, and when? */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/resource.h>\n#include <sys/wait.h>\n#include <time.h>\n#include <unistd.h>\n#define SIZE (100L * 1024 * 1024)\nstatic long minflt(void) { struct rusage u; getrusage(RUSAGE_SELF, &u); return u.ru_minflt; }\nstatic double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec * 1e3 + t.tv_nsec / 1e6; }\nint main(void)\n{\n    char *p = malloc(SIZE);\n    memset(p, 1, SIZE);                           /* 25600 pages, all present */\n    double t0 = now();\n    pid_t pid = fork();\n    if (pid == 0) {\n        long f0 = minflt();\n        double t1 = now();\n        volatile long s = 0;\n        for (long i = 0; i < SIZE; i += 4096) s += p[i];          /* only read */\n        printf(\"child read 100 MiB:   %6ld page faults  %6.1f ms\\n\", minflt() - f0, now() - t1);\n        f0 = minflt(); t1 = now();\n        for (long i = 0; i < SIZE; i += 4096) p[i] = 2;           /* write: copy each page */\n        printf(\"child wrote 100 MiB:  %6ld page faults  %6.1f ms\\n\", minflt() - f0, now() - t1);\n        f0 = minflt(); t1 = now();\n        for (long i = 0; i < SIZE; i += 4096) p[i] = 3;           /* write again: already private */\n        printf(\"child wrote it again: %6ld page faults  %6.1f ms\\n\", minflt() - f0, now() - t1);\n        return 0;\n    }\n    printf(\"fork took %.2f ms\\n\", now() - t0);\n    fflush(stdout);\n    wait(NULL);\n    printf(\"parent still sees p[0] = %d\\n\", p[0]);\n    return 0;\n}\n", "demo/layout.c": "/* layout.c - where does each kind of C variable live? Compare with /proc/self/maps */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\nint global_init = 42;          /* .data */\nint global_zero;               /* .bss  */\nconst char *text = \"hello\";    /* the string is in .rodata */\nint main(void)\n{\n    int local = 1;                                /* the stack */\n    char *small = malloc(100);                    /* the heap (brk) */\n    char *big = malloc(1 << 20);                  /* 1 MiB: its own mmap */\n    printf(\"main (code)     %p\\n\", (void *)main);\n    printf(\"\\\"hello\\\" rodata  %p\\n\", (void *)text);\n    printf(\"global_init     %p\\n\", (void *)&global_init);\n    printf(\"global_zero     %p\\n\", (void *)&global_zero);\n    printf(\"malloc(100)     %p\\n\", (void *)small);\n    printf(\"malloc(1 MiB)   %p\\n\", (void *)big);\n    printf(\"printf (libc)   %p\\n\", (void *)printf);\n    printf(\"local (stack)   %p\\n\", (void *)&local);\n    fflush(stdout);\n    char line[512];                               /* now the map, line by line */\n    FILE *f = fopen(\"/proc/self/maps\", \"r\");\n    while (fgets(line, sizeof line, f)) {\n        char range[64], perms[8], path[256] = \"\";\n        unsigned long off;\n        if (sscanf(line, \"%63s %7s %lx %*s %*s %255s\", range, perms, &off, path) >= 3)\n            printf(\"  %-34s %s  %s\\n\", range, perms, path);\n    }\n    fclose(f);\n    return 0;\n}\n", "demo/major.c": "/* major.c - read a file through mmap: minor faults (in RAM) or major faults (from disk)? */\n#define _GNU_SOURCE\n#include <fcntl.h>\n#include <stdio.h>\n#include <sys/mman.h>\n#include <sys/resource.h>\n#include <sys/stat.h>\n#include <unistd.h>\nstatic void faults(const char *when, long *mi, long *ma)\n{\n    struct rusage u;\n    getrusage(RUSAGE_SELF, &u);\n    if (when) printf(\"%-34s %6ld minor  %5ld major\\n\", when, u.ru_minflt - *mi, u.ru_majflt - *ma);\n    *mi = u.ru_minflt; *ma = u.ru_majflt;\n}\nstatic volatile long sink;\nstatic void touch(const char *p, long n) { long s = 0; for (long i = 0; i < n; i += 4096) s += p[i]; sink = s; }\nint main(int argc, char *argv[])\n{\n    const char *path = argc > 1 ? argv[1] : \"/usr/bin/gdb\";\n    int fd = open(path, O_RDONLY);\n    struct stat st;\n    fstat(fd, &st);\n    long mi, ma;\n    printf(\"%s: %ld bytes = %ld pages\\n\", path, (long)st.st_size, (long)(st.st_size + 4095) / 4096);\n    posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED);          /* ask the kernel to drop it from the page cache */\n    char *p = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);\n    madvise(p, st.st_size, MADV_RANDOM);                    /* no read-ahead: one fault per page */\n    faults(NULL, &mi, &ma);\n    touch(p, st.st_size);\n    faults(\"first pass (from disk)\", &mi, &ma);\n    munmap(p, st.st_size);\n    p = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);\n    madvise(p, st.st_size, MADV_RANDOM);\n    faults(NULL, &mi, &ma);\n    touch(p, st.st_size);\n    faults(\"second pass (page cache)\", &mi, &ma);\n    return 0;\n}\n", "demo/mallocsz.c": "/* mallocsz.c - which malloc sizes ask the kernel for memory, and how? Run: strace ./mallocsz */\n#include <stdio.h>\n#include <stdlib.h>\n#include <unistd.h>\nint main(void)\n{\n    size_t sizes[] = { 100, 1000, 100000, 200000, 1 << 20 };\n    for (int i = 0; i < 5; i++) {\n        char msg[64];\n        int n = snprintf(msg, sizeof msg, \"--- malloc(%zu)\\n\", sizes[i]);\n        if (write(2, msg, n) < 0) return 1;      /* a marker in strace's output */\n        void *p = malloc(sizes[i]);\n        printf(\"malloc(%7zu) = %p\\n\", sizes[i], p);\n    }\n    return 0;\n}\n", "demo/mmapfile.c": "/* mmapfile.c - a file as an array: count lines with mmap, then change a byte with MAP_SHARED */\n#include <fcntl.h>\n#include <stdio.h>\n#include <string.h>\n#include <sys/mman.h>\n#include <sys/stat.h>\n#include <unistd.h>\nint main(int argc, char *argv[])\n{\n    const char *path = argc > 1 ? argv[1] : \"/usr/include/stdio.h\";\n    int fd = open(path, O_RDONLY);\n    struct stat st;\n    fstat(fd, &st);\n    const char *p = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);   /* no read() at all */\n    long lines = 0;\n    for (off_t i = 0; i < st.st_size; i++)\n        if (p[i] == '\\n') lines++;                /* the file IS this array */\n    printf(\"%s: %ld bytes, %ld lines, mapped at %p\\n\", path, (long)st.st_size, lines, (void *)p);\n    munmap((void *)p, st.st_size);\n    close(fd);\n\n    /* MAP_SHARED: writing to memory writes the file */\n    int out = open(\"/tmp/shared.txt\", O_RDWR | O_CREAT | O_TRUNC, 0644);\n    if (write(out, \"hello, file\\n\", 12) != 12) return 1;\n    char *q = mmap(NULL, 12, PROT_READ | PROT_WRITE, MAP_SHARED, out, 0);\n    q[0] = 'J';                                   /* a plain memory store */\n    munmap(q, 12);\n    close(out);\n    return 0;\n}\n", "demo/overcommit.c": "/* overcommit.c - ask for more memory than the machine has; then (with \"touch\") really use it */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\nint main(int argc, char *argv[])\n{\n    if (argc > 1 && strcmp(argv[1], \"touch\") == 0) {      /* really use N MiB, 10 MiB at a time */\n        long mb = argc > 2 ? atol(argv[2]) : 600;\n        for (long done = 0; done < mb; done += 10) {\n            char *p = malloc(10L << 20);\n            if (!p) { printf(\"malloc failed at %ld MiB\\n\", done); return 1; }\n            memset(p, 1, 10L << 20);                       /* now the pages are real */\n            if (done % 100 == 0) { printf(\"touched %ld MiB\\n\", done); fflush(stdout); }\n        }\n        printf(\"touched all %ld MiB\\n\", mb);\n        return 0;\n    }\n    for (long gb = 1; gb <= 1024; gb *= 2) {               /* only ask, never touch */\n        void *p = malloc(gb << 30);\n        printf(\"malloc(%5ld GiB) %s\\n\", gb, p ? \"succeeded\" : \"FAILED\");\n        free(p);\n        if (!p) break;\n    }\n    return 0;\n}\n", "demo/rss.c": "/* rss.c - malloc 100 MiB: when does it really use memory? */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/resource.h>\n#define MB (1024L * 1024)\nstatic void show(const char *when)\n{\n    char line[256];\n    long rss = 0;\n    FILE *f = fopen(\"/proc/self/status\", \"r\");\n    while (fgets(line, sizeof line, f))\n        if (sscanf(line, \"VmRSS: %ld kB\", &rss) == 1) break;\n    fclose(f);\n    struct rusage u;\n    getrusage(RUSAGE_SELF, &u);\n    printf(\"%-28s VmRSS %7ld kB   page faults so far: %6ld minor, %ld major\\n\", when, rss, u.ru_minflt, u.ru_majflt);\n    fflush(stdout);\n}\nint main(void)\n{\n    show(\"start\");\n    char *p = malloc(100 * MB);\n    show(\"after malloc(100 MiB)\");\n    for (long i = 0; i < 50 * MB; i += 4096) p[i] = 1;   /* touch one byte per page */\n    show(\"after touching 50 MiB\");\n    for (long i = 50 * MB; i < 100 * MB; i += 4096) p[i] = 1;\n    show(\"after touching 100 MiB\");\n    for (long i = 0; i < 100 * MB; i += 4096) p[i] = 2;\n    show(\"touching it all again\");\n    free(p);\n    show(\"after free\");\n    return 0;\n}\n", "demo/segv2.c": "/* segv2.c - three bad accesses: what does the kernel say about each? */\n#define _GNU_SOURCE\n#include <setjmp.h>\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\nstatic sigjmp_buf back;\nstatic volatile void *addr;\nstatic volatile int code;\nstatic void on_segv(int sig, siginfo_t *si, void *ctx)\n{\n    (void)sig; (void)ctx;\n    addr = si->si_addr;                           /* the address that faulted */\n    code = si->si_code;                           /* why: not mapped, or not allowed */\n    siglongjmp(back, 1);                          /* do not return to the bad instruction */\n}\nstatic void try(const char *what, void (*f)(void))\n{\n    if (sigsetjmp(back, 1) == 0) { f(); printf(\"%-30s no fault\\n\", what); return; }\n    printf(\"%-30s SIGSEGV at %p  si_code %d = %s\\n\", what, (void *)addr, code,\n           code == SEGV_MAPERR ? \"SEGV_MAPERR (nothing mapped there)\" :\n           code == SEGV_ACCERR ? \"SEGV_ACCERR (mapped, but not allowed)\" : \"?\");\n}\nstatic void null_read(void) { volatile int *p = NULL; (void)*p; }\nstatic void far_away(void) { volatile int *p = (int *)0x123456789000; (void)*p; }\nstatic void write_literal(void) { char *s = (char *)\"hello\"; s[0] = 'J'; }\nstatic void write_code(void) { volatile unsigned char *c = (unsigned char *)try; c[0] = 0x90; }\nint main(void)\n{\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_sigaction = on_segv;\n    sa.sa_flags = SA_SIGINFO;\n    sigaction(SIGSEGV, &sa, NULL);\n    try(\"read *NULL\", null_read);\n    try(\"read 0x123456789000\", far_away);\n    try(\"write into \\\"hello\\\" (rodata)\", write_literal);\n    try(\"write into the code of try()\", write_code);\n    return 0;\n}\n", "demo/vmphys.c": "/* vmphys.c - same virtual address in parent and child: same physical page? */\n#include <fcntl.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <unistd.h>\n#include <sys/wait.h>\nstatic int x = 1;\nstatic void where(const char *who)\n{\n    uint64_t e = 0;\n    int fd = open(\"/proc/self/pagemap\", O_RDONLY);\n    uintptr_t v = (uintptr_t)&x;\n    if (pread(fd, &e, 8, (v / 4096) * 8) != 8) e = 0;   /* one 8-byte entry per virtual page */\n    close(fd);\n    uint64_t pfn = e & ((1ULL << 55) - 1);               /* bits 0-54: the physical frame number */\n    printf(\"%-14s &x = %p  x = %d  present %d  only mine %d  frame 0x%llx\\n\", who, (void *)&x, x,\n           (int)(e >> 63), (int)(e >> 56 & 1), (unsigned long long)pfn);\n    fflush(stdout);\n}\nint main(void)\n{\n    where(\"parent\");\n    if (fork() == 0) {\n        where(\"child, before\");\n        x = 2;                                    /* the first write: copy-on-write */\n        where(\"child, after\");\n        return 0;\n    }\n    wait(NULL);\n    where(\"parent, end\");\n    return 0;\n}\n", "homework/deep.c": "/* deep.c - how deep can recursion go before the stack runs out? */\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\nstatic volatile long depth;\nstatic char altstack[65536];\nstatic void on_segv(int s) { (void)s; char m[80]; int n = snprintf(m, sizeof m, \"SIGSEGV at depth %ld (about %ld KiB of stack)\\n\", depth, depth); if (write(1, m, n) < 0) {} _exit(1); }\n__attribute__((noinline)) static long dive(long n)   /* infinite on purpose */\n{\n    volatile char frame[1000];                    /* about 1 KiB per call */\n    frame[0] = (char)n;\n    depth = n;\n    return dive(n + 1) + frame[0];\n}\nint main(void)\n{\n    stack_t ss = { .ss_sp = altstack, .ss_size = sizeof altstack };\n    sigaltstack(&ss, NULL);                       /* the handler needs a stack of its own: the normal one is full */\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_handler = on_segv;\n    sa.sa_flags = SA_ONSTACK;\n    sigaction(SIGSEGV, &sa, NULL);\n    return (int)dive(1);\n}\n", "homework/thp.c": "/* thp.c - 100 MiB with 4 KiB pages, then with 2 MiB huge pages: count the page faults */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <sys/mman.h>\n#include <sys/resource.h>\n#define SIZE (100L << 20)\nstatic long minflt(void) { struct rusage u; getrusage(RUSAGE_SELF, &u); return u.ru_minflt; }\nint main(void)\n{\n    for (int huge = 0; huge < 2; huge++) {\n        char *p = aligned_alloc(2L << 20, SIZE);              /* 2 MiB aligned, so huge pages can fit */\n        if (huge) madvise(p, SIZE, MADV_HUGEPAGE);           /* please use 2 MiB pages here */\n        long f0 = minflt();\n        memset(p, 1, SIZE);\n        printf(\"%-16s %6ld page faults\\n\", huge ? \"MADV_HUGEPAGE:\" : \"normal 4 KiB:\", minflt() - f0);\n        free(p);\n    }\n    return 0;\n}\n", "homework/threshold.c": "/* threshold.c - malloc(200000), free, and again: does it still use mmap? Run with strace -e trace=brk,mmap,munmap */\n#include <stdio.h>\n#include <stdlib.h>\n#include <unistd.h>\nint main(void)\n{\n    for (int i = 1; i <= 3; i++) {\n        if (write(2, \"--- malloc(200000)\\n\", 19) < 0) return 1;\n        char *p = malloc(200000);\n        p[0] = 1;\n        printf(\"round %d: %p\\n\", i, (void *)p);\n        free(p);\n    }\n    return 0;\n}\n", "homework/usable.c": "/* usable.c - how many bytes does malloc really give you? */\n#include <malloc.h>\n#include <stdio.h>\n#include <stdlib.h>\nint main(void)\n{\n    size_t req[] = { 0, 1, 24, 25, 40, 41, 1000 };\n    for (int i = 0; i < 7; i++) {\n        void *p = malloc(req[i]);\n        printf(\"malloc(%4zu): usable %4zu, chunk %4zu\\n\", req[i], malloc_usable_size(p), ((size_t *)p)[-1] & ~(size_t)7);\n    }\n    return 0;\n}\n", "mymalloc_starter.c": "/*\n * mymalloc.c - a small malloc and free of our own, on top of sbrk()\n * CSE 4105 System Programming, Lab 11.2   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -O0 -o mymalloc mymalloc.c\n * Run:    ./mymalloc            then:  strace -e trace=brk ./mymalloc\n *\n * Design: every block starts with a header; all blocks are in one list, in address order.\n *         malloc = first fit (+ split a big free block); free = mark free (+ merge with the next free block).\n */\n#include <stdio.h>\n#include <stdint.h>\n#include <string.h>\n#include <unistd.h>\n\nstruct header {\n    size_t size;                 /* bytes of user data after this header */\n    struct header *next;         /* the next block in the list (= in memory, unless the heap had a gap) */\n    int free;                    /* 1 = free, 0 = in use */\n};\n#define HDR sizeof(struct header)          /* 24 bytes; we round it to 32 to keep data 16-aligned */\n#define HDR_ALIGNED 32\n#define MIN_SPLIT 32                       /* do not leave free pieces smaller than this */\n\nstatic struct header *first, *last;\n\nstatic size_t align16(size_t n) { return (n + 15) & ~(size_t)15; }\nstatic void *data_of(struct header *h) { return (char *)h + HDR_ALIGNED; }\nstatic struct header *header_of(void *p) { return (struct header *)((char *)p - HDR_ALIGNED); }\n\nstatic struct header *find_fit(size_t n)            /* first fit: the first free block that is big enough */\n{\n    /* TODO 1: walk the list from \"first\"; return the first block that is free and has size >= n */\n    (void)n;\n    return NULL;\n}\n\nstatic struct header *grow(size_t n)                /* ask the kernel for more heap */\n{\n    /* TODO 2: h = sbrk(HDR_ALIGNED + n): the old program break is the start of the new block.\n     *         sbrk returns (void *)-1 on failure. Fill in size, next = NULL, free = 0,\n     *         and append the block at the end of the list (update first/last).                  */\n    (void)n;\n    return NULL;\n}\n\nstatic void split(struct header *h, size_t n)       /* cut the unused end of a big block into a new free block */\n{\n    /* TODO 3: if the block is big enough (h->size >= n + HDR_ALIGNED + MIN_SPLIT), make a new free block\n     *         \"rest\" that starts right after the first n bytes of data, link it after h, and shrink h.\n     *         Draw it on paper first!                                                               */\n    (void)h; (void)n;\n}\n\nvoid *my_malloc(size_t n)\n{\n    if (n == 0) return NULL;\n    n = align16(n);\n    struct header *h = find_fit(n);\n    if (h) {\n        h->free = 0;\n        split(h, n);\n    } else {\n        h = grow(n);\n        if (!h) return NULL;\n    }\n    return data_of(h);\n}\n\nvoid my_free(void *p)\n{\n    if (!p) return;\n    struct header *h = header_of(p);\n    /* TODO 4: mark h free. Then, while the next block is free AND starts exactly where h's data ends,\n     *         merge it into h: h->size grows by HDR_ALIGNED + next->size; unlink next (update last). */\n    (void)h;\n}\n\nstatic void dump(const char *title)                  /* print the heap, block by block */\n{\n    printf(\"%s\\n\", title);\n    for (struct header *h = first; h; h = h->next)\n        printf(\"   block at %p: data %p, %5zu bytes, %s\\n\", (void *)h, data_of(h), h->size, h->free ? \"FREE\" : \"used\");\n    printf(\"   program break now %p\\n\", sbrk(0));\n}\n\nint main(void)\n{\n    static char outbuf[4096];\n    setvbuf(stdout, outbuf, _IOLBF, sizeof outbuf);  /* a static buffer: printf must not call malloc */\n\n    char *a = my_malloc(100), *b = my_malloc(1000), *c = my_malloc(50);\n    if (!a || !b || !c) { printf(\"my_malloc returned NULL: start with TODO 2 (grow)\\n\"); return 1; }\n    strcpy(a, \"A\"); strcpy(b, \"B\"); strcpy(c, \"C\");\n    dump(\"1. a = 100, b = 1000, c = 50 bytes:\");\n    my_free(b);\n    dump(\"2. free(b):\");\n    char *d = my_malloc(200);\n    dump(\"3. d = malloc(200): first fit takes b's place and splits it:\");\n    my_free(d);\n    dump(\"4. free(d): it merges with the free rest:\");\n    my_free(a);\n    char *e = my_malloc(3000);\n    dump(\"5. free(a); e = malloc(3000): nothing fits, the heap grows:\");\n    printf(\"c still holds \\\"%s\\\", e is %p\\n\", c, (void *)e);\n    return 0;\n}\n", "vtop_starter.c": "/*\n * vtop.c - virtual to physical: ask /proc/self/pagemap where each page really is\n * CSE 4105 System Programming, Lab 11.1   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -O0 -o vtop vtop.c\n * Run:    sudo ./vtop        (without root, every frame number reads as 0; the other bits still work)\n */\n#include <fcntl.h>\n#include <stdint.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n\n#define PAGE 4096UL\nstatic int pagemap_fd;\nint global_var = 7;\n\n/* print one address: its page-table indices, and what pagemap says about its page */\nstatic void lookup(const char *name, const void *ptr)\n{\n    uintptr_t v = (uintptr_t)ptr;\n\n    /* TODO 1: x86-64 uses 4 levels: 9 + 9 + 9 + 9 bits of index, then 12 bits of offset.\n     *         pgd = bits 47-39, pud = bits 38-30, pmd = bits 29-21, pte = bits 20-12, off = bits 11-0.\n     *         Hint: (v >> 39) & 511                                                               */\n    unsigned pgd = 0, pud = 0, pmd = 0, pte = 0;\n    unsigned off = 0;\n\n    /* TODO 2: pagemap has one 8-byte entry per virtual page. Read the entry for v with\n     *         pread(pagemap_fd, &e, 8, offset); the offset is (v / PAGE) * 8.                     */\n    uint64_t e = 0;\n\n    /* TODO 3: decode the entry (Linux: Documentation/admin-guide/mm/pagemap.rst):\n     *         bit 63 present, bit 61 file page or shared, bit 56 mapped only by this process,\n     *         bits 0-54 the physical frame number (PFN).                                          */\n    int present = 0, file = 0, mine = 0;\n    uint64_t pfn = 0;\n    (void)v; (void)e;\n\n    printf(\"%-16s %14p  [%3u %3u %3u %3u] +0x%03x  \", name, ptr, pgd, pud, pmd, pte, off);\n    if (!present)\n        printf(\"not present\\n\");\n    else\n        /* TODO 4: the physical address is the frame's start (pfn * PAGE) plus the offset */\n        printf(\"present  file %d  only mine %d  frame 0x%-7llx physical 0x%llx\\n\", file, mine,\n               (unsigned long long)pfn, 0ULL);\n}\n\nint main(void)\n{\n    pagemap_fd = open(\"/proc/self/pagemap\", O_RDONLY);\n    if (pagemap_fd < 0) { perror(\"/proc/self/pagemap\"); return 1; }\n\n    int local = 1;\n    char *small = malloc(64);\n    char *big = malloc(10 << 20);                 /* 10 MiB: mmap, not touched yet */\n    printf(\"name             virtual         [pgd pud pmd pte] offset\\n\");\n    lookup(\"main (code)\", (void *)main);\n    lookup(\"printf (libc)\", (void *)printf);\n    lookup(\"global_var\", &global_var);\n    lookup(\"local\", &local);\n    lookup(\"malloc(64)\", small);\n    lookup(\"big, untouched\", big + 5 * 4096);\n    big[5 * 4096] = 1;                            /* the first write: a page fault gives it a frame */\n    lookup(\"big, touched\", big + 5 * 4096);\n    return 0;\n}\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* tools.js - small, tested calculators used by the interactive labs (Lectures 1, 7-15).
+   Every constant comes from the Linux v6.8 source or the C/x86-64 ABI; see the lab pages for the files. */
+(function (root) {
+"use strict";
+const T = {};
+const hx = (v, w = 0) => (typeof v === "bigint" ? BigInt.asUintN(64, v) : BigInt(v >>> 0)).toString(16).padStart(w, "0");
+T.hx = hx;
+
+/* ---------------- Lecture 1: C types in memory (x86-64, LP64, little-endian) ---------------- */
+T.CTYPES = {
+  "char": { size: 1, signed: true, int: true }, "unsigned char": { size: 1, signed: false, int: true },
+  "short": { size: 2, signed: true, int: true }, "unsigned short": { size: 2, signed: false, int: true },
+  "int": { size: 4, signed: true, int: true }, "unsigned int": { size: 4, signed: false, int: true },
+  "long": { size: 8, signed: true, int: true }, "unsigned long": { size: 8, signed: false, int: true },
+  "float": { size: 4, int: false }, "double": { size: 8, int: false }, "pointer (void *)": { size: 8, signed: false, int: true }
+};
+/* bytes as C would store the value (integers wrap modulo 2^bits, like a conversion to that type) */
+T.cBytes = function (text, type) {
+  const t = T.CTYPES[type]; const n = t.size; const bytes = new Uint8Array(n);
+  let note = "";
+  if (t.int) {
+    let v;
+    const s = String(text).trim();
+    if (/^'.'$/.test(s)) v = BigInt(s.charCodeAt(1));
+    else if (/^[-+]?(0x[0-9a-f]+|\d+)$/i.test(s)) { const neg = s.startsWith("-"); v = BigInt(s.replace(/^[-+]/, "")); if (neg) v = -v; }
+    else throw new Error("type an integer, e.g. 1000, -1, 0x7f or 'A'");
+    const bits = BigInt(8 * n);
+    const u = BigInt.asUintN(8 * n, v);
+    const back = t.signed ? BigInt.asIntN(8 * n, v) : u;
+    if (back !== v) note = `does not fit in ${type}: C keeps the low ${8 * n} bits, so the variable holds ${back}`;
+    for (let i = 0; i < n; i++) bytes[i] = Number((u >> BigInt(8 * i)) & 0xffn);
+    return { bytes, value: back.toString(), note, bits: Number(bits) };
+  }
+  const x = Number(text);
+  if (String(text).trim() === "" || Number.isNaN(x) && !/^nan$/i.test(String(text).trim())) throw new Error("type a number, e.g. 3.5 or -0.1");
+  const dv = new DataView(new ArrayBuffer(8));
+  if (n === 4) { dv.setFloat32(0, x, true); for (let i = 0; i < 4; i++) bytes[i] = dv.getUint8(i); const back = dv.getFloat32(0, true); if (back !== x && !Number.isNaN(x)) note = `float cannot hold ${x} exactly: it stores ${back}`; return { bytes, value: String(back), note, bits: 32 }; }
+  dv.setFloat64(0, x, true); for (let i = 0; i < 8; i++) bytes[i] = dv.getUint8(i); return { bytes, value: String(dv.getFloat64(0, true)), note, bits: 64 };
+};
+T.ieee = function (bytes) {   // little-endian bytes of a float (4) or double (8)
+  const n = bytes.length; let bits = 0n;
+  for (let i = n - 1; i >= 0; i--) bits = (bits << 8n) | BigInt(bytes[i]);
+  const eb = n === 4 ? 8 : 11, mb = n === 4 ? 23 : 52, bias = n === 4 ? 127 : 1023;
+  const sign = Number(bits >> BigInt(eb + mb)), exp = Number((bits >> BigInt(mb)) & ((1n << BigInt(eb)) - 1n)), man = bits & ((1n << BigInt(mb)) - 1n);
+  return { sign, exp, expUnbiased: exp - bias, man, eb, mb, bias, kind: exp === 0 ? (man === 0n ? "zero" : "subnormal") : (exp === (1 << eb) - 1 ? (man === 0n ? "infinity" : "NaN") : "normal") };
+};
+
+/* ---------------- Lecture 7: /proc/<pid>/stat and process flags ---------------- */
+T.STAT_FIELDS = ["pid", "comm", "state", "ppid", "pgrp", "session", "tty_nr", "tpgid", "flags", "minflt", "cminflt", "majflt", "cmajflt", "utime", "stime", "cutime", "cstime", "priority", "nice", "num_threads", "itrealvalue", "starttime", "vsize", "rss", "rsslim", "startcode", "endcode", "startstack", "kstkesp", "kstkeip", "signal", "blocked", "sigignore", "sigcatch", "wchan", "nswap", "cnswap", "exit_signal", "processor", "rt_priority", "policy", "delayacct_blkio_ticks", "guest_time", "cguest_time", "start_data", "end_data", "start_brk", "arg_start", "arg_end", "env_start", "env_end", "exit_code"];
+T.STAT_HELP = { pid: "process ID", comm: "program name (in parentheses; may contain spaces)", state: "R running, S sleeping, D disk sleep, Z zombie, T stopped, I idle kernel thread", ppid: "parent's PID",
+  flags: "PF_* bits from include/linux/sched.h (decoded below)", minflt: "minor page faults", majflt: "major page faults (needed the disk)", utime: "CPU time in user mode, in clock ticks (usually 1/100 s)",
+  stime: "CPU time in kernel mode, in clock ticks", priority: "kernel priority (20 + nice for normal tasks)", nice: "nice value, -20 .. 19", num_threads: "threads in this process", starttime: "start time after boot, in clock ticks",
+  vsize: "virtual memory size in bytes", rss: "resident set size in pages", processor: "CPU it last ran on", policy: "0 SCHED_OTHER (CFS), 1 FIFO, 2 RR, 3 BATCH, 5 IDLE" };
+T.PF = [[0x1, "PF_VCPU"], [0x2, "PF_IDLE"], [0x4, "PF_EXITING"], [0x8, "PF_POSTCOREDUMP"], [0x10, "PF_IO_WORKER"], [0x20, "PF_WQ_WORKER"], [0x40, "PF_FORKNOEXEC"], [0x80, "PF_MCE_PROCESS"], [0x100, "PF_SUPERPRIV"], [0x200, "PF_DUMPCORE"], [0x400, "PF_SIGNALED"], [0x800, "PF_MEMALLOC"], [0x1000, "PF_NPROC_EXCEEDED"], [0x2000, "PF_USED_MATH"], [0x4000, "PF_USER_WORKER"], [0x8000, "PF_NOFREEZE"], [0x20000, "PF_KSWAPD"], [0x40000, "PF_MEMALLOC_NOFS"], [0x80000, "PF_MEMALLOC_NOIO"], [0x100000, "PF_LOCAL_THROTTLE"], [0x200000, "PF_KTHREAD"], [0x400000, "PF_RANDOMIZE"], [0x4000000, "PF_NO_SETAFFINITY"], [0x8000000, "PF_MCE_EARLY"], [0x10000000, "PF_MEMALLOC_PIN"], [0x80000000, "PF_SUSPEND_TASK"]];
+T.parseStat = function (line) {
+  line = line.trim();
+  const a = line.indexOf("("), b = line.lastIndexOf(")");
+  if (a < 0 || b < a) throw new Error("a /proc/<pid>/stat line looks like: 1 (systemd) S 0 1 1 0 -1 4194560 …");
+  const head = line.slice(0, a).trim(), comm = line.slice(a + 1, b), rest = line.slice(b + 1).trim().split(/\s+/);
+  const vals = [head, comm, ...rest];
+  const fields = vals.map((v, i) => ({ n: i + 1, name: T.STAT_FIELDS[i] || "field " + (i + 1), value: v, help: T.STAT_HELP[T.STAT_FIELDS[i]] || "" }));
+  const flags = Number(vals[8] || 0) >>> 0;
+  return { fields, flags, flagNames: T.PF.filter(([bit]) => (flags & bit) >>> 0).map(([, n]) => n), kthread: !!(flags & 0x200000) };
+};
+T.parseMeminfo = function (text) {
+  const m = {}; for (const l of text.split(/\n/)) { const r = l.match(/^(\w[\w()]*):\s+(\d+)/); if (r) m[r[1]] = Number(r[2]); }
+  return m;
+};
+
+/* ---------------- Lecture 8: fork trees and the CFS share ---------------- */
+T.forkTree = function (pattern, n) {
+  // pattern "loop": for (i = 0; i < n; i++) fork();     every process continues the loop
+  // "child": for (...) if (fork() != 0) break;   only the child goes on: a chain
+  // "parent": for (...) if (fork() == 0) break;  only the parent goes on: a fan
+  let next = 1; const nodes = [{ id: 1, parent: 0, born: -1 }];
+  function run(id, from) {
+    for (let i = from; i < n; i++) {
+      const child = ++next; nodes.push({ id: child, parent: id, born: i });
+      if (pattern === "loop") run(child, i + 1);
+      else if (pattern === "child") { run(child, i + 1); return; }
+      else if (pattern === "parent") { /* child breaks out of the loop */ }
+    }
+  }
+  run(1, 0);
+  return nodes;
+};
+T.WEIGHT = [88761, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916, 9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 1024, 820, 655, 526, 423, 335, 272, 215, 172, 137, 110, 87, 70, 56, 45, 36, 29, 23, 18, 15];
+T.weightOf = nice => T.WEIGHT[nice + 20];
+/* a simplified CFS on one CPU: run the task with the smallest vruntime for one tick (ms);
+   vruntime grows by tick * 1024 / weight. Returns the timeline and CPU shares. */
+T.cfs = function (tasks, ms) {
+  const st = tasks.map((t, i) => ({ ...t, i, vr: 0, ran: 0 }));
+  const timeline = [];
+  for (let t = 0; t < ms; t++) {
+    const ready = st.filter(x => (x.arrive || 0) <= t && (x.work === undefined || x.ran < x.work));
+    if (!ready.length) { timeline.push(-1); continue; }
+    const minv = Math.min(...ready.map(x => x.vr));
+    for (const x of st) if ((x.arrive || 0) === t && t > 0) x.vr = Math.max(x.vr, minv);   // a newcomer starts at the current minimum
+    let best = ready[0]; for (const x of ready) if (x.vr < best.vr - 1e-12) best = x;
+    best.vr += 1024 / T.weightOf(best.nice); best.ran++; timeline.push(best.i);
+  }
+  const total = st.reduce((s, x) => s + x.ran, 0) || 1;
+  return { timeline, tasks: st.map(x => ({ name: x.name, nice: x.nice, weight: T.weightOf(x.nice), ran: x.ran, share: x.ran / total, vr: x.vr })) };
+};
+
+/* ---------------- Lecture 9: system calls ---------------- */
+T.parseTbl = function (text) {
+  const rows = [];
+  for (const l of text.split("\n")) { const m = l.match(/^(\d+)\s+(\w+)\s+(\w+)(?:\s+(\S+))?/); if (m) rows.push({ nr: Number(m[1]), abi: m[2], name: m[3], entry: m[4] || "" }); }
+  return rows;
+};
+T.ARGREGS = ["rdi", "rsi", "rdx", "r10", "r8", "r9"];
+T.splitArgs = function (s) { const out = []; let cur = "", q = false, d = 0; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '"' && s[i - 1] !== "\\") q = !q; if (!q && (c === "(" || c === "[" || c === "{")) d++; if (!q && (c === ")" || c === "]" || c === "}")) d--; if (c === "," && !q && d === 0) { out.push(cur.trim()); cur = ""; } else cur += c; } if (cur.trim()) out.push(cur.trim()); return out; };
+T.parseStrace = function (line, table, errnos) {
+  const m = line.trim().match(/^(?:\[pid\s+\d+\]\s+)?(?:\d+\s+)?(\w+)\((.*)\)\s*=\s*(-?\w+|\?)(?:\s+(\w+)\s+\((.*)\))?/);
+  if (!m) throw new Error('paste one strace line, e.g.  write(1, "hi\\n", 3) = 3');
+  const [, name, args, ret, errName, errText] = m;
+  const row = table.find(r => r.name === name && r.abi !== "x32");
+  const a = T.splitArgs(args);
+  const regs = a.slice(0, 6).map((v, i) => ({ reg: T.ARGREGS[i], value: v }));
+  let rax;
+  if (ret === "?") rax = "(the call did not return)";
+  else if (ret === "-1" && errName) { const e = errnos.find(x => x.name === errName); rax = e ? `-${e.nr}  (the kernel returned −${errName}; libc stores ${e.nr} in errno and returns -1)` : "-1"; }
+  else rax = ret;
+  return { name, nr: row ? row.nr : null, abi: row ? row.abi : null, entry: row ? row.entry : "", regs, ret: rax, errName, errText };
+};
+
+/* ---------------- Lecture 10: pipes and signals ---------------- */
+T.SIGNALS = [[1, "SIGHUP", "terminate", "terminal hung up"], [2, "SIGINT", "terminate", "Ctrl-C"], [3, "SIGQUIT", "core", "Ctrl-\\"], [4, "SIGILL", "core", "illegal instruction"], [5, "SIGTRAP", "core", "breakpoint"], [6, "SIGABRT", "core", "abort()"], [7, "SIGBUS", "core", "bus error"], [8, "SIGFPE", "core", "divide by zero"], [9, "SIGKILL", "terminate", "cannot be caught, blocked or ignored"], [10, "SIGUSR1", "terminate", "for your programs"], [11, "SIGSEGV", "core", "bad memory access"], [12, "SIGUSR2", "terminate", "for your programs"], [13, "SIGPIPE", "terminate", "write to a pipe nobody reads"], [14, "SIGALRM", "terminate", "alarm()"], [15, "SIGTERM", "terminate", "kill's default"], [16, "SIGSTKFLT", "terminate", "unused"], [17, "SIGCHLD", "ignore", "a child stopped or exited"], [18, "SIGCONT", "continue", "continue a stopped process"], [19, "SIGSTOP", "stop", "cannot be caught, blocked or ignored"], [20, "SIGTSTP", "stop", "Ctrl-Z"], [21, "SIGTTIN", "stop", "background read from terminal"], [22, "SIGTTOU", "stop", "background write to terminal"], [23, "SIGURG", "ignore", "urgent socket data"], [24, "SIGXCPU", "core", "CPU time limit"], [25, "SIGXFSZ", "core", "file size limit"], [26, "SIGVTALRM", "terminate", "virtual timer"], [27, "SIGPROF", "terminate", "profiling timer"], [28, "SIGWINCH", "ignore", "window size changed"], [29, "SIGIO", "terminate", "I/O possible"], [30, "SIGPWR", "terminate", "power failure"], [31, "SIGSYS", "core", "bad system call"]];
+/* one step-based pipe: capacity bytes, a writer that wants `write` bytes per step, a reader `read` per step */
+T.pipeSim = function ({ capacity = 65536, total = 200000, wchunk = 4096, rchunk = 1024, rdelay = 0, closeReader = -1, steps = 400 }) {
+  let inPipe = 0, written = 0, readBytes = 0, wDone = false, rClosed = false; const log = [];
+  for (let t = 0; t < steps; t++) {
+    let w = "", r = "";
+    if (t === closeReader) { rClosed = true; r = "reader closes its end"; }
+    if (!wDone) {
+      if (rClosed) { w = "write() → SIGPIPE: the writer is killed (or gets EPIPE)"; wDone = true; }
+      else { const want = Math.min(wchunk, total - written), room = capacity - inPipe; if (room === 0) w = "write() blocks: pipe full"; else { const n = Math.min(want, room); inPipe += n; written += n; w = n < want ? `wrote ${n} of ${want} (pipe filled up)` : `wrote ${n}`; if (written >= total) { wDone = true; w += "; writer closes its end"; } } }
+    }
+    if (!rClosed && t >= rdelay) {
+      if (inPipe > 0) { const n = Math.min(rchunk, inPipe); inPipe -= n; readBytes += n; r = `read ${n}`; }
+      else if (wDone) { r = "read() returns 0: end of file"; rClosed = true; }
+      else r = "read() blocks: pipe empty";
+    }
+    log.push({ t, inPipe, written, read: readBytes, w, r });
+    if (wDone && rClosed) break;
+  }
+  return log;
+};
+
+/* ---------------- Lecture 11: addresses, pagemap, a heap ---------------- */
+T.splitVA = function (vaText) {
+  const s = vaText.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type a hex address, e.g. 0x7ffd3c2a1b40");
+  const va = BigInt("0x" + s);
+  if (va >> 64n) throw new Error("more than 64 bits");
+  const top = va >> 47n; const canonical = top === 0n || top === (1n << 17n) - 1n;
+  const idx = k => Number((va >> BigInt(12 + 9 * k)) & 511n);
+  return { va, canonical, half: (va >> 63n) ? "kernel half" : "user half", pml4: idx(3), pdpt: idx(2), pd: idx(1), pt: idx(0), off: Number(va & 4095n), vpn: va >> 12n, pagemapOffset: (va >> 12n) * 8n };
+};
+T.pagemap = function (text) {
+  const s = text.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type the 64-bit entry in hex, e.g. 0x8600000000123456");
+  const e = BigInt("0x" + s);
+  const bit = n => Number((e >> BigInt(n)) & 1n);
+  return { present: bit(63), swapped: bit(62), filePage: bit(61), exclusive: bit(56), softDirty: bit(55), pfn: e & ((1n << 55n) - 1n) };
+};
+/* the Lab 11.2 allocator (header 32 bytes, first fit, split, merge with next), on a simulated sbrk heap */
+T.Heap = class {
+  constructor(base = 0x5000) { this.base = base; this.brk = base; this.blocks = []; this.log = []; }
+  align16(n) { return (n + 15) & ~15; }
+  malloc(n) {
+    if (n <= 0) return null; n = this.align16(n);
+    let h = this.blocks.find(b => b.free && b.size >= n);
+    if (h) { h.free = false; this.split(h, n); this.log.push(`malloc: first fit reuses the block at +${h.addr - this.base}`); }
+    else { h = { addr: this.brk, size: n, free: false }; this.brk += 32 + n; this.blocks.push(h); this.log.push(`malloc: nothing fits → sbrk(${32 + n}), program break now +${this.brk - this.base}`); }
+    return h.addr + 32;
+  }
+  split(h, n) { if (h.size >= n + 32 + 32) { const rest = { addr: h.addr + 32 + n, size: h.size - n - 32, free: true }; this.blocks.splice(this.blocks.indexOf(h) + 1, 0, rest); h.size = n; this.log.push(`split: the unused ${rest.size} bytes become a new free block`); } }
+  free(p) {
+    const h = this.blocks.find(b => b.addr + 32 === p); if (!h) throw new Error("free() of a pointer that malloc did not return"); if (h.free) throw new Error("double free");
+    h.free = true; let i = this.blocks.indexOf(h);
+    while (i + 1 < this.blocks.length) { const nx = this.blocks[i + 1]; if (nx.free && nx.addr === h.addr + 32 + h.size) { h.size += 32 + nx.size; this.blocks.splice(i + 1, 1); this.log.push(`free: merged with the next free block, now ${h.size} bytes`); } else break; }
+  }
+};
+
+/* ---------------- Lecture 12: ext2 ---------------- */
+T.modeString = function (mode) {
+  const t = { 0o140000: "s", 0o120000: "l", 0o100000: "-", 0o060000: "b", 0o040000: "d", 0o020000: "c", 0o010000: "p" }[mode & 0o170000] || "?";
+  const r = (m, s) => ((mode & m) ? s : "-");
+  let p = r(0o400, "r") + r(0o200, "w") + ((mode & 0o4000) ? ((mode & 0o100) ? "s" : "S") : r(0o100, "x"));
+  p += r(0o40, "r") + r(0o20, "w") + ((mode & 0o2000) ? ((mode & 0o10) ? "s" : "S") : r(0o10, "x"));
+  p += r(0o4, "r") + r(0o2, "w") + ((mode & 0o1000) ? ((mode & 0o1) ? "t" : "T") : r(0o1, "x"));
+  return t + p;
+};
+T.blockPath = function (lblock, blockSize) {   // which pointer of the inode holds logical block lblock
+  const P = blockSize / 4;
+  if (lblock < 12) return { level: 0, path: [lblock], text: `i_block[${lblock}] (direct)` };
+  lblock -= 12;
+  if (lblock < P) return { level: 1, path: [12, lblock], text: `i_block[12] (single indirect) → entry ${lblock}` };
+  lblock -= P;
+  if (lblock < P * P) return { level: 2, path: [13, Math.floor(lblock / P), lblock % P], text: `i_block[13] (double indirect) → entry ${Math.floor(lblock / P)} → entry ${lblock % P}` };
+  lblock -= P * P;
+  return { level: 3, path: [14, Math.floor(lblock / (P * P)), Math.floor(lblock / P) % P, lblock % P], text: `i_block[14] (triple indirect) → ${Math.floor(lblock / (P * P))} → ${Math.floor(lblock / P) % P} → ${lblock % P}` };
+};
+T.fileBlocks = function (size, blockSize) {   // data blocks and pointer blocks a file of `size` bytes needs
+  const P = blockSize / 4, n = Math.ceil(size / blockSize);
+  let ind = 0; let rest = n - 12;
+  if (rest > 0) { ind += 1; rest -= P; }
+  if (rest > 0) { const k = Math.min(Math.ceil(rest / P), P); ind += 1 + k; rest -= P * P; }
+  if (rest > 0) { const k2 = Math.ceil(rest / P); ind += 1 + Math.ceil(k2 / P) + k2; }
+  return { data: n, pointer: ind, total: n + ind, maxDirect: 12 * blockSize, maxSingle: (12 + P) * blockSize, maxDouble: (12 + P + P * P) * blockSize };
+};
+T.Ext2 = class {
+  constructor(bytes) {
+    this.b = bytes; this.dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const d = this.dv, o = 1024;
+    if (bytes.length < 2048 || d.getUint16(o + 56, true) !== 0xEF53) throw new Error("not an ext2/3/4 image (no magic EF53 at byte 1080)");
+    this.sb = { inodes: d.getUint32(o, true), blocks: d.getUint32(o + 4, true), firstData: d.getUint32(o + 20, true), logBlock: d.getUint32(o + 24, true), blocksPerGroup: d.getUint32(o + 32, true), inodesPerGroup: d.getUint32(o + 40, true), magic: 0xEF53, rev: d.getUint32(o + 76, true), inodeSize: d.getUint32(o + 76, true) >= 1 ? d.getUint16(o + 88, true) : 128, freeBlocks: d.getUint32(o + 12, true), freeInodes: d.getUint32(o + 16, true), featIncompat: d.getUint32(o + 96, true) };
+    this.bs = 1024 << this.sb.logBlock;
+    this.groups = Math.ceil((this.sb.blocks - this.sb.firstData) / this.sb.blocksPerGroup);
+    this.gdt = (this.sb.firstData + 1) * this.bs;
+  }
+  u32(o) { return this.dv.getUint32(o, true); } u16(o) { return this.dv.getUint16(o, true); }
+  group(g) { const o = this.gdt + 32 * g; return { blockBitmap: this.u32(o), inodeBitmap: this.u32(o + 4), inodeTable: this.u32(o + 8), freeBlocks: this.u16(o + 12), freeInodes: this.u16(o + 14), dirs: this.u16(o + 16) }; }
+  inodeLoc(ino) { const g = Math.floor((ino - 1) / this.sb.inodesPerGroup), idx = (ino - 1) % this.sb.inodesPerGroup; const gd = this.group(g); const off = gd.inodeTable * this.bs + idx * this.sb.inodeSize; return { group: g, index: idx, table: gd.inodeTable, block: gd.inodeTable + Math.floor(idx * this.sb.inodeSize / this.bs), offset: off }; }
+  inode(ino) {
+    const L = this.inodeLoc(ino), o = L.offset;
+    const blocks = []; for (let i = 0; i < 15; i++) blocks.push(this.u32(o + 40 + 4 * i));
+    return { ino, loc: L, mode: this.u16(o), uid: this.u16(o + 2), size: this.u32(o + 4), links: this.u16(o + 26), sectors: this.u32(o + 28), flags: this.u32(o + 32), block: blocks, mtime: this.u32(o + 16) };
+  }
+  dataBlocks(inode, limit = 1 << 20) {   // logical order, follows indirect blocks
+    if (this.isFastSymlink(inode)) return { data: [], meta: [] };
+    const P = this.bs / 4, out = [], meta = [];
+    const need = Math.ceil(inode.size / this.bs);
+    const walk = (blk, level) => { if (out.length >= need || out.length >= limit) return; if (!blk) { return; } if (level === 0) { out.push(blk); return; } meta.push({ blk, level }); for (let i = 0; i < P && out.length < need; i++) walk(this.u32(blk * this.bs + 4 * i), level - 1); };
+    for (let i = 0; i < 12 && out.length < need; i++) walk(inode.block[i], 0);
+    walk(inode.block[12], 1); walk(inode.block[13], 2); walk(inode.block[14], 3);
+    return { data: out, meta };
+  }
+  isFastSymlink(inode) { return (inode.mode & 0o170000) === 0o120000 && inode.sectors === 0 && inode.size < 60; }
+  readlink(inode) { const o = inode.loc.offset + 40; return String.fromCharCode(...this.b.subarray(o, o + inode.size)); }
+  read(inode) { if (this.isFastSymlink(inode)) return new TextEncoder().encode(this.readlink(inode)); const { data } = this.dataBlocks(inode); const res = new Uint8Array(inode.size); data.forEach((blk, i) => { const n = Math.min(this.bs, inode.size - i * this.bs); res.set(this.b.subarray(blk * this.bs, blk * this.bs + n), i * this.bs); }); return res; }
+  dir(inode) {
+    const bytes = this.read(inode), dv = new DataView(bytes.buffer), out = [];
+    for (let o = 0; o + 8 <= bytes.length;) { const ino = dv.getUint32(o, true), rec = dv.getUint16(o + 4, true), nl = bytes[o + 6], ft = bytes[o + 7]; if (rec < 8) break; if (ino) out.push({ ino, name: String.fromCharCode(...bytes.subarray(o + 8, o + 8 + nl)), type: ft, rec, at: o }); o += rec; }
+    return out;
+  }
+  lookup(path) {
+    let ino = 2; const steps = [{ name: "/", ino: 2 }];
+    for (const part of path.split("/").filter(Boolean)) {
+      const ent = this.dir(this.inode(ino)).find(e => e.name === part);
+      if (!ent) throw new Error(`"${part}" not found in directory inode ${ino}`);
+      ino = ent.ino; steps.push({ name: part, ino });
+    }
+    return { ino, steps };
+  }
+};
+
+/* ---------------- Lecture 13: page-fault error code, /proc/interrupts ---------------- */
+T.PF_BITS = [[0, "P", "1: protection violation on a present page / 0: the page is not present"], [1, "W", "1: write access / 0: read access"], [2, "U", "1: user mode / 0: kernel (supervisor) mode"], [3, "RSVD", "a reserved bit was set in a page-table entry"], [4, "I", "instruction fetch"], [5, "PK", "protection-key violation"], [6, "SS", "shadow-stack access"], [15, "SGX", "SGX violation"]];
+T.decodePF = function (code) { return T.PF_BITS.map(([b, n, d]) => ({ bit: b, name: n, on: !!(code & (1 << b)), help: d })); };
+T.describePF = function (code) {
+  const p = code & 1, w = code & 2, u = code & 4, i = code & 16;
+  return `${u ? "user" : "kernel (supervisor)"} ${i ? "instruction fetch" : (w ? "write" : "read")} of ${p ? "a present page it may not access (protection)" : "a page that is not present"}`;
+};
+T.VECTORS = ["#DE divide error", "#DB debug", "NMI non-maskable interrupt", "#BP breakpoint (int3)", "#OF overflow", "#BR bound range", "#UD invalid opcode", "#NM device not available (FPU)", "#DF double fault", "coprocessor segment overrun (old)", "#TS invalid TSS", "#NP segment not present", "#SS stack segment fault", "#GP general protection", "#PF page fault", "(reserved)", "#MF x87 floating-point error", "#AC alignment check", "#MC machine check", "#XM SIMD floating-point", "#VE virtualization exception", "#CP control protection"];
+T.parseInterrupts = function (text) {
+  const lines = text.split("\n").filter(l => l.trim()); if (!lines.length) return { cpus: 0, rows: [] };
+  const cpus = (lines[0].match(/CPU\d+/g) || []).length; const rows = [];
+  for (const l of lines.slice(1)) {
+    const m = l.match(/^\s*([^:]+):\s*(.*)$/); if (!m) continue;
+    const parts = m[2].trim().split(/\s+/); const nums = [];
+    while (nums.length < cpus && parts.length && /^\d+$/.test(parts[0])) nums.push(Number(parts.shift()));
+    rows.push({ id: m[1].trim(), sum: nums.reduce((a, b) => a + b, 0), name: parts.join(" ") });
+  }
+  return { cpus, rows };
+};
+T.diffInterrupts = function (a, b, seconds) {
+  const A = T.parseInterrupts(a), B = T.parseInterrupts(b); const map = new Map(A.rows.map(r => [r.id, r]));
+  return B.rows.map(r => ({ ...r, delta: r.sum - (map.get(r.id) ? map.get(r.id).sum : 0), rate: (r.sum - (map.get(r.id) ? map.get(r.id).sum : 0)) / seconds })).filter(r => r.delta > 0).sort((x, y) => y.delta - x.delta);
+};
+
+/* ---------------- Lecture 14: relocation and taint ---------------- */
+T.reloc = function (S, A, P) {   // R_X86_64_PC32 / PLT32: the 32-bit value S + A - P
+  const v = BigInt.asUintN(64, S + A - P); const signed = BigInt.asIntN(64, S + A - P);
+  const fits = signed >= -(1n << 31n) && signed < (1n << 31n);
+  const v32 = BigInt.asUintN(32, signed); const bytes = []; for (let i = 0; i < 4; i++) bytes.push(Number((v32 >> BigInt(8 * i)) & 0xffn));
+  return { value: signed, v32, bytes, fits, target: P + 4n + BigInt.asIntN(32, v32) };
+};
+T.TAINT = [["P", "proprietary module loaded (G if all GPL)"], ["F", "module force-loaded"], ["S", "CPU out of specification"], ["R", "module force-removed"], ["M", "machine check exception"], ["B", "bad page"], ["U", "user asked for taint"], ["D", "kernel died (oops)"], ["A", "ACPI table overridden"], ["W", "a WARN() happened"], ["C", "staging driver loaded"], ["I", "firmware workaround"], ["O", "out-of-tree module loaded"], ["E", "unsigned module loaded"], ["L", "soft lockup"], ["K", "live patched"], ["X", "auxiliary taint (distribution)"], ["T", "built with randstruct"], ["N", "test module loaded"]];
+T.decodeTaint = function (v) { v = Number(v); return T.TAINT.map(([c, d], bit) => ({ bit, letter: (bit === 0 && !(v & 1)) ? "G" : c, on: !!(Math.floor(v / Math.pow(2, bit)) % 2), help: d })); };
+
+/* ---------------- Lecture 15: ioctl numbers, dev_t, open flags, sectors, USB ---------------- */
+T.ioctl = function (dir, type, nr, size) { return (((dir << 30) | (size << 16) | (type << 8) | nr) >>> 0); };
+T.ioctlDecode = function (n) { n = n >>> 0; const dir = n >>> 30; return { dir, dirName: ["_IO (none)", "_IOW (write: user → driver)", "_IOR (read: driver → user)", "_IOWR (both)"][dir], size: (n >>> 16) & 0x3fff, type: (n >>> 8) & 0xff, nr: n & 0xff }; };
+T.mkdev = (ma, mi) => (((ma << 20) | mi) >>> 0);
+T.OFLAGS = [[0o100, "O_CREAT"], [0o200, "O_EXCL"], [0o400, "O_NOCTTY"], [0o1000, "O_TRUNC"], [0o2000, "O_APPEND"], [0o4000, "O_NONBLOCK"], [0o10000, "O_DSYNC"], [0o20000, "O_ASYNC"], [0o40000, "O_DIRECT"], [0o100000, "O_LARGEFILE"], [0o200000, "O_DIRECTORY"], [0o400000, "O_NOFOLLOW"], [0o1000000, "O_NOATIME"], [0o2000000, "O_CLOEXEC"], [0o4010000, "O_SYNC"], [0o10000000, "O_PATH"], [0o20200000, "O_TMPFILE"]];
+T.openFlags = function (v) {
+  v = v >>> 0; const acc = ["O_RDONLY", "O_WRONLY", "O_RDWR", "(3: invalid)"][v & 3]; const names = [acc]; let rest = v & ~3;
+  for (const [bit, n] of T.OFLAGS.slice().sort((a, b) => b[0] - a[0])) if ((rest & bit) === bit && bit) { names.push(n); rest &= ~bit; }
+  if (rest) names.push("0x" + rest.toString(16) + " (unknown)");
+  return names;
+};
+T.sectors = function (offset, length) { return { first: Math.floor(offset / 512), count: Math.ceil((offset % 512 + length) / 512), aligned: offset % 512 === 0 && length % 512 === 0, page: Math.floor(offset / 4096) }; };
+T.USAGE = (() => { const m = { 0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Space", 0x2d: "-", 0x2e: "=", 0x2f: "[", 0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock", 0x4f: "Right", 0x50: "Left", 0x51: "Down", 0x52: "Up" }; for (let i = 0; i < 26; i++) m[4 + i] = String.fromCharCode(97 + i); for (let i = 0; i < 9; i++) m[0x1e + i] = String(i + 1); m[0x27] = "0"; for (let i = 0; i < 12; i++) m[0x3a + i] = "F" + (i + 1); return m; })();
+T.MODS = ["Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", "Right GUI"];
+T.kbdReport = function (bytes) {
+  const mods = T.MODS.filter((_, i) => bytes[0] & (1 << i)); const keys = bytes.slice(2, 8).filter(k => k);
+  return { mods, keys: keys.map(k => ({ code: k, name: k === 1 ? "ErrorRollOver" : (T.USAGE[k] || "usage 0x" + k.toString(16)) })) };
+};
+T.mouseReport = function (bytes) { const s = v => (v & 0x80 ? v - 256 : v); return { left: !!(bytes[0] & 1), right: !!(bytes[0] & 2), middle: !!(bytes[0] & 4), dx: s(bytes[1] || 0), dy: s(bytes[2] || 0), wheel: s(bytes[3] || 0) }; };
+T.modalias = function (s) {
+  const m = s.trim().match(/^usb:v([0-9A-F]{4})p([0-9A-F]{4})d([0-9A-F]{4})dc([0-9A-F]{2})dsc([0-9A-F]{2})dp([0-9A-F]{2})ic([0-9A-F]{2})isc([0-9A-F]{2})ip([0-9A-F]{2})in([0-9A-F]{2})$/i);
+  if (!m) throw new Error("a USB modalias looks like usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00");
+  const k = ["vendor", "product", "bcdDevice", "devClass", "devSubClass", "devProtocol", "ifClass", "ifSubClass", "ifProtocol", "ifNumber"]; const o = {}; k.forEach((n, i) => { o[n] = m[i + 1].toUpperCase(); }); return o;
+};
+T.USBCLASS = { "00": "defined per interface", "01": "audio", "02": "communications", "03": "HID (keyboard, mouse …)", "07": "printer", "08": "mass storage", "09": "hub", "0A": "CDC data", "0E": "video", "E0": "wireless", "EF": "miscellaneous", "FF": "vendor specific" };
+
+if (typeof module !== "undefined" && module.exports) module.exports = T; else root.TOOLS = T;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 11: split a virtual address for the page tables, decode a pagemap entry, and run the Lab 11.2 allocator */
+TOOLS_UI.push({
+  id: "va", title: "Address → page tables",
+  build(p) {
+    const { el, esc } = L, T = TOOLS;
+    p.innerHTML = `<div class="row"><label>virtual address <input id="va11" class="mono" value="0x5598b2a01388" size="20"></label><span class="small dim">copy one from <code>printf("%p", &amp;x)</code> or from vtop</span></div>
+<p id="vae11" class="err"></p><div id="vao11"></div>
+<h3 style="margin-top:18px">A pagemap entry (8 bytes from /proc/self/pagemap)</h3>
+<div class="row"><label>entry <input id="pm11" class="mono" value="0x81000000001a2b3c" size="20"></label></div>
+<p id="pme11" class="err"></p><div id="pmo11"></div>`;
+    const $ = s => p.querySelector(s);
+    const COLORS = ["#C2410C", "#0F766E", "#7C3AED", "#2563EB", "#64748B"];
+    function va() {
+      $("#vae11").textContent = ""; $("#vao11").innerHTML = ""; let r;
+      try { r = T.splitVA($("#va11").value); } catch (x) { $("#vae11").textContent = x.message; return; }
+      const bits = r.va.toString(2).padStart(48, "0").slice(-48);
+      const groups = [["PGD (PML4)", 0, 9], ["PUD (PDPT)", 9, 18], ["PMD (PD)", 18, 27], ["PTE (PT)", 27, 36], ["offset", 36, 48]];
+      const vals = [r.pml4, r.pdpt, r.pd, r.pt, r.off];
+      let html = `<div class="bits" style="font-size:12px">${groups.map(([n, a, b], i) => `<span style="background:${COLORS[i]};color:#fff;padding:3px 6px" title="${n}">${bits.slice(a, b)}</span>`).join("")}</div>`;
+      html += `<div class="scroll"><table class="t" style="margin-top:10px"><tr><th>part</th><th>bits</th><th>value</th><th>meaning</th></tr>${groups.map(([n, a, b], i) => `<tr><td><span style="display:inline-block;width:10px;height:10px;background:${COLORS[i]};border-radius:2px"></span> ${n}</td><td class="mono">${47 - a}–${48 - b}</td><td class="mono">${vals[i]}${i === 4 ? " = 0x" + vals[i].toString(16) : ""}</td><td class="small">${i < 4 ? `entry ${vals[i]} of 512 in the level-${4 - i} table` : "byte inside the 4 KiB page"}</td></tr>`).join("")}</table></div>`;
+      html += `<p class="small">vtop prints <span class="mono">[${r.pml4} ${r.pdpt} ${r.pd} ${r.pt}] +0x${r.off.toString(16)}</span>. Page number ${esc("0x" + r.vpn.toString(16))}; its pagemap entry is at byte offset <span class="mono">0x${r.pagemapOffset.toString(16)}</span> = page number × 8 (TODO 2). ${r.canonical ? `Canonical, ${r.half}.` : '<span class="err">Not canonical: bits 63–48 must copy bit 47, so the CPU would fault.</span>'}</p>`;
+      $("#vao11").innerHTML = html;
+    }
+    function pm() {
+      $("#pme11").textContent = ""; $("#pmo11").innerHTML = ""; let r;
+      try { r = T.pagemap($("#pm11").value); } catch (x) { $("#pme11").textContent = x.message; return; }
+      const row = (b, n, v, d) => `<tr class="${v ? "cur" : ""}"><td class="mono">${b}</td><td>${n}</td><td class="mono">${v}</td><td class="small">${d}</td></tr>`;
+      $("#pmo11").innerHTML = `<div class="scroll"><table class="t"><tr><th>bit</th><th>name</th><th>value</th><th>meaning</th></tr>${row(63, "present", r.present, "the page is in RAM")}${row(62, "swapped", r.swapped, "the page is in swap")}${row(61, "file / shared anon", r.filePage, "backed by a file (code, libraries), or shared")}${row(56, "exclusively mapped", r.exclusive, "only this process maps it (\"only mine\")")}${row(55, "soft-dirty", r.softDirty, "written since the soft-dirty bits were cleared")}${row("0–54", "frame number (PFN)", "0x" + r.pfn.toString(16), r.present ? `physical address = 0x${r.pfn.toString(16)} × 4096 + offset = 0x${(r.pfn * 4096n).toString(16)} + offset` : "meaningless when the page is not present")}</table></div><p class="small dim">Without root the kernel reports PFN 0 (since Linux 4.2), but the flag bits are still real.</p>`;
+    }
+    $("#va11").addEventListener("input", va); $("#pm11").addEventListener("input", pm); va(); pm();
+  }
+});
+TOOLS_UI.push({
+  id: "heap", title: "mymalloc heap",
+  build(p) {
+    const { el } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">The Lab 11.2 allocator: a 32-byte header before every block, sizes rounded up to 16, first fit, split, and merge with the next free block. Addresses are offsets from the start of the heap, like the reference output.</p>
+<div class="row"><label>malloc( <input id="sz11" type="number" min="1" value="100" style="width:90px"> )</label><button class="btn primary" id="ma11">malloc</button><button class="btn" id="demo11">Replay the slide: a, b, c, free(b), d</button><button class="btn" id="rs11">Start again</button></div>
+<div id="viz11" style="margin-top:14px"></div>
+<div class="grid2" style="margin-top:12px"><div><h3>Blocks</h3><div class="scroll"><table class="t" id="bl11"></table></div></div><div><h3>What happened</h3><ol id="lg11" class="small" style="padding-left:20px;margin:0"></ol></div></div>`;
+    const $ = s => p.querySelector(s);
+    let h, ptrs, names, err = "";
+    function reset() { h = new T.Heap(0); ptrs = []; names = "abcdefghijklmnopqrstuvwxyz".split(""); draw(); }
+    function malloc(n) { const ptr = h.malloc(n); if (ptr !== null) ptrs.push({ name: names[ptrs.length % 26], ptr, req: n }); }
+    function draw() {
+      const tot = Math.max(h.brk - h.base, 1);
+      const v = $("#viz11"); v.innerHTML = "";
+      const bar = el("div", { style: "display:flex;height:44px;border:1px solid var(--line);border-radius:6px;overflow:hidden" });
+      for (const b of h.blocks) {
+        const owner = ptrs.find(x => x.ptr === b.addr + 32 && !b.free);
+        bar.appendChild(el("div", { style: `width:${100 * 32 / tot}%;background:var(--dim);opacity:.6`, title: "header 32 bytes" }));
+        bar.appendChild(el("div", { style: `width:${100 * b.size / tot}%;background:${b.free ? "var(--bg)" : "var(--accent)"};color:${b.free ? "var(--dim)" : "var(--accent-ink)"};font:12px var(--mono);display:flex;align-items:center;justify-content:center;overflow:hidden;border-right:1px solid var(--line)`, text: b.free ? "free" : (owner ? owner.name : "") }));
+      }
+      v.appendChild(bar);
+      v.appendChild(el("p", { class: "small dim", text: `grey: headers · orange: blocks in use · white: free blocks · program break at +0x${(h.brk - h.base).toString(16)} (${h.brk - h.base} bytes)` }));
+      const t = $("#bl11"); t.innerHTML = "<tr><th>header at</th><th>size</th><th>state</th><th></th></tr>";
+      for (const b of h.blocks) {
+        const owner = ptrs.find(x => x.ptr === b.addr + 32);
+        const td = el("td");
+        if (!b.free && owner) { const fb = el("button", { class: "btn", type: "button", text: `free(${owner.name})` }); fb.addEventListener("click", () => { try { h.free(owner.ptr); } catch (x) { h.log.push("error: " + x.message); } draw(); }); td.appendChild(fb); }
+        t.appendChild(el("tr", {}, el("td", { class: "mono", text: "+0x" + b.addr.toString(16).padStart(3, "0") }), el("td", { class: "mono", text: String(b.size) }), el("td", { text: b.free ? "FREE" : "used" + (owner ? ` (${owner.name} = malloc(${owner.req}))` : "") }), td));
+      }
+      $("#lg11").innerHTML = ""; h.log.forEach(l => $("#lg11").appendChild(el("li", { text: l })));
+    }
+    $("#ma11").addEventListener("click", () => { malloc(Math.max(1, +$("#sz11").value || 1)); draw(); });
+    $("#rs11").addEventListener("click", reset);
+    $("#demo11").addEventListener("click", () => { reset(); malloc(100); malloc(1000); malloc(50); h.free(ptrs[1].ptr); ptrs[1].ptr = -1; malloc(200); ptrs[ptrs.length - 1].name = "d"; draw(); });
+    reset();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

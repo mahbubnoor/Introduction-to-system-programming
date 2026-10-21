@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="../assets/fonts.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 13 · Interrupts and Exceptions</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 13: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part,h2{scroll-margin-top:64px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+.dcbar{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:#16233A;font:600 14px var(--sans);border-bottom:1px solid #0A1220}
+.dcbar a,.dcbar select{font:inherit;color:#F3F6FA;background:#21334F;border:1px solid #2E4566;border-radius:8px;height:32px;padding:0 11px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;cursor:pointer}
+.dcbar a:hover,.dcbar select:hover{border-color:#F28C38}
+.dcbar a:focus-visible,.dcbar select:focus-visible{outline:3px solid #F28C38;outline-offset:1px}
+.dcbar .slides{background:#C2410C;border-color:#E0742F}
+.dcbar .dis{opacity:.35;pointer-events:none}
+.dcbar .sp{flex:1}
+.dcbar select{max-width:300px}
+@media (max-width:640px){.dcbar .wide{display:none}.dcbar select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="dcbar" role="navigation" aria-label="Course navigation"><a href="../index.html" title="Course home">⌂<span class="wide">&nbsp;Course</span></a><a class="slides" href="../present/lecture_13.html" title="Lecture 13: Interrupts and Exceptions">◀ Lecture 13 slides</a><span class="sp"></span><a class="wide" href="lab12.html">◀ Lab 12</a><select aria-label="Go to lab" onchange="location.href=this.value"><option value="lab01.html">Lab 1: C programs that probe the machine</option><option value="lab02.html">Lab 2: your first nasm programs</option><option value="lab03.html">Lab 3: a two-pass SIC assembler in C</option><option value="lab04.html">Lab 4: a macro processor in C</option><option value="lab05.html">Lab 5: a SIC loader in C</option><option value="lab06.html">Lab 6: elfread</option><option value="lab07.html">Lab 7: kinfo (ask the kernel through /proc)</option><option value="lab08.html">Lab 8: mysh, a small shell</option><option value="lab09.html">Lab 9: a C program without the C library</option><option value="lab10.html">Lab 10: pipes in your shell</option><option value="lab11.html">Lab 11: vtop (page tables through /proc/self/pagemap)</option><option value="lab12.html">Lab 12: myls (your own ls -li)</option><option value="lab13.html" selected>Lab 13: irqtop</option><option value="lab14.html">Lab 14: a /proc module and a platform driver, loaded in a virtual machine</option><option value="lab15.html">Lab 15: a character device, a RAM disk and a USB keyboard driver, in a virtual machine</option></select><a href="lab14.html">Lab 14 ▶</a></div>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 13</div>
+<h1>Interrupts and Exceptions</h1>
+<p>irqtop: which interrupts are firing right now.</p>
+<nav class="navlinks" aria-label="On this page"><a href="lab13_files.zip">Download the lab files (5 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-13">
+<div class="phead"><h3>Lab 13 <span class="dim">· Interrupts and Exceptions</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_13.html">Present lecture 13</a>
+<a class="btn" href="../slides/lecture_13.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>TODO 1 in irqtop_starter.c: read the header line; count &quot;CPU&quot; with strstr → ncpu</li>
+<li>TODO 2: for each line: the id before &#x27;:&#x27;, the sum of up to ncpu numbers (strtoull), the name</li>
+<li>TODO 3: match lines of the two snapshots by id (strcmp); count = after − before</li>
+<li>TODO 4: qsort by count, biggest first; print the top 10</li>
+<li>Run it idle; then type, copy a big file, run yes &gt; /dev/null: which lines change?</li>
+</ol>
+<p class="cap">reference, real</p><pre>$ ./irqtop          # test machine, idle
+   IRQ  per second  name
+   LOC          92  Local timer interrupts
+   CAL          25  Function call interrupts
+    49           3  … virtio7-input.0
+$ ./irqtop 6        # while reading files
+   IRQ  per second  name
+    37         138  … virtio1-req.0
+   LOC          92  Local timer interrupts
+   CAL          26  Function call interrupts
+$ ./irqtop          # QEMU guest, dd
+    25         493  … virtio0-req.0
+   LOC         351  Local timer interrupts</pre>
+<p class="note">Careful: the lines ERR and MIS have only ONE number, not one per CPU. strtoull tells you when it found no number: end == p.</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab13_files.zip">lab13_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab13_files.zip">Download lab13_files.zip (5 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab12.html">← Lab 12</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab14.html">Lab 14 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 13, "readme": "CSE 4105 System Programming - Lab 13: interrupts and exceptions\n===============================================================\nWorks offline, no root needed. Needs: gcc (strace optional).\n\nLAB 13  irqtop: which interrupts are firing right now?\n  gcc -Wall -O2 -o irqtop irqtop_starter.c && ./irqtop\n  (gcc warns that by_count_desc is unused until TODO 4: expected.)\n  TODO 1 count \"CPU\" in the header line            TODO 2 parse each line: id, sum of the per-CPU numbers, name\n  TODO 3 match the two snapshots by id, subtract   TODO 4 qsort, biggest first\n  Careful: the lines ERR and MIS have only one number.\n  Test:  ./irqtop        then, while it runs, type / move the mouse / copy a big file / run  yes > /dev/null\n         cat /proc/interrupts     cat /proc/softirqs\n\nDEMO PROGRAMS (demo/):\n  gcc -Wall -O2 -o exc exc.c && ./exc        the CPU's exception numbers (trap) and page-fault error codes (err)\n  gcc -Wall -O2 -o slack slack.c && ./slack  how late is a 1 ms sleep? (takes about 2.2 s)\n\nHOMEWORK (homework/):\n  gcc -Wall -O0 -o pferr pferr.c && ./pferr  (predict each err value BEFORE you run it)\n  grep CONFIG_HZ= /boot/config-$(uname -r)\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 13: interrupts and exceptions\n===============================================================\nWorks offline, no root needed. Needs: gcc (strace optional).\n\nLAB 13  irqtop: which interrupts are firing right now?\n  gcc -Wall -O2 -o irqtop irqtop_starter.c && ./irqtop\n  (gcc warns that by_count_desc is unused until TODO 4: expected.)\n  TODO 1 count \"CPU\" in the header line            TODO 2 parse each line: id, sum of the per-CPU numbers, name\n  TODO 3 match the two snapshots by id, subtract   TODO 4 qsort, biggest first\n  Careful: the lines ERR and MIS have only one number.\n  Test:  ./irqtop        then, while it runs, type / move the mouse / copy a big file / run  yes > /dev/null\n         cat /proc/interrupts     cat /proc/softirqs\n\nDEMO PROGRAMS (demo/):\n  gcc -Wall -O2 -o exc exc.c && ./exc        the CPU's exception numbers (trap) and page-fault error codes (err)\n  gcc -Wall -O2 -o slack slack.c && ./slack  how late is a 1 ms sleep? (takes about 2.2 s)\n\nHOMEWORK (homework/):\n  gcc -Wall -O0 -o pferr pferr.c && ./pferr  (predict each err value BEFORE you run it)\n  grep CONFIG_HZ= /boot/config-$(uname -r)\n", "demo/exc.c": "/* exc.c - make the CPU raise each kind of exception; print what the kernel tells the program */\n#define _GNU_SOURCE\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <sys/wait.h>\n#include <ucontext.h>\n#include <unistd.h>\n\nstatic void handler(int sig, siginfo_t *si, void *ctx)\n{\n    ucontext_t *uc = ctx;\n    char m[160];\n    int n = snprintf(m, sizeof m, \"%-8s si_code %d  trap %2lld  err 0x%llx  addr %p\\n\", sigabbrev_np(sig), si->si_code,\n                     (long long)uc->uc_mcontext.gregs[REG_TRAPNO], (long long)uc->uc_mcontext.gregs[REG_ERR], si->si_addr);\n    if (write(1, m, n) < 0) _exit(2);     /* printf is not async-signal-safe (Lecture 10.2) */\n    _exit(0);\n}\n\nstatic volatile int zero = 0, seven = 7;\nstatic const char rodata[] = \"hello\";\n\nstatic void run(const char *name, int what)\n{\n    printf(\"%-26s -> \", name);\n    fflush(stdout);\n    if (fork() == 0) {\n        struct sigaction sa;\n        memset(&sa, 0, sizeof sa);\n        sa.sa_sigaction = handler;\n        sa.sa_flags = SA_SIGINFO;\n        for (int s = 1; s < 32; s++) sigaction(s, &sa, NULL);\n        switch (what) {\n        case 0: { volatile int x = seven / zero; (void)x; break; }      /* #DE  divide error        */\n        case 1: __asm__ volatile(\"int3\"); break;                         /* #BP  breakpoint          */\n        case 2: __asm__ volatile(\"ud2\"); break;                          /* #UD  invalid opcode      */\n        case 3: __asm__ volatile(\"hlt\"); break;                          /* #GP  privileged insn     */\n        case 4: __asm__ volatile(\"inb $0x60, %%al\" ::: \"eax\"); break;    /* #GP  I/O port            */\n        case 5: { volatile char c = *(volatile char *)0; (void)c; break; } /* #PF read, not present  */\n        case 6: *(volatile char *)rodata = 'J'; break;                   /* #PF write, read-only     */\n        case 7: { unsigned char code[] = { 0xc3 }; ((void (*)(void))code)(); break; } /* #PF exec, NX stack */\n        }\n        printf(\"no exception?\\n\");\n        _exit(1);\n    }\n    wait(NULL);\n}\n\nint main(void)\n{\n    run(\"7 / 0\", 0);\n    run(\"int3\", 1);\n    run(\"ud2\", 2);\n    run(\"hlt (kernel only)\", 3);\n    run(\"inb $0x60 (port I/O)\", 4);\n    run(\"read *NULL\", 5);\n    run(\"write \\\"hello\\\" (rodata)\", 6);\n    run(\"call code on the stack\", 7);\n    return 0;\n}\n", "demo/slack.c": "/* slack.c - ask to sleep 1 ms, 1000 times: how long does each sleep really take? */\n#include <stdio.h>\n#include <stdlib.h>\n#include <sys/prctl.h>\n#include <time.h>\nstatic double now_us(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec * 1e6 + t.tv_nsec / 1e3; }\nstatic void test(const char *label)\n{\n    struct timespec ms = { 0, 1000000 };\n    double sum = 0, worst = 0;\n    for (int i = 0; i < 1000; i++) {\n        double t = now_us();\n        nanosleep(&ms, NULL);\n        double late = now_us() - t - 1000;           /* microseconds after the 1 ms */\n        sum += late;\n        if (late > worst) worst = late;\n    }\n    printf(\"%-28s late by %6.1f us on average, worst %7.1f us\\n\", label, sum / 1000, worst);\n}\nint main(void)\n{\n    printf(\"timer slack: %d ns\\n\", prctl(PR_GET_TIMERSLACK, 0, 0, 0, 0));\n    test(\"default slack (50 us)\");\n    prctl(PR_SET_TIMERSLACK, 1, 0, 0, 0);             /* 1 ns: please be exact */\n    test(\"slack 1 ns\");\n    return 0;\n}\n", "homework/pferr.c": "/* pferr.c - Homework 13 task 1: predict the page-fault error code (err) of each line, then run it */\n#define _GNU_SOURCE\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <sys/wait.h>\n#include <ucontext.h>\n#include <unistd.h>\nstatic void handler(int sig, siginfo_t *si, void *ctx)\n{\n    ucontext_t *uc = ctx;\n    char m[120];\n    int n = snprintf(m, sizeof m, \"trap %lld  err 0x%llx  si_code %d  addr %p\\n\",\n                     (long long)uc->uc_mcontext.gregs[REG_TRAPNO], (long long)uc->uc_mcontext.gregs[REG_ERR], si->si_code, si->si_addr);\n    if (write(1, m, n) < 0) _exit(2);\n    (void)sig;\n    _exit(0);\n}\nstatic void run(const char *name, int what)\n{\n    printf(\"%-30s -> \", name);\n    fflush(stdout);\n    if (fork() == 0) {\n        struct sigaction sa;\n        memset(&sa, 0, sizeof sa);\n        sa.sa_sigaction = handler;\n        sa.sa_flags = SA_SIGINFO;\n        sigaction(SIGSEGV, &sa, NULL);\n        switch (what) {\n        case 0: *(volatile char *)0 = 1; break;                                   /* write to NULL           */\n        case 1: ((void (*)(void))0)(); break;                                     /* call address 0          */\n        case 2: *(volatile char *)(void *)run = 1; break;                         /* write into our own code */\n        case 3: { volatile char c = *(volatile char *)0xffffffff81000000UL; (void)c; break; } /* kernel address */\n        }\n        _exit(1);\n    }\n    wait(NULL);\n}\nint main(void)\n{\n    run(\"write *NULL\", 0);\n    run(\"call address 0\", 1);\n    run(\"write into main's code\", 2);\n    run(\"read a kernel address\", 3);\n    return 0;\n}\n", "irqtop_starter.c": "/*\n * irqtop.c - which interrupts are firing right now? Read /proc/interrupts twice, one second apart.\n * CSE 4105 System Programming, Lab 13   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -O2 -o irqtop irqtop.c\n * Run:    ./irqtop            (meanwhile, in another terminal: type, move the mouse, or copy a big file)\n */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n\n#define MAXLINES 512\nstruct irq {\n    char id[16];                    /* \"37\", \"LOC\", \"NMI\", ... */\n    unsigned long long count;       /* sum over all CPUs */\n    char name[64];                  /* \"virtio1-req.0\", \"Local timer interrupts\", ... */\n};\n\n/* read /proc/interrupts into v[]; return the number of lines */\nstatic int snapshot(struct irq *v)\n{\n    FILE *f = fopen(\"/proc/interrupts\", \"r\");\n    if (!f) { perror(\"/proc/interrupts\"); exit(1); }\n    char line[1024];\n    int ncpu = 0, n = 0;\n\n    /* TODO 1: read the first line (the header) with fgets and count how many times \"CPU\" appears in it:\n     *         that is ncpu. Hint: strstr(p, \"CPU\") in a loop, moving p forward each time.          */\n    (void)line;\n\n    /* TODO 2: for every other line (fgets until NULL, and n < MAXLINES):\n     *   - skip the spaces; the id is the text before ':'  (\"37\", \"LOC\", \"NMI\" ...): copy it to v[n].id\n     *   - then up to ncpu numbers: add them into v[n].count (strtoull(p, &end, 10); stop when end == p,\n     *     because the lines ERR and MIS have only one number)\n     *   - the rest of the line (without leading spaces and the '\\n') is the name: copy it to v[n].name\n     *   - n++                                                                                        */\n    (void)ncpu;\n\n    fclose(f);\n    return n;\n}\n\nstatic int by_count_desc(const void *a, const void *b)\n{\n    const struct irq *x = a, *y = b;\n    return (y->count > x->count) - (y->count < x->count);   /* given: no overflow, unlike y - x */\n}\n\nint main(int argc, char *argv[])\n{\n    int top = argc > 1 ? atoi(argv[1]) : 10;\n    static struct irq before[MAXLINES], after[MAXLINES], diff[MAXLINES];\n    int nb = snapshot(before);\n    sleep(1);\n    int na = snapshot(after);\n\n    int nd = 0;\n    /* TODO 3: for each line in after[], find the line with the same id in before[] (strcmp),\n     *         copy it into diff[nd] with count = after - before, and nd++.                    */\n    (void)na; (void)nb; (void)after; (void)before;\n\n    /* TODO 4: sort diff[] so the biggest count comes first: qsort with by_count_desc.        */\n\n    printf(\"%6s  %10s  %s\\n\", \"IRQ\", \"per second\", \"name\");\n    for (int i = 0; i < nd && i < top && diff[i].count > 0; i++)\n        printf(\"%6s  %10llu  %s\\n\", diff[i].id, diff[i].count, diff[i].name);\n    if (nd == 0) printf(\"(no lines yet: start with TODO 1 and 2)\\n\");\n    return 0;\n}\n"}, "single": "           CPU0       \n  0:        579   IO-APIC   2-edge      timer\n  1:          9   IO-APIC   1-edge      i8042\n  4:         18   IO-APIC   4-edge      ttyS0\n  8:          1   IO-APIC   8-edge      rtc0\n  9:          0   IO-APIC   9-fasteoi   acpi\n 12:          3   IO-APIC  12-edge      i8042\n 14:          0   IO-APIC  14-edge      ata_piix\n 15:         31   IO-APIC  15-edge      ata_piix\n 24:          0  PCI-MSIX-0000:00:04.0   0-edge      virtio0-config\n 25:         10  PCI-MSIX-0000:00:04.0   1-edge      virtio0-req.0\nNMI:          0   Non-maskable interrupts\nLOC:       2328   Local timer interrupts\nSPU:          0   Spurious interrupts\nPMI:          0   Performance monitoring interrupts\nIWI:          0   IRQ work interrupts\nRTR:          0   APIC ICR read retries\nRES:          0   Rescheduling interrupts\nCAL:          0   Function call interrupts\nTLB:          0   TLB shootdowns\nTRM:          0   Thermal event interrupts\nTHR:          0   Threshold APIC interrupts\nDFR:          0   Deferred Error APIC interrupts\nMCE:          0   Machine check exceptions\nMCP:          1   Machine check polls\nERR:          0\nMIS:          0\nPIN:          0   Posted-interrupt notification event\nNPI:          0   Nested posted-interrupt event\nPIW:          0   Posted-interrupt wakeup event\n", "before": "           CPU0       CPU1\n 25:          7          0  PCI-MSIX-0000:00:04.0   1-edge      virtio0-req.0\n 26:          0          3  PCI-MSIX-0000:00:04.0   2-edge      virtio0-req.1\nLOC:       1684       2023   Local timer interrupts\nRES:         40         40   Rescheduling interrupts\nCAL:        450        311   Function call interrupts\n", "after": "           CPU0       CPU1\n 25:        514          0  PCI-MSIX-0000:00:04.0   1-edge      virtio0-req.0\n 26:          0          3  PCI-MSIX-0000:00:04.0   2-edge      virtio0-req.1\nLOC:       2135       2103   Local timer interrupts\nRES:         44         42   Rescheduling interrupts\nCAL:        460        341   Function call interrupts\n", "exc": "7 / 0                      -> FPE      si_code 1  trap  0  err 0x0  addr 0x564508a6d4f2\nint3                       -> TRAP     si_code 128  trap  3  err 0x0  addr (nil)\nud2                        -> ILL      si_code 2  trap  6  err 0x0  addr 0x564508a6d4cd\nhlt (kernel only)          -> SEGV     si_code 128  trap 13  err 0x0  addr (nil)\ninb $0x60 (port I/O)       -> SEGV     si_code 128  trap 13  err 0x0  addr (nil)\nread *NULL                 -> SEGV     si_code 1  trap 14  err 0x4  addr (nil)\nwrite \"hello\" (rodata)     -> SEGV     si_code 2  trap 14  err 0x7  addr 0x564508a6e0e0\ncall code on the stack     -> SEGV     si_code 2  trap 14  err 0x15  addr 0x7fff1ab9e8c7\n"}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* tools.js - small, tested calculators used by the interactive labs (Lectures 1, 7-15).
+   Every constant comes from the Linux v6.8 source or the C/x86-64 ABI; see the lab pages for the files. */
+(function (root) {
+"use strict";
+const T = {};
+const hx = (v, w = 0) => (typeof v === "bigint" ? BigInt.asUintN(64, v) : BigInt(v >>> 0)).toString(16).padStart(w, "0");
+T.hx = hx;
+
+/* ---------------- Lecture 1: C types in memory (x86-64, LP64, little-endian) ---------------- */
+T.CTYPES = {
+  "char": { size: 1, signed: true, int: true }, "unsigned char": { size: 1, signed: false, int: true },
+  "short": { size: 2, signed: true, int: true }, "unsigned short": { size: 2, signed: false, int: true },
+  "int": { size: 4, signed: true, int: true }, "unsigned int": { size: 4, signed: false, int: true },
+  "long": { size: 8, signed: true, int: true }, "unsigned long": { size: 8, signed: false, int: true },
+  "float": { size: 4, int: false }, "double": { size: 8, int: false }, "pointer (void *)": { size: 8, signed: false, int: true }
+};
+/* bytes as C would store the value (integers wrap modulo 2^bits, like a conversion to that type) */
+T.cBytes = function (text, type) {
+  const t = T.CTYPES[type]; const n = t.size; const bytes = new Uint8Array(n);
+  let note = "";
+  if (t.int) {
+    let v;
+    const s = String(text).trim();
+    if (/^'.'$/.test(s)) v = BigInt(s.charCodeAt(1));
+    else if (/^[-+]?(0x[0-9a-f]+|\d+)$/i.test(s)) { const neg = s.startsWith("-"); v = BigInt(s.replace(/^[-+]/, "")); if (neg) v = -v; }
+    else throw new Error("type an integer, e.g. 1000, -1, 0x7f or 'A'");
+    const bits = BigInt(8 * n);
+    const u = BigInt.asUintN(8 * n, v);
+    const back = t.signed ? BigInt.asIntN(8 * n, v) : u;
+    if (back !== v) note = `does not fit in ${type}: C keeps the low ${8 * n} bits, so the variable holds ${back}`;
+    for (let i = 0; i < n; i++) bytes[i] = Number((u >> BigInt(8 * i)) & 0xffn);
+    return { bytes, value: back.toString(), note, bits: Number(bits) };
+  }
+  const x = Number(text);
+  if (String(text).trim() === "" || Number.isNaN(x) && !/^nan$/i.test(String(text).trim())) throw new Error("type a number, e.g. 3.5 or -0.1");
+  const dv = new DataView(new ArrayBuffer(8));
+  if (n === 4) { dv.setFloat32(0, x, true); for (let i = 0; i < 4; i++) bytes[i] = dv.getUint8(i); const back = dv.getFloat32(0, true); if (back !== x && !Number.isNaN(x)) note = `float cannot hold ${x} exactly: it stores ${back}`; return { bytes, value: String(back), note, bits: 32 }; }
+  dv.setFloat64(0, x, true); for (let i = 0; i < 8; i++) bytes[i] = dv.getUint8(i); return { bytes, value: String(dv.getFloat64(0, true)), note, bits: 64 };
+};
+T.ieee = function (bytes) {   // little-endian bytes of a float (4) or double (8)
+  const n = bytes.length; let bits = 0n;
+  for (let i = n - 1; i >= 0; i--) bits = (bits << 8n) | BigInt(bytes[i]);
+  const eb = n === 4 ? 8 : 11, mb = n === 4 ? 23 : 52, bias = n === 4 ? 127 : 1023;
+  const sign = Number(bits >> BigInt(eb + mb)), exp = Number((bits >> BigInt(mb)) & ((1n << BigInt(eb)) - 1n)), man = bits & ((1n << BigInt(mb)) - 1n);
+  return { sign, exp, expUnbiased: exp - bias, man, eb, mb, bias, kind: exp === 0 ? (man === 0n ? "zero" : "subnormal") : (exp === (1 << eb) - 1 ? (man === 0n ? "infinity" : "NaN") : "normal") };
+};
+
+/* ---------------- Lecture 7: /proc/<pid>/stat and process flags ---------------- */
+T.STAT_FIELDS = ["pid", "comm", "state", "ppid", "pgrp", "session", "tty_nr", "tpgid", "flags", "minflt", "cminflt", "majflt", "cmajflt", "utime", "stime", "cutime", "cstime", "priority", "nice", "num_threads", "itrealvalue", "starttime", "vsize", "rss", "rsslim", "startcode", "endcode", "startstack", "kstkesp", "kstkeip", "signal", "blocked", "sigignore", "sigcatch", "wchan", "nswap", "cnswap", "exit_signal", "processor", "rt_priority", "policy", "delayacct_blkio_ticks", "guest_time", "cguest_time", "start_data", "end_data", "start_brk", "arg_start", "arg_end", "env_start", "env_end", "exit_code"];
+T.STAT_HELP = { pid: "process ID", comm: "program name (in parentheses; may contain spaces)", state: "R running, S sleeping, D disk sleep, Z zombie, T stopped, I idle kernel thread", ppid: "parent's PID",
+  flags: "PF_* bits from include/linux/sched.h (decoded below)", minflt: "minor page faults", majflt: "major page faults (needed the disk)", utime: "CPU time in user mode, in clock ticks (usually 1/100 s)",
+  stime: "CPU time in kernel mode, in clock ticks", priority: "kernel priority (20 + nice for normal tasks)", nice: "nice value, -20 .. 19", num_threads: "threads in this process", starttime: "start time after boot, in clock ticks",
+  vsize: "virtual memory size in bytes", rss: "resident set size in pages", processor: "CPU it last ran on", policy: "0 SCHED_OTHER (CFS), 1 FIFO, 2 RR, 3 BATCH, 5 IDLE" };
+T.PF = [[0x1, "PF_VCPU"], [0x2, "PF_IDLE"], [0x4, "PF_EXITING"], [0x8, "PF_POSTCOREDUMP"], [0x10, "PF_IO_WORKER"], [0x20, "PF_WQ_WORKER"], [0x40, "PF_FORKNOEXEC"], [0x80, "PF_MCE_PROCESS"], [0x100, "PF_SUPERPRIV"], [0x200, "PF_DUMPCORE"], [0x400, "PF_SIGNALED"], [0x800, "PF_MEMALLOC"], [0x1000, "PF_NPROC_EXCEEDED"], [0x2000, "PF_USED_MATH"], [0x4000, "PF_USER_WORKER"], [0x8000, "PF_NOFREEZE"], [0x20000, "PF_KSWAPD"], [0x40000, "PF_MEMALLOC_NOFS"], [0x80000, "PF_MEMALLOC_NOIO"], [0x100000, "PF_LOCAL_THROTTLE"], [0x200000, "PF_KTHREAD"], [0x400000, "PF_RANDOMIZE"], [0x4000000, "PF_NO_SETAFFINITY"], [0x8000000, "PF_MCE_EARLY"], [0x10000000, "PF_MEMALLOC_PIN"], [0x80000000, "PF_SUSPEND_TASK"]];
+T.parseStat = function (line) {
+  line = line.trim();
+  const a = line.indexOf("("), b = line.lastIndexOf(")");
+  if (a < 0 || b < a) throw new Error("a /proc/<pid>/stat line looks like: 1 (systemd) S 0 1 1 0 -1 4194560 …");
+  const head = line.slice(0, a).trim(), comm = line.slice(a + 1, b), rest = line.slice(b + 1).trim().split(/\s+/);
+  const vals = [head, comm, ...rest];
+  const fields = vals.map((v, i) => ({ n: i + 1, name: T.STAT_FIELDS[i] || "field " + (i + 1), value: v, help: T.STAT_HELP[T.STAT_FIELDS[i]] || "" }));
+  const flags = Number(vals[8] || 0) >>> 0;
+  return { fields, flags, flagNames: T.PF.filter(([bit]) => (flags & bit) >>> 0).map(([, n]) => n), kthread: !!(flags & 0x200000) };
+};
+T.parseMeminfo = function (text) {
+  const m = {}; for (const l of text.split(/\n/)) { const r = l.match(/^(\w[\w()]*):\s+(\d+)/); if (r) m[r[1]] = Number(r[2]); }
+  return m;
+};
+
+/* ---------------- Lecture 8: fork trees and the CFS share ---------------- */
+T.forkTree = function (pattern, n) {
+  // pattern "loop": for (i = 0; i < n; i++) fork();     every process continues the loop
+  // "child": for (...) if (fork() != 0) break;   only the child goes on: a chain
+  // "parent": for (...) if (fork() == 0) break;  only the parent goes on: a fan
+  let next = 1; const nodes = [{ id: 1, parent: 0, born: -1 }];
+  function run(id, from) {
+    for (let i = from; i < n; i++) {
+      const child = ++next; nodes.push({ id: child, parent: id, born: i });
+      if (pattern === "loop") run(child, i + 1);
+      else if (pattern === "child") { run(child, i + 1); return; }
+      else if (pattern === "parent") { /* child breaks out of the loop */ }
+    }
+  }
+  run(1, 0);
+  return nodes;
+};
+T.WEIGHT = [88761, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916, 9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 1024, 820, 655, 526, 423, 335, 272, 215, 172, 137, 110, 87, 70, 56, 45, 36, 29, 23, 18, 15];
+T.weightOf = nice => T.WEIGHT[nice + 20];
+/* a simplified CFS on one CPU: run the task with the smallest vruntime for one tick (ms);
+   vruntime grows by tick * 1024 / weight. Returns the timeline and CPU shares. */
+T.cfs = function (tasks, ms) {
+  const st = tasks.map((t, i) => ({ ...t, i, vr: 0, ran: 0 }));
+  const timeline = [];
+  for (let t = 0; t < ms; t++) {
+    const ready = st.filter(x => (x.arrive || 0) <= t && (x.work === undefined || x.ran < x.work));
+    if (!ready.length) { timeline.push(-1); continue; }
+    const minv = Math.min(...ready.map(x => x.vr));
+    for (const x of st) if ((x.arrive || 0) === t && t > 0) x.vr = Math.max(x.vr, minv);   // a newcomer starts at the current minimum
+    let best = ready[0]; for (const x of ready) if (x.vr < best.vr - 1e-12) best = x;
+    best.vr += 1024 / T.weightOf(best.nice); best.ran++; timeline.push(best.i);
+  }
+  const total = st.reduce((s, x) => s + x.ran, 0) || 1;
+  return { timeline, tasks: st.map(x => ({ name: x.name, nice: x.nice, weight: T.weightOf(x.nice), ran: x.ran, share: x.ran / total, vr: x.vr })) };
+};
+
+/* ---------------- Lecture 9: system calls ---------------- */
+T.parseTbl = function (text) {
+  const rows = [];
+  for (const l of text.split("\n")) { const m = l.match(/^(\d+)\s+(\w+)\s+(\w+)(?:\s+(\S+))?/); if (m) rows.push({ nr: Number(m[1]), abi: m[2], name: m[3], entry: m[4] || "" }); }
+  return rows;
+};
+T.ARGREGS = ["rdi", "rsi", "rdx", "r10", "r8", "r9"];
+T.splitArgs = function (s) { const out = []; let cur = "", q = false, d = 0; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '"' && s[i - 1] !== "\\") q = !q; if (!q && (c === "(" || c === "[" || c === "{")) d++; if (!q && (c === ")" || c === "]" || c === "}")) d--; if (c === "," && !q && d === 0) { out.push(cur.trim()); cur = ""; } else cur += c; } if (cur.trim()) out.push(cur.trim()); return out; };
+T.parseStrace = function (line, table, errnos) {
+  const m = line.trim().match(/^(?:\[pid\s+\d+\]\s+)?(?:\d+\s+)?(\w+)\((.*)\)\s*=\s*(-?\w+|\?)(?:\s+(\w+)\s+\((.*)\))?/);
+  if (!m) throw new Error('paste one strace line, e.g.  write(1, "hi\\n", 3) = 3');
+  const [, name, args, ret, errName, errText] = m;
+  const row = table.find(r => r.name === name && r.abi !== "x32");
+  const a = T.splitArgs(args);
+  const regs = a.slice(0, 6).map((v, i) => ({ reg: T.ARGREGS[i], value: v }));
+  let rax;
+  if (ret === "?") rax = "(the call did not return)";
+  else if (ret === "-1" && errName) { const e = errnos.find(x => x.name === errName); rax = e ? `-${e.nr}  (the kernel returned −${errName}; libc stores ${e.nr} in errno and returns -1)` : "-1"; }
+  else rax = ret;
+  return { name, nr: row ? row.nr : null, abi: row ? row.abi : null, entry: row ? row.entry : "", regs, ret: rax, errName, errText };
+};
+
+/* ---------------- Lecture 10: pipes and signals ---------------- */
+T.SIGNALS = [[1, "SIGHUP", "terminate", "terminal hung up"], [2, "SIGINT", "terminate", "Ctrl-C"], [3, "SIGQUIT", "core", "Ctrl-\\"], [4, "SIGILL", "core", "illegal instruction"], [5, "SIGTRAP", "core", "breakpoint"], [6, "SIGABRT", "core", "abort()"], [7, "SIGBUS", "core", "bus error"], [8, "SIGFPE", "core", "divide by zero"], [9, "SIGKILL", "terminate", "cannot be caught, blocked or ignored"], [10, "SIGUSR1", "terminate", "for your programs"], [11, "SIGSEGV", "core", "bad memory access"], [12, "SIGUSR2", "terminate", "for your programs"], [13, "SIGPIPE", "terminate", "write to a pipe nobody reads"], [14, "SIGALRM", "terminate", "alarm()"], [15, "SIGTERM", "terminate", "kill's default"], [16, "SIGSTKFLT", "terminate", "unused"], [17, "SIGCHLD", "ignore", "a child stopped or exited"], [18, "SIGCONT", "continue", "continue a stopped process"], [19, "SIGSTOP", "stop", "cannot be caught, blocked or ignored"], [20, "SIGTSTP", "stop", "Ctrl-Z"], [21, "SIGTTIN", "stop", "background read from terminal"], [22, "SIGTTOU", "stop", "background write to terminal"], [23, "SIGURG", "ignore", "urgent socket data"], [24, "SIGXCPU", "core", "CPU time limit"], [25, "SIGXFSZ", "core", "file size limit"], [26, "SIGVTALRM", "terminate", "virtual timer"], [27, "SIGPROF", "terminate", "profiling timer"], [28, "SIGWINCH", "ignore", "window size changed"], [29, "SIGIO", "terminate", "I/O possible"], [30, "SIGPWR", "terminate", "power failure"], [31, "SIGSYS", "core", "bad system call"]];
+/* one step-based pipe: capacity bytes, a writer that wants `write` bytes per step, a reader `read` per step */
+T.pipeSim = function ({ capacity = 65536, total = 200000, wchunk = 4096, rchunk = 1024, rdelay = 0, closeReader = -1, steps = 400 }) {
+  let inPipe = 0, written = 0, readBytes = 0, wDone = false, rClosed = false; const log = [];
+  for (let t = 0; t < steps; t++) {
+    let w = "", r = "";
+    if (t === closeReader) { rClosed = true; r = "reader closes its end"; }
+    if (!wDone) {
+      if (rClosed) { w = "write() → SIGPIPE: the writer is killed (or gets EPIPE)"; wDone = true; }
+      else { const want = Math.min(wchunk, total - written), room = capacity - inPipe; if (room === 0) w = "write() blocks: pipe full"; else { const n = Math.min(want, room); inPipe += n; written += n; w = n < want ? `wrote ${n} of ${want} (pipe filled up)` : `wrote ${n}`; if (written >= total) { wDone = true; w += "; writer closes its end"; } } }
+    }
+    if (!rClosed && t >= rdelay) {
+      if (inPipe > 0) { const n = Math.min(rchunk, inPipe); inPipe -= n; readBytes += n; r = `read ${n}`; }
+      else if (wDone) { r = "read() returns 0: end of file"; rClosed = true; }
+      else r = "read() blocks: pipe empty";
+    }
+    log.push({ t, inPipe, written, read: readBytes, w, r });
+    if (wDone && rClosed) break;
+  }
+  return log;
+};
+
+/* ---------------- Lecture 11: addresses, pagemap, a heap ---------------- */
+T.splitVA = function (vaText) {
+  const s = vaText.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type a hex address, e.g. 0x7ffd3c2a1b40");
+  const va = BigInt("0x" + s);
+  if (va >> 64n) throw new Error("more than 64 bits");
+  const top = va >> 47n; const canonical = top === 0n || top === (1n << 17n) - 1n;
+  const idx = k => Number((va >> BigInt(12 + 9 * k)) & 511n);
+  return { va, canonical, half: (va >> 63n) ? "kernel half" : "user half", pml4: idx(3), pdpt: idx(2), pd: idx(1), pt: idx(0), off: Number(va & 4095n), vpn: va >> 12n, pagemapOffset: (va >> 12n) * 8n };
+};
+T.pagemap = function (text) {
+  const s = text.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type the 64-bit entry in hex, e.g. 0x8600000000123456");
+  const e = BigInt("0x" + s);
+  const bit = n => Number((e >> BigInt(n)) & 1n);
+  return { present: bit(63), swapped: bit(62), filePage: bit(61), exclusive: bit(56), softDirty: bit(55), pfn: e & ((1n << 55n) - 1n) };
+};
+/* the Lab 11.2 allocator (header 32 bytes, first fit, split, merge with next), on a simulated sbrk heap */
+T.Heap = class {
+  constructor(base = 0x5000) { this.base = base; this.brk = base; this.blocks = []; this.log = []; }
+  align16(n) { return (n + 15) & ~15; }
+  malloc(n) {
+    if (n <= 0) return null; n = this.align16(n);
+    let h = this.blocks.find(b => b.free && b.size >= n);
+    if (h) { h.free = false; this.split(h, n); this.log.push(`malloc: first fit reuses the block at +${h.addr - this.base}`); }
+    else { h = { addr: this.brk, size: n, free: false }; this.brk += 32 + n; this.blocks.push(h); this.log.push(`malloc: nothing fits → sbrk(${32 + n}), program break now +${this.brk - this.base}`); }
+    return h.addr + 32;
+  }
+  split(h, n) { if (h.size >= n + 32 + 32) { const rest = { addr: h.addr + 32 + n, size: h.size - n - 32, free: true }; this.blocks.splice(this.blocks.indexOf(h) + 1, 0, rest); h.size = n; this.log.push(`split: the unused ${rest.size} bytes become a new free block`); } }
+  free(p) {
+    const h = this.blocks.find(b => b.addr + 32 === p); if (!h) throw new Error("free() of a pointer that malloc did not return"); if (h.free) throw new Error("double free");
+    h.free = true; let i = this.blocks.indexOf(h);
+    while (i + 1 < this.blocks.length) { const nx = this.blocks[i + 1]; if (nx.free && nx.addr === h.addr + 32 + h.size) { h.size += 32 + nx.size; this.blocks.splice(i + 1, 1); this.log.push(`free: merged with the next free block, now ${h.size} bytes`); } else break; }
+  }
+};
+
+/* ---------------- Lecture 12: ext2 ---------------- */
+T.modeString = function (mode) {
+  const t = { 0o140000: "s", 0o120000: "l", 0o100000: "-", 0o060000: "b", 0o040000: "d", 0o020000: "c", 0o010000: "p" }[mode & 0o170000] || "?";
+  const r = (m, s) => ((mode & m) ? s : "-");
+  let p = r(0o400, "r") + r(0o200, "w") + ((mode & 0o4000) ? ((mode & 0o100) ? "s" : "S") : r(0o100, "x"));
+  p += r(0o40, "r") + r(0o20, "w") + ((mode & 0o2000) ? ((mode & 0o10) ? "s" : "S") : r(0o10, "x"));
+  p += r(0o4, "r") + r(0o2, "w") + ((mode & 0o1000) ? ((mode & 0o1) ? "t" : "T") : r(0o1, "x"));
+  return t + p;
+};
+T.blockPath = function (lblock, blockSize) {   // which pointer of the inode holds logical block lblock
+  const P = blockSize / 4;
+  if (lblock < 12) return { level: 0, path: [lblock], text: `i_block[${lblock}] (direct)` };
+  lblock -= 12;
+  if (lblock < P) return { level: 1, path: [12, lblock], text: `i_block[12] (single indirect) → entry ${lblock}` };
+  lblock -= P;
+  if (lblock < P * P) return { level: 2, path: [13, Math.floor(lblock / P), lblock % P], text: `i_block[13] (double indirect) → entry ${Math.floor(lblock / P)} → entry ${lblock % P}` };
+  lblock -= P * P;
+  return { level: 3, path: [14, Math.floor(lblock / (P * P)), Math.floor(lblock / P) % P, lblock % P], text: `i_block[14] (triple indirect) → ${Math.floor(lblock / (P * P))} → ${Math.floor(lblock / P) % P} → ${lblock % P}` };
+};
+T.fileBlocks = function (size, blockSize) {   // data blocks and pointer blocks a file of `size` bytes needs
+  const P = blockSize / 4, n = Math.ceil(size / blockSize);
+  let ind = 0; let rest = n - 12;
+  if (rest > 0) { ind += 1; rest -= P; }
+  if (rest > 0) { const k = Math.min(Math.ceil(rest / P), P); ind += 1 + k; rest -= P * P; }
+  if (rest > 0) { const k2 = Math.ceil(rest / P); ind += 1 + Math.ceil(k2 / P) + k2; }
+  return { data: n, pointer: ind, total: n + ind, maxDirect: 12 * blockSize, maxSingle: (12 + P) * blockSize, maxDouble: (12 + P + P * P) * blockSize };
+};
+T.Ext2 = class {
+  constructor(bytes) {
+    this.b = bytes; this.dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const d = this.dv, o = 1024;
+    if (bytes.length < 2048 || d.getUint16(o + 56, true) !== 0xEF53) throw new Error("not an ext2/3/4 image (no magic EF53 at byte 1080)");
+    this.sb = { inodes: d.getUint32(o, true), blocks: d.getUint32(o + 4, true), firstData: d.getUint32(o + 20, true), logBlock: d.getUint32(o + 24, true), blocksPerGroup: d.getUint32(o + 32, true), inodesPerGroup: d.getUint32(o + 40, true), magic: 0xEF53, rev: d.getUint32(o + 76, true), inodeSize: d.getUint32(o + 76, true) >= 1 ? d.getUint16(o + 88, true) : 128, freeBlocks: d.getUint32(o + 12, true), freeInodes: d.getUint32(o + 16, true), featIncompat: d.getUint32(o + 96, true) };
+    this.bs = 1024 << this.sb.logBlock;
+    this.groups = Math.ceil((this.sb.blocks - this.sb.firstData) / this.sb.blocksPerGroup);
+    this.gdt = (this.sb.firstData + 1) * this.bs;
+  }
+  u32(o) { return this.dv.getUint32(o, true); } u16(o) { return this.dv.getUint16(o, true); }
+  group(g) { const o = this.gdt + 32 * g; return { blockBitmap: this.u32(o), inodeBitmap: this.u32(o + 4), inodeTable: this.u32(o + 8), freeBlocks: this.u16(o + 12), freeInodes: this.u16(o + 14), dirs: this.u16(o + 16) }; }
+  inodeLoc(ino) { const g = Math.floor((ino - 1) / this.sb.inodesPerGroup), idx = (ino - 1) % this.sb.inodesPerGroup; const gd = this.group(g); const off = gd.inodeTable * this.bs + idx * this.sb.inodeSize; return { group: g, index: idx, table: gd.inodeTable, block: gd.inodeTable + Math.floor(idx * this.sb.inodeSize / this.bs), offset: off }; }
+  inode(ino) {
+    const L = this.inodeLoc(ino), o = L.offset;
+    const blocks = []; for (let i = 0; i < 15; i++) blocks.push(this.u32(o + 40 + 4 * i));
+    return { ino, loc: L, mode: this.u16(o), uid: this.u16(o + 2), size: this.u32(o + 4), links: this.u16(o + 26), sectors: this.u32(o + 28), flags: this.u32(o + 32), block: blocks, mtime: this.u32(o + 16) };
+  }
+  dataBlocks(inode, limit = 1 << 20) {   // logical order, follows indirect blocks
+    if (this.isFastSymlink(inode)) return { data: [], meta: [] };
+    const P = this.bs / 4, out = [], meta = [];
+    const need = Math.ceil(inode.size / this.bs);
+    const walk = (blk, level) => { if (out.length >= need || out.length >= limit) return; if (!blk) { return; } if (level === 0) { out.push(blk); return; } meta.push({ blk, level }); for (let i = 0; i < P && out.length < need; i++) walk(this.u32(blk * this.bs + 4 * i), level - 1); };
+    for (let i = 0; i < 12 && out.length < need; i++) walk(inode.block[i], 0);
+    walk(inode.block[12], 1); walk(inode.block[13], 2); walk(inode.block[14], 3);
+    return { data: out, meta };
+  }
+  isFastSymlink(inode) { return (inode.mode & 0o170000) === 0o120000 && inode.sectors === 0 && inode.size < 60; }
+  readlink(inode) { const o = inode.loc.offset + 40; return String.fromCharCode(...this.b.subarray(o, o + inode.size)); }
+  read(inode) { if (this.isFastSymlink(inode)) return new TextEncoder().encode(this.readlink(inode)); const { data } = this.dataBlocks(inode); const res = new Uint8Array(inode.size); data.forEach((blk, i) => { const n = Math.min(this.bs, inode.size - i * this.bs); res.set(this.b.subarray(blk * this.bs, blk * this.bs + n), i * this.bs); }); return res; }
+  dir(inode) {
+    const bytes = this.read(inode), dv = new DataView(bytes.buffer), out = [];
+    for (let o = 0; o + 8 <= bytes.length;) { const ino = dv.getUint32(o, true), rec = dv.getUint16(o + 4, true), nl = bytes[o + 6], ft = bytes[o + 7]; if (rec < 8) break; if (ino) out.push({ ino, name: String.fromCharCode(...bytes.subarray(o + 8, o + 8 + nl)), type: ft, rec, at: o }); o += rec; }
+    return out;
+  }
+  lookup(path) {
+    let ino = 2; const steps = [{ name: "/", ino: 2 }];
+    for (const part of path.split("/").filter(Boolean)) {
+      const ent = this.dir(this.inode(ino)).find(e => e.name === part);
+      if (!ent) throw new Error(`"${part}" not found in directory inode ${ino}`);
+      ino = ent.ino; steps.push({ name: part, ino });
+    }
+    return { ino, steps };
+  }
+};
+
+/* ---------------- Lecture 13: page-fault error code, /proc/interrupts ---------------- */
+T.PF_BITS = [[0, "P", "1: protection violation on a present page / 0: the page is not present"], [1, "W", "1: write access / 0: read access"], [2, "U", "1: user mode / 0: kernel (supervisor) mode"], [3, "RSVD", "a reserved bit was set in a page-table entry"], [4, "I", "instruction fetch"], [5, "PK", "protection-key violation"], [6, "SS", "shadow-stack access"], [15, "SGX", "SGX violation"]];
+T.decodePF = function (code) { return T.PF_BITS.map(([b, n, d]) => ({ bit: b, name: n, on: !!(code & (1 << b)), help: d })); };
+T.describePF = function (code) {
+  const p = code & 1, w = code & 2, u = code & 4, i = code & 16;
+  return `${u ? "user" : "kernel (supervisor)"} ${i ? "instruction fetch" : (w ? "write" : "read")} of ${p ? "a present page it may not access (protection)" : "a page that is not present"}`;
+};
+T.VECTORS = ["#DE divide error", "#DB debug", "NMI non-maskable interrupt", "#BP breakpoint (int3)", "#OF overflow", "#BR bound range", "#UD invalid opcode", "#NM device not available (FPU)", "#DF double fault", "coprocessor segment overrun (old)", "#TS invalid TSS", "#NP segment not present", "#SS stack segment fault", "#GP general protection", "#PF page fault", "(reserved)", "#MF x87 floating-point error", "#AC alignment check", "#MC machine check", "#XM SIMD floating-point", "#VE virtualization exception", "#CP control protection"];
+T.parseInterrupts = function (text) {
+  const lines = text.split("\n").filter(l => l.trim()); if (!lines.length) return { cpus: 0, rows: [] };
+  const cpus = (lines[0].match(/CPU\d+/g) || []).length; const rows = [];
+  for (const l of lines.slice(1)) {
+    const m = l.match(/^\s*([^:]+):\s*(.*)$/); if (!m) continue;
+    const parts = m[2].trim().split(/\s+/); const nums = [];
+    while (nums.length < cpus && parts.length && /^\d+$/.test(parts[0])) nums.push(Number(parts.shift()));
+    rows.push({ id: m[1].trim(), sum: nums.reduce((a, b) => a + b, 0), name: parts.join(" ") });
+  }
+  return { cpus, rows };
+};
+T.diffInterrupts = function (a, b, seconds) {
+  const A = T.parseInterrupts(a), B = T.parseInterrupts(b); const map = new Map(A.rows.map(r => [r.id, r]));
+  return B.rows.map(r => ({ ...r, delta: r.sum - (map.get(r.id) ? map.get(r.id).sum : 0), rate: (r.sum - (map.get(r.id) ? map.get(r.id).sum : 0)) / seconds })).filter(r => r.delta > 0).sort((x, y) => y.delta - x.delta);
+};
+
+/* ---------------- Lecture 14: relocation and taint ---------------- */
+T.reloc = function (S, A, P) {   // R_X86_64_PC32 / PLT32: the 32-bit value S + A - P
+  const v = BigInt.asUintN(64, S + A - P); const signed = BigInt.asIntN(64, S + A - P);
+  const fits = signed >= -(1n << 31n) && signed < (1n << 31n);
+  const v32 = BigInt.asUintN(32, signed); const bytes = []; for (let i = 0; i < 4; i++) bytes.push(Number((v32 >> BigInt(8 * i)) & 0xffn));
+  return { value: signed, v32, bytes, fits, target: P + 4n + BigInt.asIntN(32, v32) };
+};
+T.TAINT = [["P", "proprietary module loaded (G if all GPL)"], ["F", "module force-loaded"], ["S", "CPU out of specification"], ["R", "module force-removed"], ["M", "machine check exception"], ["B", "bad page"], ["U", "user asked for taint"], ["D", "kernel died (oops)"], ["A", "ACPI table overridden"], ["W", "a WARN() happened"], ["C", "staging driver loaded"], ["I", "firmware workaround"], ["O", "out-of-tree module loaded"], ["E", "unsigned module loaded"], ["L", "soft lockup"], ["K", "live patched"], ["X", "auxiliary taint (distribution)"], ["T", "built with randstruct"], ["N", "test module loaded"]];
+T.decodeTaint = function (v) { v = Number(v); return T.TAINT.map(([c, d], bit) => ({ bit, letter: (bit === 0 && !(v & 1)) ? "G" : c, on: !!(Math.floor(v / Math.pow(2, bit)) % 2), help: d })); };
+
+/* ---------------- Lecture 15: ioctl numbers, dev_t, open flags, sectors, USB ---------------- */
+T.ioctl = function (dir, type, nr, size) { return (((dir << 30) | (size << 16) | (type << 8) | nr) >>> 0); };
+T.ioctlDecode = function (n) { n = n >>> 0; const dir = n >>> 30; return { dir, dirName: ["_IO (none)", "_IOW (write: user → driver)", "_IOR (read: driver → user)", "_IOWR (both)"][dir], size: (n >>> 16) & 0x3fff, type: (n >>> 8) & 0xff, nr: n & 0xff }; };
+T.mkdev = (ma, mi) => (((ma << 20) | mi) >>> 0);
+T.OFLAGS = [[0o100, "O_CREAT"], [0o200, "O_EXCL"], [0o400, "O_NOCTTY"], [0o1000, "O_TRUNC"], [0o2000, "O_APPEND"], [0o4000, "O_NONBLOCK"], [0o10000, "O_DSYNC"], [0o20000, "O_ASYNC"], [0o40000, "O_DIRECT"], [0o100000, "O_LARGEFILE"], [0o200000, "O_DIRECTORY"], [0o400000, "O_NOFOLLOW"], [0o1000000, "O_NOATIME"], [0o2000000, "O_CLOEXEC"], [0o4010000, "O_SYNC"], [0o10000000, "O_PATH"], [0o20200000, "O_TMPFILE"]];
+T.openFlags = function (v) {
+  v = v >>> 0; const acc = ["O_RDONLY", "O_WRONLY", "O_RDWR", "(3: invalid)"][v & 3]; const names = [acc]; let rest = v & ~3;
+  for (const [bit, n] of T.OFLAGS.slice().sort((a, b) => b[0] - a[0])) if ((rest & bit) === bit && bit) { names.push(n); rest &= ~bit; }
+  if (rest) names.push("0x" + rest.toString(16) + " (unknown)");
+  return names;
+};
+T.sectors = function (offset, length) { return { first: Math.floor(offset / 512), count: Math.ceil((offset % 512 + length) / 512), aligned: offset % 512 === 0 && length % 512 === 0, page: Math.floor(offset / 4096) }; };
+T.USAGE = (() => { const m = { 0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Space", 0x2d: "-", 0x2e: "=", 0x2f: "[", 0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock", 0x4f: "Right", 0x50: "Left", 0x51: "Down", 0x52: "Up" }; for (let i = 0; i < 26; i++) m[4 + i] = String.fromCharCode(97 + i); for (let i = 0; i < 9; i++) m[0x1e + i] = String(i + 1); m[0x27] = "0"; for (let i = 0; i < 12; i++) m[0x3a + i] = "F" + (i + 1); return m; })();
+T.MODS = ["Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", "Right GUI"];
+T.kbdReport = function (bytes) {
+  const mods = T.MODS.filter((_, i) => bytes[0] & (1 << i)); const keys = bytes.slice(2, 8).filter(k => k);
+  return { mods, keys: keys.map(k => ({ code: k, name: k === 1 ? "ErrorRollOver" : (T.USAGE[k] || "usage 0x" + k.toString(16)) })) };
+};
+T.mouseReport = function (bytes) { const s = v => (v & 0x80 ? v - 256 : v); return { left: !!(bytes[0] & 1), right: !!(bytes[0] & 2), middle: !!(bytes[0] & 4), dx: s(bytes[1] || 0), dy: s(bytes[2] || 0), wheel: s(bytes[3] || 0) }; };
+T.modalias = function (s) {
+  const m = s.trim().match(/^usb:v([0-9A-F]{4})p([0-9A-F]{4})d([0-9A-F]{4})dc([0-9A-F]{2})dsc([0-9A-F]{2})dp([0-9A-F]{2})ic([0-9A-F]{2})isc([0-9A-F]{2})ip([0-9A-F]{2})in([0-9A-F]{2})$/i);
+  if (!m) throw new Error("a USB modalias looks like usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00");
+  const k = ["vendor", "product", "bcdDevice", "devClass", "devSubClass", "devProtocol", "ifClass", "ifSubClass", "ifProtocol", "ifNumber"]; const o = {}; k.forEach((n, i) => { o[n] = m[i + 1].toUpperCase(); }); return o;
+};
+T.USBCLASS = { "00": "defined per interface", "01": "audio", "02": "communications", "03": "HID (keyboard, mouse …)", "07": "printer", "08": "mass storage", "09": "hub", "0A": "CDC data", "0E": "video", "E0": "wireless", "EF": "miscellaneous", "FF": "vendor specific" };
+
+if (typeof module !== "undefined" && module.exports) module.exports = T; else root.TOOLS = T;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 13: what irqtop computes, the page-fault error code, and the exception vectors */
+TOOLS_UI.push({
+  id: "irq", title: "irqtop by hand",
+  build(p, D) {
+    const { el } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">Two snapshots of <code>/proc/interrupts</code>, taken some seconds apart. irqtop matches lines by their id (TODO 3), sums the per-CPU columns (TODO 2) and sorts by the difference (TODO 4). The samples are real: a 2-CPU QEMU guest before and after reading 64 MiB from its virtio disk.</p>
+<div class="grid2"><div><b class="small">before</b><textarea id="a13" spellcheck="false" style="min-height:150px" aria-label="first snapshot"></textarea></div><div><b class="small">after</b><textarea id="b13" spellcheck="false" style="min-height:150px" aria-label="second snapshot"></textarea></div></div>
+<div class="row" style="margin-top:8px"><label>seconds between them <input type="number" id="s13" value="1" min="0.1" step="0.1" style="width:80px"></label><button class="btn" id="one13">Use the full 1-CPU table instead (one snapshot)</button></div>
+<p class="small" id="cpu13"></p>
+<div class="scroll"><table class="t" id="o13"></table></div>
+<p class="note small">The disk read shows up as IRQ 25 (virtio0-req.0): 507 interrupts, all on CPU0. LOC is the local APIC timer, which ticks on every CPU. The log does not record the exact time between the snapshots, so "per second" here is only right if you type the real interval; on your PC, irqtop measures it.</p>`;
+    const $ = s => p.querySelector(s);
+    function go() {
+      const A = T.parseInterrupts($("#a13").value), B = T.parseInterrupts($("#b13").value);
+      $("#cpu13").textContent = `Header line: ${B.cpus} CPU column${B.cpus === 1 ? "" : "s"} (TODO 1 counts "CPU" in it).`;
+      const d = T.diffInterrupts($("#a13").value, $("#b13").value, Math.max(0.1, +$("#s13").value || 1));
+      const t = $("#o13"); t.innerHTML = "<tr><th>IRQ</th><th>before (sum)</th><th>after (sum)</th><th>difference</th><th>per second</th><th>name</th></tr>";
+      const amap = new Map(A.rows.map(r => [r.id, r.sum]));
+      if (!d.length) t.appendChild(el("tr", {}, el("td", { colspan: "6", text: "No line changed." })));
+      d.slice(0, 10).forEach(r => t.appendChild(el("tr", {}, el("td", { class: "mono", text: r.id }), el("td", { class: "mono", text: String(amap.get(r.id) || 0) }), el("td", { class: "mono", text: String(r.sum) }), el("td", { class: "mono", text: String(r.delta) }), el("td", { class: "mono", text: r.rate.toFixed(0) }), el("td", { class: "small", text: r.name }))));
+    }
+    $("#a13").value = D.before; $("#b13").value = D.after;
+    $("#one13").addEventListener("click", () => { $("#a13").value = D.single.split("\n")[0] + "\n"; $("#b13").value = D.single; go(); });
+    ["#a13", "#b13", "#s13"].forEach(s => $(s).addEventListener("input", go)); go();
+  }
+});
+TOOLS_UI.push({
+  id: "pf", title: "Page-fault error code",
+  build(p, D) {
+    const { el, esc } = L, T = TOOLS;
+    const exc = D.exc.trim().split("\n").map(l => l.match(/^(.*?)\s+->\s+(\w+)\s+si_code\s+(\d+)\s+trap\s+(\d+)\s+err\s+(0x[0-9a-f]+)\s+addr\s+(.*)$/)).filter(Boolean);
+    p.innerHTML = `<p class="small">On a page fault (vector 14) the CPU pushes an error code; the kernel passes it to your signal handler as <code>uc_mcontext.gregs[REG_ERR]</code>. Tick bits or type a value.</p>
+<div class="row"><label>error code <input id="pf13" class="mono" value="0x6" size="8"></label><span id="pfd13"></span></div>
+<div class="chips" id="pfb13" style="margin-top:10px"></div>
+<div class="scroll"><table class="t" id="pft13" style="margin-top:10px"></table></div>
+<h3 style="margin-top:16px">Real output of demo/exc.c (exc.out)</h3>
+<p class="small dim">Click a row to decode its error code.</p>
+<div class="scroll"><table class="t" id="ex13"></table></div>`;
+    const $ = s => p.querySelector(s);
+    let code = 6;
+    function draw() {
+      $("#pf13").value = "0x" + code.toString(16);
+      $("#pfd13").innerHTML = `<b>${esc(T.describePF(code))}</b>`;
+      const bits = T.decodePF(code);
+      $("#pfb13").innerHTML = "";
+      bits.forEach(b => { const c = el("button", { class: "chip" + (b.on ? " on" : ""), type: "button", text: `bit ${b.bit} ${b.name}`, "aria-pressed": b.on ? "true" : "false" }); c.addEventListener("click", () => { code ^= 1 << b.bit; draw(); }); $("#pfb13").appendChild(c); });
+      const t = $("#pft13"); t.innerHTML = "<tr><th>bit</th><th>name</th><th>set?</th><th>meaning</th></tr>";
+      bits.forEach(b => t.appendChild(el("tr", { class: b.on ? "cur" : "" }, el("td", { text: String(b.bit) }), el("td", { class: "mono", text: b.name }), el("td", { text: b.on ? "1" : "0" }), el("td", { class: "small", text: b.help }))));
+    }
+    $("#pf13").addEventListener("input", () => { const v = parseInt($("#pf13").value, 16); if (!isNaN(v)) { code = v & 0xffff; const keep = $("#pf13").value; draw(); $("#pf13").value = keep; } });
+    const et = $("#ex13"); et.innerHTML = "<tr><th>what the program did</th><th>signal</th><th>trap (vector)</th><th>err</th><th>addr</th></tr>";
+    exc.forEach(m => { const tr = el("tr", {}, el("td", { class: "mono", text: m[1] }), el("td", { class: "mono", text: "SIG" + m[2] }), el("td", { text: `${m[4]}: ${T.VECTORS[+m[4]] || ""}` }), el("td", { class: "mono", text: m[5] }), el("td", { class: "mono small", text: m[6] })); if (m[4] === "14") { tr.style.cursor = "pointer"; tr.addEventListener("click", () => { code = parseInt(m[5], 16); draw(); }); } et.appendChild(tr); });
+    draw();
+  }
+});
+TOOLS_UI.push({
+  id: "vectors", title: "Exception vectors",
+  build(p) {
+    const { el } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">The first 32 entries of the IDT are reserved for CPU exceptions (Intel SDM Vol. 3, Table 6-1). Device interrupts start at 32; Linux uses 0x80 only for the old 32-bit int $0x80 system call.</p><div class="scroll"><table class="t" id="v13"></table></div>`;
+    const t = p.querySelector("#v13"); t.innerHTML = "<tr><th>vector</th><th>exception</th><th>signal Linux sends to a user program</th></tr>";
+    const SIG = { 0: "SIGFPE", 1: "SIGTRAP", 3: "SIGTRAP", 4: "SIGSEGV", 5: "SIGSEGV", 6: "SIGILL", 10: "SIGSEGV", 8: "(kernel panic)", 11: "SIGBUS", 12: "SIGBUS", 13: "SIGSEGV", 14: "SIGSEGV or SIGBUS, if the fault cannot be fixed", 16: "SIGFPE", 17: "SIGBUS", 18: "(machine check: the kernel decides)", 19: "SIGFPE" };
+    T.VECTORS.forEach((v, i) => t.appendChild(el("tr", {}, el("td", { class: "mono", text: String(i) }), el("td", { text: v }), el("td", { class: "small", text: SIG[i] || "" }))));
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>

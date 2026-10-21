@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="stylesheet" href="../assets/fonts.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 10 · Inter-process Communication · Signals</title>
+<meta name="description" content="CSE 4105 System Programming, Lab 10: tasks, starter files and interactive tools that run in the browser.">
+<style>
+/* lab pages: a reading column with a dark header band, tool panels as bordered workbenches */
+:root{--bg:#FAFBFC;--surface:#FFFFFF;--ink:#14202E;--dim:#5B6B7C;--line:#D8DFE7;--navy:#16233A;--accent:#C2410C;--accent-ink:#FFFFFF;--tint:#FFF1E6;--teal:#0F766E;--ttint:#E2F5F2;--code:#EEF2F6;--hl:#FDE7C8;--ok:#15803D;--bad:#B91C1C;
+--sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root{--bg:#0E1622;--surface:#152131;--ink:#E3E9F0;--dim:#93A3B5;--line:#2A3A4E;--navy:#0A111B;--accent:#FB923C;--accent-ink:#1A0E05;--tint:#2B1B10;--teal:#2DD4BF;--ttint:#0F2A28;--code:#1C2A3C;--hl:#4A3418;--ok:#4ADE80;--bad:#F87171;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--navy);color:#F3F6FA;padding-block:28px 24px}
+.kicker{font:600 13px/1 var(--mono);letter-spacing:.08em;color:#FDBA74;text-transform:uppercase}
+header h1{font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:10px 0 6px;text-wrap:balance}
+header p{margin:0;color:#C9D3DF;max-width:70ch}
+.navlinks{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.navlinks a{color:#F3F6FA;border:1px solid #33465F;border-radius:6px;padding:5px 11px;text-decoration:none;font-size:14px}
+.navlinks a:hover{border-color:#FDBA74}
+main{padding-block:12px 64px}
+h2{font-size:23px;margin:40px 0 6px}
+h3{font-size:18px;margin:0 0 6px}
+.lead{color:var(--dim);margin:0 0 14px;max-width:75ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;min-width:0}
+.parts{display:grid;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:14px;color:var(--ink);text-decoration:none;background:var(--bg);cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn:disabled{opacity:.5;cursor:default}
+details{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+summary{cursor:pointer;font-weight:600}
+pre,code,.mono{font-family:var(--mono);font-size:13.5px}
+pre{background:var(--code);padding:12px 14px;border-radius:6px;overflow:auto;margin:10px 0 0;max-height:520px;line-height:1.45}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:15px;padding:8px 14px;border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;background:transparent;color:var(--dim);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{background:var(--surface);border-color:var(--line);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:none;border-radius:0 0 8px 8px;padding:18px}
+.panel[hidden]{display:none}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.grid2>*{min-width:0}
+label{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+input[type=range]{padding:0}
+input[type=file]{max-width:100%;font-size:14px}
+label{flex-wrap:wrap;max-width:100%}
+select{max-width:100%}
+.wrapany{overflow-wrap:anywhere}
+textarea{width:100%;font-family:var(--mono);font-size:13.5px;line-height:1.45;min-height:220px;resize:vertical}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+table.t th{background:var(--code);font-weight:600}
+table.t td.mono,table.t td code{white-space:nowrap}
+tr.cur td{background:var(--hl)}
+.note{background:var(--ttint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.warn{background:var(--tint);border-radius:6px;padding:10px 12px;margin:12px 0 0;font-size:15px}
+.err{color:var(--bad);font-weight:600}
+.ok{color:var(--ok);font-weight:600}
+.dim{color:var(--dim)}
+.small{font-size:14px}
+.regs{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.reg{background:var(--code);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:14px}
+.reg b{display:block;font-family:var(--sans);font-size:12px;color:var(--dim)}
+.reg.chg{background:var(--hl)}
+.hex{font-family:var(--mono);font-size:13px;line-height:1.6;white-space:pre}
+.hex span.f{background:var(--hl);border-radius:2px}
+.hex span.sel{background:var(--accent);color:var(--accent-ink);border-radius:2px}
+.bytes{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.byte{font-family:var(--mono);background:var(--code);border-radius:5px;padding:6px 8px;text-align:center;min-width:54px}
+.byte small{display:block;color:var(--dim);font-size:11px}
+.bits{display:flex;flex-wrap:wrap;gap:2px;font-family:var(--mono);font-size:13px;margin-top:8px}
+.bits span{padding:3px 4px;border-radius:3px;background:var(--code)}
+.bits span.on{background:var(--accent);color:var(--accent-ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;font-family:var(--mono);background:var(--bg);color:var(--ink)}
+button.chip{cursor:pointer}
+button.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bar{height:14px;background:var(--accent);border-radius:3px}
+footer{border-top:1px solid var(--line);padding-block:22px;color:var(--dim);font-size:14px}
+@media (max-width:560px){h2{font-size:21px}.panel{padding:14px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.steps{margin:10px 0 0;padding-left:24px}
+.steps li{margin:0 0 8px}
+.phead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-start}
+.part,h2{scroll-margin-top:64px}
+.part:target{border-color:var(--accent);box-shadow:0 0 0 2px var(--tint)}
+.cap{margin:14px 0 0;font-size:14px;color:var(--dim);font-weight:600}
+.files{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px}
+.flist{list-style:none;margin:0;padding:0;max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.flist button{display:block;width:100%;text-align:left;font:13.5px var(--mono);padding:6px 10px;border:none;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.flist button[aria-current="true"]{background:var(--tint);color:var(--accent);font-weight:600}
+.fview pre{margin-top:8px;max-height:560px}
+@media (max-width:720px){.files{grid-template-columns:minmax(0,1fr)}.flist{max-height:220px}}
+.dcbar{position:sticky;top:0;z-index:1000;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px max(12px,env(safe-area-inset-right,0px)) 8px max(12px,env(safe-area-inset-left,0px));background:#16233A;font:600 14px var(--sans);border-bottom:1px solid #0A1220}
+.dcbar a,.dcbar select{font:inherit;color:#F3F6FA;background:#21334F;border:1px solid #2E4566;border-radius:8px;height:32px;padding:0 11px;display:inline-flex;align-items:center;text-decoration:none;white-space:nowrap;cursor:pointer}
+.dcbar a:hover,.dcbar select:hover{border-color:#F28C38}
+.dcbar a:focus-visible,.dcbar select:focus-visible{outline:3px solid #F28C38;outline-offset:1px}
+.dcbar .slides{background:#C2410C;border-color:#E0742F}
+.dcbar .dis{opacity:.35;pointer-events:none}
+.dcbar .sp{flex:1}
+.dcbar select{max-width:300px}
+@media (max-width:640px){.dcbar .wide{display:none}.dcbar select{max-width:150px}}
+</style>
+</head>
+<body>
+<div class="dcbar" role="navigation" aria-label="Course navigation"><a href="../index.html" title="Course home">⌂<span class="wide">&nbsp;Course</span></a><a class="slides" href="../present/lecture_10.1.html" title="Lecture 10.1: Inter-process Communication">◀ Lecture 10.1 slides</a><a class="slides" href="../present/lecture_10.2.html" title="Lecture 10.2: Signals">◀ 10.2</a><span class="sp"></span><a class="wide" href="lab09.html">◀ Lab 9</a><select aria-label="Go to lab" onchange="location.href=this.value"><option value="lab01.html">Lab 1: C programs that probe the machine</option><option value="lab02.html">Lab 2: your first nasm programs</option><option value="lab03.html">Lab 3: a two-pass SIC assembler in C</option><option value="lab04.html">Lab 4: a macro processor in C</option><option value="lab05.html">Lab 5: a SIC loader in C</option><option value="lab06.html">Lab 6: elfread</option><option value="lab07.html">Lab 7: kinfo (ask the kernel through /proc)</option><option value="lab08.html">Lab 8: mysh, a small shell</option><option value="lab09.html">Lab 9: a C program without the C library</option><option value="lab10.html" selected>Lab 10: pipes in your shell</option><option value="lab11.html">Lab 11: vtop (page tables through /proc/self/pagemap)</option><option value="lab12.html">Lab 12: myls (your own ls -li)</option><option value="lab13.html">Lab 13: irqtop</option><option value="lab14.html">Lab 14: a /proc module and a platform driver, loaded in a virtual machine</option><option value="lab15.html">Lab 15: a character device, a RAM disk and a USB keyboard driver, in a virtual machine</option></select><a href="lab11.html">Lab 11 ▶</a></div>
+<header class="top"><div class="wrap">
+<div class="kicker">CSE 4105 System Programming · Lab 10</div>
+<h1>Inter-process Communication · Signals</h1>
+<p>Pipes in your shell; mytimeout with signals.</p>
+<nav class="navlinks" aria-label="On this page"><a href="lab10_files.zip">Download the lab files (16 KB)</a><a href="#try">Try it here</a><a href="#files">Read the files</a></nav>
+</div></header>
+<main class="wrap">
+<h2>Tasks</h2>
+<p class="lead">The same steps as the lab slide. Do them on a Linux PC with the files from the zip; the tools below help you check your thinking first.</p>
+<div class="parts">
+<section class="card part" id="part-10-1">
+<div class="phead"><h3>Lab 10.1 <span class="dim">· Inter-process Communication</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_10.1.html">Present lecture 10.1</a>
+<a class="btn" href="../slides/lecture_10.1.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>TODO 1 in mysh_pipe_starter.c: find the word | in argv</li>
+<li>TODO 2: pipe(fd)</li>
+<li>TODO 3: child 1: dup2(fd[1], 1), close both ends, run(left)</li>
+<li>TODO 4: child 2: dup2(fd[0], 0), close both ends, run(right)</li>
+<li>TODO 5: the shell closes both ends, then waits for both and reports</li>
+</ol>
+<p class="cap">the finished shell  (real session)</p><pre>mysh&gt; ls / | wc -l
+26
+mysh&gt; cat /etc/passwd | grep root
+root:x:0:0:root:/root:/bin/bash
+mysh&gt; yes | head -3
+y
+y
+y
+[908 killed by signal 13]
+mysh&gt; nosuch | wc -l
+mysh: nosuch: No such file or directory
+[910 exited with status 127]
+0
+mysh&gt; echo hello | tr a-z A-Z
+HELLO</pre>
+<p class="note">Before TODO 1: ls / | wc -l runs ls with the arguments &quot;/&quot;, &quot;|&quot;, &quot;wc&quot;, &quot;-l&quot;: ls complains that &quot;|&quot; and &quot;wc&quot; do not exist. The | is the shell&#x27;s job, not the kernel&#x27;s.</p>
+</section>
+<section class="card part" id="part-10-2">
+<div class="phead"><h3>Lab 10.2 <span class="dim">· Signals</span></h3>
+<div class="row"><a class="btn" href="../present/lecture_10.2.html">Present lecture 10.2</a>
+<a class="btn" href="../slides/lecture_10.2.pdf">Slides (PDF)</a></div></div>
+<ol class="steps">
+<li>TODO 1 in mytimeout_starter.c: install on_alarm for SIGALRM with sigaction, without SA_RESTART</li>
+<li>TODO 2: alarm(secs) after starting the program</li>
+<li>TODO 3: waitpid returned EINTR: first alarm → SIGTERM and alarm(2); second alarm → SIGKILL</li>
+<li>TODO 4: exit status like coreutils: 124 if timed out, else the child&#x27;s status (or 128 + signal)</li>
+<li>Test: ./mytimeout 2 sleep 10, ./mytimeout 5 sleep 1, ./mytimeout 1 ./stubborn; compare with timeout</li>
+</ol>
+<p class="cap">strace ./mytimeout 1 ./stubborn  (real)</p><pre>rt_sigaction(SIGALRM, {…, sa_flags=SA_RESTORER, …}) = 0
+alarm(1)                       = 0
+wait4(1857, …) = ? ERESTARTSYS
+--- SIGALRM {si_code=SI_KERNEL} ---
+rt_sigreturn({mask=[]})  = -1 EINTR
+kill(1857, SIGTERM)            = 0
+alarm(2)
+   # stubborn ignores SIGTERM
+wait4(1857, …) = ? ERESTARTSYS
+--- SIGALRM … ---
+rt_sigreturn({mask=[]})  = -1 EINTR
+kill(1857, SIGKILL)            = 0
++++ killed by SIGKILL +++     # 1857
+wait4 … WTERMSIG(s) == SIGKILL … = 1857
++++ exited with 124 +++</pre>
+<p class="note">Think: why must SA_RESTART be off here? (What would waitpid do after the alarm if it were on?)</p>
+</section>
+</div>
+
+<h2 id="try">Try it here</h2>
+<p class="lead">These run in your browser, with no server and no internet. They are built from the same reference programs as the lab, so their output matches what your finished C program should print. They do not replace the real lab: the kernel, gcc and your own code are the point.</p>
+<div class="tabset" id="tools"></div>
+
+<h2 id="files">Read the files</h2>
+<p class="lead">Every text file from <a href="lab10_files.zip">lab10_files.zip</a>. Read here, then download the zip to work on them.</p>
+<div class="card">
+<div class="row"><a class="btn primary" href="lab10_files.zip">Download lab10_files.zip (16 KB)</a><span class="dim small" id="binnote"></span></div>
+<div class="files" style="margin-top:14px"><ul class="flist" id="flist"></ul><div class="fview"><div class="row"><b class="mono" id="fname"></b><span id="fcopy"></span></div><pre id="fbody"></pre></div></div>
+</div>
+<div class="row" style="margin-top:28px;justify-content:space-between"><a class="btn" href="lab09.html">← Lab 9</a><a class="btn" href="../index.html">All lectures</a><a class="btn" href="lab11.html">Lab 11 →</a></div>
+</main>
+<footer><div class="wrap">CSE 4105 System Programming, University of Barishal. Text and figures CC BY-NC-SA 4.0; lab code MIT (kernel modules GPL-2.0). See the LICENSE file in the repository.</div></footer>
+<script type="application/json" id="data">{"lab": 10, "readme": "CSE 4105 System Programming - Lab 10 (Lectures 10.1 and 10.2): pipes, shared memory, signals\n=========================================================================================\nWorks offline. Needs: gcc, strace, gdb.\n\nLAB 10.1  pipes in mysh\n  gcc -Wall -o mysh mysh_pipe_starter.c && ./mysh\n  TODO 1 find \"|\"   TODO 2 pipe()   TODO 3 child 1: dup2(fd[1], 1)   TODO 4 child 2: dup2(fd[0], 0)\n  TODO 5 the shell closes both ends and waits for both children\n  Test:  ls / | wc -l      cat /etc/passwd | grep root      yes | head -3\n  If \"ls / | wc -l\" hangs: some process still holds the write end (see demo/eof.c).\n  expected_mysh_pipe_session.txt shows the finished shell.\n\nLAB 10.2  mytimeout: stop a program after N seconds\n  gcc -Wall -o mytimeout mytimeout_starter.c && gcc -Wall -o stubborn stubborn.c\n  (gcc warns that on_alarm and secs are unused until TODO 1 and 2: expected)\n  TODO 1 sigaction for SIGALRM, without SA_RESTART   TODO 2 alarm(secs)\n  TODO 3 on EINTR: SIGTERM first, SIGKILL 2 s later   TODO 4 exit status 124 / child's status / 128+signal\n  Test:  ./mytimeout 2 sleep 10; echo $?     ./mytimeout 5 sleep 1; echo $?     ./mytimeout 1 ./stubborn; echo $?\n         compare: timeout 2 sleep 10; echo $?        strace ./mytimeout 1 ./stubborn\n\nDEMO PROGRAMS (demo/), the ones on the slides:\n  cd demo && for f in *.c; do gcc -Wall -O2 -o ${f%.c} $f; done\n  10.1: pipe1 pipecap block eof (\"./eof forget\" hangs: stop it with Ctrl-C) sigpipe pipebw shmrace interleave ; ./fifo_demo.sh\n  10.2: catch (press Ctrl-C) deflt (try: ulimit -c unlimited first) mask eintr sigchld nokill segv_loop (homework)\n  shmrace needs 2 or more CPUs to show the race; \"taskset -c 0 ./shmrace\" runs it on one CPU.\n", "files": {"README.txt": "CSE 4105 System Programming - Lab 10 (Lectures 10.1 and 10.2): pipes, shared memory, signals\n=========================================================================================\nWorks offline. Needs: gcc, strace, gdb.\n\nLAB 10.1  pipes in mysh\n  gcc -Wall -o mysh mysh_pipe_starter.c && ./mysh\n  TODO 1 find \"|\"   TODO 2 pipe()   TODO 3 child 1: dup2(fd[1], 1)   TODO 4 child 2: dup2(fd[0], 0)\n  TODO 5 the shell closes both ends and waits for both children\n  Test:  ls / | wc -l      cat /etc/passwd | grep root      yes | head -3\n  If \"ls / | wc -l\" hangs: some process still holds the write end (see demo/eof.c).\n  expected_mysh_pipe_session.txt shows the finished shell.\n\nLAB 10.2  mytimeout: stop a program after N seconds\n  gcc -Wall -o mytimeout mytimeout_starter.c && gcc -Wall -o stubborn stubborn.c\n  (gcc warns that on_alarm and secs are unused until TODO 1 and 2: expected)\n  TODO 1 sigaction for SIGALRM, without SA_RESTART   TODO 2 alarm(secs)\n  TODO 3 on EINTR: SIGTERM first, SIGKILL 2 s later   TODO 4 exit status 124 / child's status / 128+signal\n  Test:  ./mytimeout 2 sleep 10; echo $?     ./mytimeout 5 sleep 1; echo $?     ./mytimeout 1 ./stubborn; echo $?\n         compare: timeout 2 sleep 10; echo $?        strace ./mytimeout 1 ./stubborn\n\nDEMO PROGRAMS (demo/), the ones on the slides:\n  cd demo && for f in *.c; do gcc -Wall -O2 -o ${f%.c} $f; done\n  10.1: pipe1 pipecap block eof (\"./eof forget\" hangs: stop it with Ctrl-C) sigpipe pipebw shmrace interleave ; ./fifo_demo.sh\n  10.2: catch (press Ctrl-C) deflt (try: ulimit -c unlimited first) mask eintr sigchld nokill segv_loop (homework)\n  shmrace needs 2 or more CPUs to show the race; \"taskset -c 0 ./shmrace\" runs it on one CPU.\n", "demo/block.c": "/* block.c - a writer that is faster than its reader has to wait (state S, inside pipe_write) */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nstatic void show(pid_t pid)                     /* state and wchan, read from /proc */\n{\n    char path[64], wchan[64] = \"\", stat[256] = \"\";\n    snprintf(path, sizeof path, \"/proc/%d/wchan\", pid);\n    FILE *f = fopen(path, \"r\");\n    if (f) { if (!fgets(wchan, sizeof wchan, f)) wchan[0] = 0; fclose(f); }\n    snprintf(path, sizeof path, \"/proc/%d/stat\", pid);\n    f = fopen(path, \"r\");\n    if (f) { if (!fgets(stat, sizeof stat, f)) stat[0] = 0; fclose(f); }\n    char *p = strrchr(stat, ')');                 /* the state letter follows \"(name) \" */\n    printf(\"writer %d: state %c, waiting in %s\\n\", pid, p ? p[2] : '?', wchan);\n    fflush(stdout);\n}\nint main(void)\n{\n    int fd[2];\n    if (pipe(fd) != 0) return 1;\n    pid_t w = fork();\n    if (w == 0) {                                 /* writer: 100000 bytes at once */\n        close(fd[0]);\n        static char big[100000];\n        memset(big, 'x', sizeof big);\n        ssize_t n = write(fd[1], big, sizeof big);\n        fprintf(stderr, \"writer: write returned %zd\\n\", n);\n        _exit(0);\n    }\n    close(fd[1]);\n    sleep(1);\n    printf(\"after 1 s, nobody has read yet:\\n\");\n    show(w);\n    char buf[65536];\n    long total = 0;\n    ssize_t n;\n    while ((n = read(fd[0], buf, sizeof buf)) > 0) total += n;\n    waitpid(w, NULL, 0);\n    printf(\"reader got %ld bytes, then end of file\\n\", total);\n    return 0;\n}\n", "demo/catch.c": "/* catch.c - catch Ctrl-C (SIGINT) three times, then give up */\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\nstatic volatile sig_atomic_t hits = 0;\nstatic void on_int(int sig)\n{\n    (void)sig;\n    hits++;\n    if (write(1, \"  caught SIGINT\\n\", 16) < 0) { }   /* write is async-signal-safe; printf is not */\n}\nint main(void)\n{\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_handler = on_int;\n    sigemptyset(&sa.sa_mask);\n    sigaction(SIGINT, &sa, NULL);\n    printf(\"PID %d: press Ctrl-C three times\\n\", getpid());\n    fflush(stdout);\n    while (hits < 3)\n        pause();                                 /* sleep until a signal arrives */\n    printf(\"three times: goodbye\\n\");\n    return 0;\n}\n", "demo/deflt.c": "/* deflt.c - what happens by default when a process gets each signal? */\n#define _GNU_SOURCE\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nint main(void)\n{\n    int sigs[] = { SIGINT, SIGQUIT, SIGSEGV, SIGTERM, SIGKILL, SIGUSR1, SIGPIPE, SIGALRM, SIGCHLD, SIGSTOP, SIGTSTP };\n    for (unsigned k = 0; k < sizeof sigs / sizeof sigs[0]; k++) {\n        int s = sigs[k];\n        pid_t pid = fork();\n        if (pid == 0) {\n            pause();                              /* wait to be signalled */\n            _exit(0);\n        }\n        usleep(50000);\n        kill(pid, s);\n        usleep(50000);\n        int st;\n        if (waitpid(pid, &st, WUNTRACED | WNOHANG) == 0) {   /* still running: the signal was ignored */\n            kill(pid, SIGKILL);\n            waitpid(pid, &st, 0);\n            printf(\"%2d %-8s -> ignored (still running; we killed it)\\n\", s, sigabbrev_np(s));\n            fflush(stdout);\n            continue;\n        }\n        printf(\"%2d %-8s -> \", s, sigabbrev_np(s));\n        if (WIFSIGNALED(st)) printf(\"killed%s\\n\", WCOREDUMP(st) ? \" (core dumped)\" : \"\");\n        else if (WIFSTOPPED(st)) { printf(\"stopped\\n\"); kill(pid, SIGKILL); waitpid(pid, &st, 0); }\n        else printf(\"exited\\n\");\n        fflush(stdout);\n    }\n    return 0;\n}\n", "demo/eintr.c": "/* eintr.c - a signal arrives while read() waits: restarted, or EINTR? */\n#include <errno.h>\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\nstatic void on_alarm(int sig) { (void)sig; if (write(1, \"  [SIGALRM handler ran]\\n\", 24) < 0) { } }\nint main(void)\n{\n    for (int restart = 0; restart < 2; restart++) {\n        struct sigaction sa;\n        memset(&sa, 0, sizeof sa);\n        sa.sa_handler = on_alarm;\n        sa.sa_flags = restart ? SA_RESTART : 0;\n        sigaction(SIGALRM, &sa, NULL);\n        int fd[2];\n        if (pipe(fd) != 0) return 1;              /* a pipe nobody writes: read() waits for ever */\n        printf(\"%s: read() from an empty pipe, alarm in 1 s\\n\", restart ? \"SA_RESTART\" : \"no flags  \");\n        fflush(stdout);\n        alarm(1);\n        if (restart) {\n            /* with SA_RESTART read would wait for ever: a child writes one byte at 2 s */\n            if (fork() == 0) { sleep(2); if (write(fd[1], \"x\", 1) < 0) { } _exit(0); }\n        }\n        char c;\n        ssize_t n = read(fd[0], &c, 1);\n        printf(\"   read returned %zd%s%s\\n\\n\", n, n < 0 ? \", errno = \" : \" (the data came at 2 s)\", n < 0 ? strerror(errno) : \"\");\n        fflush(stdout);\n        close(fd[0]); close(fd[1]);\n    }\n    return 0;\n}\n", "demo/eof.c": "/* eof.c - the reader only sees end of file when EVERY write end is closed */\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nint main(int argc, char *argv[])\n{\n    int forget = argc > 1;                        /* ./eof forget : the parent keeps its write end */\n    int fd[2];\n    if (pipe(fd) != 0) return 1;\n    if (fork() == 0) {                            /* child: write two lines, then end */\n        close(fd[0]);\n        if (write(fd[1], \"line 1\\nline 2\\n\", 14) != 14) _exit(1);\n        _exit(0);                                 /* exit closes the child's write end */\n    }\n    if (!forget) close(fd[1]);\n    char buf[100];\n    ssize_t n;\n    while ((n = read(fd[0], buf, sizeof buf)) > 0)\n        printf(\"parent read %zd bytes\\n\", n), fflush(stdout);\n    printf(\"parent: read returned %zd: end of file\\n\", n);\n    wait(NULL);\n    return 0;\n}\n", "demo/fifo_demo.sh": "#!/bin/sh\n# fifo_demo.sh - a FIFO is a pipe with a name in the file system\nrm -f /tmp/myfifo\nmkfifo /tmp/myfifo\nls -l /tmp/myfifo\ncat /tmp/myfifo &                  # the reader: open() waits until a writer comes\nsleep 1\necho \"reader is waiting in: $(cat /proc/$!/wchan)\"\necho \"hello from another process\" > /tmp/myfifo\nwait\nrm /tmp/myfifo\n", "demo/interleave.c": "/* interleave.c - two writers share one pipe: do their blocks get mixed? */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nint main(int argc, char *argv[])\n{\n    int size = argc > 1 ? atoi(argv[1]) : 4096;   /* bytes per write() */\n    int blocks = 2000;\n    int fd[2];\n    if (pipe(fd) != 0) return 1;\n    for (int k = 0; k < 2; k++)\n        if (fork() == 0) {                        /* writer k writes only 'A' (k = 0) or only 'B' */\n            close(fd[0]);\n            char *b = malloc(size);\n            memset(b, 'A' + k, size);\n            for (int i = 0; i < blocks; i++)\n                if (write(fd[1], b, size) != size) _exit(1);\n            _exit(0);\n        }\n    close(fd[1]);\n    /* read everything; count blocks of 'size' bytes that are not all the same letter */\n    char *buf = malloc(size);\n    long mixed = 0, total = 0;\n    for (;;) {\n        int got = 0;\n        while (got < size) {\n            ssize_t n = read(fd[0], buf + got, size - got);\n            if (n <= 0) break;\n            got += n;\n        }\n        if (got < size) break;\n        total++;\n        for (int i = 1; i < size; i++)\n            if (buf[i] != buf[0]) { mixed++; break; }\n    }\n    while (wait(NULL) > 0) ;\n    printf(\"write size %6d: %ld blocks read, %ld of them mixed A and B\\n\", size, total, mixed);\n    return 0;\n}\n", "demo/mask.c": "/* mask.c - block a signal, send it 3 times, unblock: how many times does the handler run? */\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\nstatic volatile sig_atomic_t count;\nstatic void handler(int sig) { (void)sig; count++; }\nstatic void status_line(const char *key)          /* ShdPnd / SigBlk from /proc/self/status */\n{\n    char line[256];\n    FILE *f = fopen(\"/proc/self/status\", \"r\");\n    while (fgets(line, sizeof line, f))\n        if (strncmp(line, key, strlen(key)) == 0) printf(\"   %s\", line);\n    fclose(f);\n}\nstatic void test(int sig, const char *name)\n{\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_handler = handler;\n    sigaction(sig, &sa, NULL);\n    sigset_t set, old;\n    sigemptyset(&set);\n    sigaddset(&set, sig);\n    sigprocmask(SIG_BLOCK, &set, &old);            /* from now on: held back, not delivered */\n    count = 0;\n    for (int i = 0; i < 3; i++) kill(getpid(), sig);\n    printf(\"%s sent 3 times while blocked: handler ran %d times\\n\", name, (int)count);\n    status_line(\"ShdPnd\");          /* kill() targets the process: \"shared pending\" */\n    status_line(\"SigBlk\");\n    sigprocmask(SIG_SETMASK, &old, NULL);          /* unblock: pending signals are delivered now */\n    printf(\"   after unblocking: handler ran %d times\\n\", (int)count);\n}\nint main(void)\n{\n    test(SIGUSR1, \"SIGUSR1 (10)\");\n    test(SIGRTMIN, \"SIGRTMIN (34)\");\n    return 0;\n}\n", "demo/nokill.c": "/* nokill.c - can a program catch or ignore SIGKILL and SIGSTOP? */\n#include <errno.h>\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\nstatic void h(int s) { (void)s; }\nint main(void)\n{\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_handler = h;\n    int sigs[] = { SIGKILL, SIGSTOP, SIGTERM };\n    for (int i = 0; i < 3; i++) {\n        int r = sigaction(sigs[i], &sa, NULL);\n        printf(\"sigaction(%-7s, handler) = %2d  %s\\n\", sigs[i] == SIGKILL ? \"SIGKILL\" : sigs[i] == SIGSTOP ? \"SIGSTOP\" : \"SIGTERM\", r, r ? strerror(errno) : \"(allowed)\");\n    }\n    return 0;\n}\n", "demo/pipe1.c": "/* pipe1.c - the parent sends a line to its child through a pipe */\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nint main(void)\n{\n    int fd[2];\n    if (pipe(fd) != 0) { perror(\"pipe\"); return 1; }\n    printf(\"pipe() gave fd[0] = %d (read end), fd[1] = %d (write end)\\n\", fd[0], fd[1]);\n    fflush(stdout);\n    if (fork() == 0) {                           /* child: the reader */\n        close(fd[1]);                            /* it never writes */\n        char buf[100];\n        ssize_t n = read(fd[0], buf, sizeof buf - 1);\n        buf[n > 0 ? n : 0] = '\\0';\n        printf(\"child  %d read %zd bytes: \\\"%s\\\"\\n\", getpid(), n, buf);\n        n = read(fd[0], buf, sizeof buf);        /* parent closed its end: end of file */\n        printf(\"child  %d read again: %zd (0 = end of file)\\n\", getpid(), n);\n        return 0;\n    }\n    close(fd[0]);                                /* parent: the writer */\n    const char *msg = \"hello through a pipe\";\n    ssize_t n = write(fd[1], msg, strlen(msg));\n    printf(\"parent %d wrote %zd bytes\\n\", getpid(), n);\n    fflush(stdout);\n    close(fd[1]);                                /* this is what gives the child its end of file */\n    wait(NULL);\n    return 0;\n}\n", "demo/pipebw.c": "/* pipebw.c - how fast can a pipe move data? 1 GiB in chunks of different sizes */\n#include <stdio.h>\n#include <stdlib.h>\n#include <time.h>\n#include <unistd.h>\n#include <sys/wait.h>\n#define TOTAL (1L << 30)\nstatic double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec / 1e9; }\nint main(void)\n{\n    static char buf[1 << 16];\n    int sizes[] = { 64, 4096, 65536 };\n    for (int k = 0; k < 3; k++) {\n        int chunk = sizes[k];\n        int fd[2];\n        if (pipe(fd) != 0) return 1;\n        double t0 = now();\n        if (fork() == 0) {                        /* writer */\n            close(fd[0]);\n            for (long done = 0; done < TOTAL; done += chunk)\n                if (write(fd[1], buf, chunk) != chunk) _exit(1);\n            _exit(0);\n        }\n        close(fd[1]);                             /* reader */\n        long got = 0; ssize_t n;\n        while ((n = read(fd[0], buf, sizeof buf)) > 0) got += n;\n        close(fd[0]);\n        wait(NULL);\n        double t = now() - t0;\n        printf(\"chunk %6d bytes: %5.0f MB/s  (%ld writes in %.2f s)\\n\", chunk, got / t / 1e6, TOTAL / chunk, t);\n    }\n    return 0;\n}\n", "demo/pipecap.c": "/* pipecap.c - how much can a pipe hold before write() has to wait? */\n#define _GNU_SOURCE\n#include <fcntl.h>\n#include <stdio.h>\n#include <errno.h>\n#include <unistd.h>\nstatic long fill(int fd)\n{\n    long n = 0;\n    while (write(fd, \"x\", 1) == 1) n++;          /* nobody reads: count until it is full */\n    return errno == EAGAIN ? n : -1;\n}\nint main(void)\n{\n    int fd[2];\n    if (pipe2(fd, O_NONBLOCK) != 0) return 1;   /* non-blocking: \"full\" gives EAGAIN instead of waiting */\n    printf(\"F_GETPIPE_SZ      = %d bytes\\n\", fcntl(fd[1], F_GETPIPE_SZ));\n    printf(\"filled with       %ld bytes, then write() said EAGAIN\\n\", fill(fd[1]));\n    int fd2[2];\n    if (pipe2(fd2, O_NONBLOCK) != 0) return 1;\n    printf(\"F_SETPIPE_SZ 1 MiB -> %d bytes\\n\", fcntl(fd2[1], F_SETPIPE_SZ, 1 << 20));\n    printf(\"filled with       %ld bytes\\n\", fill(fd2[1]));\n    return 0;\n}\n", "demo/segv_loop.c": "/* segv_loop.c - a SIGSEGV handler that just returns: what happens next? */\n#include <signal.h>\n#include <string.h>\n#include <unistd.h>\nstatic volatile sig_atomic_t calls;\nstatic void on_segv(int sig)\n{\n    (void)sig;\n    calls++;\n    if (write(1, \"handler ran\\n\", 12) < 0) { }\n    if (calls == 5) { if (write(1, \"5 times: giving up\\n\", 19) < 0) { } _exit(1); }\n}                                                /* returning: back to the faulting instruction */\nint main(void)\n{\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_handler = on_segv;\n    sigaction(SIGSEGV, &sa, NULL);\n    volatile int *p = NULL;\n    *p = 42;                                     /* SIGSEGV */\n    if (write(1, \"after the bad store\\n\", 20) < 0) { }\n    return 0;\n}\n", "demo/shmrace.c": "/* shmrace.c - two processes add 1 to the same shared counter, 10 million times each */\n#define _GNU_SOURCE\n#include <semaphore.h>\n#include <stdio.h>\n#include <string.h>\n#include <sys/mman.h>\n#include <sys/wait.h>\n#include <time.h>\n#include <unistd.h>\n#define N 10000000\nstruct shared { volatile long counter; sem_t lock; };\nstatic double now(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t); return t.tv_sec + t.tv_nsec / 1e9; }\nstatic void run(struct shared *s, const char *how)\n{\n    s->counter = 0;\n    double t0 = now();\n    for (int k = 0; k < 2; k++)\n        if (fork() == 0) {                        /* both children see the same page */\n            for (long i = 0; i < N; i++) {\n                if (strcmp(how, \"plain\") == 0)\n                    s->counter++;                 /* load, add, store: three steps */\n                else if (strcmp(how, \"atomic\") == 0)\n                    __atomic_fetch_add(&s->counter, 1, __ATOMIC_SEQ_CST);   /* one locked instruction */\n                else {\n                    sem_wait(&s->lock);           /* only one process at a time */\n                    s->counter++;\n                    sem_post(&s->lock);\n                }\n            }\n            _exit(0);\n        }\n    while (wait(NULL) > 0) ;\n    printf(\"%-10s counter = %9ld   (expected %d)   %.2f s\\n\", how, s->counter, 2 * N, now() - t0);\n    fflush(stdout);\n}\nint main(void)\n{\n    /* MAP_SHARED: after fork, parent and children share these bytes (no copy-on-write) */\n    struct shared *s = mmap(NULL, sizeof *s, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);\n    if (s == MAP_FAILED) { perror(\"mmap\"); return 1; }\n    sem_init(&s->lock, 1, 1);                     /* 1 = shared between processes */\n    run(s, \"plain\");\n    run(s, \"atomic\");\n    run(s, \"semaphore\");\n    return 0;\n}\n", "demo/sigchld.c": "/* sigchld.c - five children end at the same moment: how many SIGCHLD arrive? */\n#include <errno.h>\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nstatic volatile sig_atomic_t signals, reaped;\nstatic void on_chld(int sig)\n{\n    (void)sig;\n    int saved = errno;                            /* waitpid may change errno: restore it */\n    signals++;\n    while (waitpid(-1, NULL, WNOHANG) > 0)        /* collect ALL finished children, not just one */\n        reaped++;\n    errno = saved;\n}\nint main(void)\n{\n    struct sigaction sa;\n    memset(&sa, 0, sizeof sa);\n    sa.sa_handler = on_chld;\n    sa.sa_flags = SA_RESTART;\n    sigaction(SIGCHLD, &sa, NULL);\n    sigset_t chld, old;\n    sigemptyset(&chld);\n    sigaddset(&chld, SIGCHLD);\n    sigprocmask(SIG_BLOCK, &chld, &old);          /* hold SIGCHLD back while we start them */\n    for (int i = 0; i < 5; i++)\n        if (fork() == 0) _exit(0);\n    sleep(1);                                     /* by now all five have ended: zombies */\n    sigprocmask(SIG_SETMASK, &old, NULL);         /* let SIGCHLD in */\n    printf(\"children: 5   SIGCHLD handler calls: %d   children reaped: %d\\n\", (int)signals, (int)reaped);\n    return 0;\n}\n", "demo/sigpipe.c": "/* sigpipe.c - writing into a pipe that nobody can read */\n#include <errno.h>\n#include <signal.h>\n#include <stdio.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\nint main(void)\n{\n    for (int ignore = 0; ignore < 2; ignore++) {\n        int fd[2];\n        if (pipe(fd) != 0) return 1;\n        close(fd[0]);                             /* no reader at all */\n        pid_t pid = fork();\n        if (pid == 0) {\n            if (ignore) signal(SIGPIPE, SIG_IGN);\n            ssize_t n = write(fd[1], \"hi\", 2);\n            printf(\"  child: write returned %zd, errno %d (%s)\\n\", n, errno, strerror(errno));\n            fflush(stdout);\n            _exit(0);\n        }\n        close(fd[1]);\n        int st;\n        waitpid(pid, &st, 0);\n        printf(\"%s: \", ignore ? \"SIGPIPE ignored\" : \"default        \");\n        if (WIFSIGNALED(st)) printf(\"child killed by signal %d (%s)\\n\", WTERMSIG(st), strsignal(WTERMSIG(st)));\n        else printf(\"child exited with status %d\\n\", WEXITSTATUS(st));\n        fflush(stdout);                           /* before the next fork (Lecture 8.1) */\n    }\n    return 0;\n}\n", "expected_mysh_pipe_session.txt": "mysh> ls / | wc -l\n26\nmysh> cat /etc/passwd | grep root\nroot:x:0:0:root:/root:/bin/bash\nmysh> yes | head -3\ny\ny\ny\n[908 killed by signal 13]\nmysh> nosuch | wc -l\nmysh: nosuch: No such file or directory\n[910 exited with status 127]\n0\nmysh> echo hello | tr a-z A-Z\nHELLO\nmysh> exit\n", "mysh_pipe_starter.c": "/*\n * mysh_pipe.c - the Lab 8.1 shell, plus one pipe:  cmd1 args | cmd2 args\n * CSE 4105 System Programming, Lab 10.1   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -o mysh mysh_pipe.c\n * Try:    ls / | wc -l        cat /etc/passwd | grep root        yes | head -3\n */\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <errno.h>\n#include <unistd.h>\n#include <sys/wait.h>\n\n#define MAXARGS 32\n\n/* print how a child ended, like the shell's $? but in words */\nstatic void report(pid_t pid, int status, int background)\n{\n    if (WIFEXITED(status) && WEXITSTATUS(status) != 0)\n        printf(\"[%d exited with status %d]\\n\", pid, WEXITSTATUS(status));\n    else if (WIFSIGNALED(status))\n        printf(\"[%d killed by signal %d]\\n\", pid, WTERMSIG(status));\n    else if (background)\n        printf(\"[%d done]\\n\", pid);\n}\n\n/* in a child: become the program, or report why not */\nstatic void run(char **argv)\n{\n    execvp(argv[0], argv);\n    fprintf(stderr, \"mysh: %s: %s\\n\", argv[0], strerror(errno));\n    _exit(127);\n}\n\n/* left | right : two children joined by one pipe */\nstatic void run_pipeline(char **left, char **right)\n{\n    int fd[2];\n    /* TODO 2: make the pipe: pipe(fd). fd[0] is the read end, fd[1] the write end. */\n    (void)fd;\n\n    /* TODO 3: child 1 runs \"left\" with its standard output going INTO the pipe:\n     *         fork; in the child: dup2(fd[1], 1); close BOTH pipe ends; run(left).          */\n\n    /* TODO 4: child 2 runs \"right\" with its standard input coming FROM the pipe:\n     *         fork; in the child: dup2(fd[0], 0); close BOTH pipe ends; run(right).         */\n\n    /* TODO 5: the shell itself: close BOTH ends (why? see eof.c from Lecture 10.1),\n     *         then waitpid for each child and report() how it ended.                        */\n    fprintf(stderr, \"mysh: pipes are not done yet (TODO 2-5)\\n\");\n    (void)left; (void)right;\n}\n\nint main(void)\n{\n    char line[1024];\n    char *argv[MAXARGS + 1];\n\n    for (;;) {\n        int status;\n        pid_t done;\n        while ((done = waitpid(-1, &status, WNOHANG)) > 0)\n            report(done, status, 1);\n\n        printf(\"mysh> \");\n        fflush(stdout);\n        if (!fgets(line, sizeof line, stdin))\n            break;\n\n        int argc = 0;\n        for (char *w = strtok(line, \" \\t\\n\"); w && argc < MAXARGS; w = strtok(NULL, \" \\t\\n\"))\n            argv[argc++] = w;\n        argv[argc] = NULL;\n        if (argc == 0)\n            continue;\n\n        /* a \"|\" word splits the line into two commands */\n        int bar = -1;\n        /* TODO 1: find the word \"|\" in argv[0..argc-1] and put its index in bar */\n        if (bar >= 0) {\n            if (bar == 0 || bar == argc - 1) { fprintf(stderr, \"mysh: | needs a command on both sides\\n\"); continue; }\n            argv[bar] = NULL;\n            run_pipeline(argv, argv + bar + 1);\n            continue;\n        }\n\n        int background = 0;\n        if (strcmp(argv[argc - 1], \"&\") == 0) {\n            background = 1;\n            argv[--argc] = NULL;\n            if (argc == 0) continue;\n        }\n\n        if (strcmp(argv[0], \"exit\") == 0)\n            exit(argc > 1 ? atoi(argv[1]) : 0);\n        if (strcmp(argv[0], \"cd\") == 0) {\n            const char *dir = argc > 1 ? argv[1] : getenv(\"HOME\");\n            if (chdir(dir) != 0)\n                perror(\"cd\");\n            continue;\n        }\n\n        pid_t pid = fork();\n        if (pid < 0) { perror(\"fork\"); continue; }\n        if (pid == 0)\n            run(argv);\n        if (background) {\n            printf(\"[%d running in the background]\\n\", pid);\n        } else {\n            waitpid(pid, &status, 0);\n            report(pid, status, 0);\n        }\n    }\n    printf(\"\\n\");\n    return 0;\n}\n", "mytimeout_starter.c": "/*\n * mytimeout.c - run a program, but stop it after N seconds (like coreutils \"timeout\")\n * CSE 4105 System Programming, Lab 10.2   (STARTER: fill in the parts marked TODO)\n *\n * Build:  gcc -Wall -o mytimeout mytimeout.c\n * Try:    ./mytimeout 2 sleep 10 ; echo $?      (124 = timed out, as in coreutils)\n *         ./mytimeout 5 sleep 1  ; echo $?      (0: finished in time)\n *         ./mytimeout 1 ./stubborn ; echo $?    (ignores SIGTERM: gets SIGKILL 2 s later)\n */\n#include <errno.h>\n#include <signal.h>\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n#include <unistd.h>\n#include <sys/wait.h>\n\nstatic volatile sig_atomic_t alarms = 0;         /* the only thing the handler touches */\nstatic void on_alarm(int sig) { (void)sig; alarms++; }\n\nint main(int argc, char *argv[])\n{\n    if (argc < 3) {\n        fprintf(stderr, \"usage: %s SECONDS PROGRAM [ARGS...]\\n\", argv[0]);\n        return 125;\n    }\n    int secs = atoi(argv[1]);\n\n    /* 1. TODO 1: install on_alarm as the SIGALRM handler with sigaction().\n     *    Use sa_flags = 0, NOT SA_RESTART: we WANT the alarm to interrupt waitpid (EINTR).\n     *    (Until you do this, the alarm's default action kills mytimeout itself: try it.)       */\n\n    /* 2. start the program */\n    pid_t child = fork();\n    if (child < 0) { perror(\"fork\"); return 125; }\n    if (child == 0) {\n        execvp(argv[2], argv + 2);\n        fprintf(stderr, \"mytimeout: %s: %s\\n\", argv[2], strerror(errno));\n        _exit(127);\n    }\n\n    /* 3. TODO 2: start the timer: SIGALRM in secs seconds (one call). */\n\n    /* 4. wait; an alarm makes waitpid return -1 with errno EINTR */\n    int status, timed_out = 0;\n    for (;;) {\n        pid_t r = waitpid(child, &status, 0);\n        if (r == child)\n            break;                               /* it ended (by itself, or because we killed it) */\n        if (r < 0 && errno == EINTR) {\n            /* TODO 3: the alarm interrupted waitpid.\n             *   first alarm  (alarms == 1): print a message, kill(child, SIGTERM), set timed_out = 1,\n             *                               and alarm(2) to give the child 2 more seconds;\n             *   second alarm (alarms == 2): kill(child, SIGKILL): this one cannot be ignored.\n             *   Then \"continue\" to wait again.                                                     */\n            continue;\n        }\n        perror(\"waitpid\");\n        return 125;\n    }\n    alarm(0);                                    /* cancel a pending alarm */\n\n    /* 5. TODO 4: our exit status, like coreutils timeout:\n     *    124 if we timed it out; else the child's exit status; else 128 + the signal that killed it. */\n    (void)timed_out;\n    return 0;\n}\n", "stubborn.c": "/* stubborn.c - a program that ignores SIGTERM (for testing mytimeout) */\n#include <signal.h>\n#include <stdio.h>\n#include <unistd.h>\nint main(void)\n{\n    signal(SIGTERM, SIG_IGN);\n    printf(\"stubborn %d: I ignore SIGTERM\\n\", getpid());\n    fflush(stdout);\n    for (;;) pause();\n}\n"}}</script>
+<script>
+/* common.js - tiny helpers shared by all lab pages */
+(function (root) {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else if (k === "html") e.innerHTML = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else if (v !== null && v !== undefined && v !== false) e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k !== null && k !== undefined && k !== false) e.appendChild(typeof k === "string" ? document.createTextNode(k) : k);
+  return e;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function tabs(container) {
+  const bar = $(":scope > .tabs", container), btns = $$("button", bar), panels = $$(":scope > .panel", container);
+  const show = i => { btns.forEach((b, k) => b.setAttribute("aria-selected", k === i ? "true" : "false")); panels.forEach((p, k) => { p.hidden = k !== i; }); };
+  btns.forEach((b, i) => b.addEventListener("click", () => { show(i); try { history.replaceState(null, "", "#" + b.dataset.id); } catch (e) {} }));
+  const h = location.hash.slice(1); const start = Math.max(0, btns.findIndex(b => b.dataset.id === h));
+  show(start);
+}
+function copyBtn(getText) {
+  const b = el("button", { class: "btn", type: "button", text: "Copy" });
+  b.addEventListener("click", () => {
+    const t = getText();
+    const done = () => { b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, () => { b.textContent = "Select and copy by hand"; });
+    else b.textContent = "Select and copy by hand";
+  });
+  return b;
+}
+const hex = (v, n) => (v >>> 0).toString(16).toUpperCase().padStart(n || 0, "0");
+function readFile(input, cb) {
+  input.addEventListener("change", () => { const f = input.files && input.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => cb(new Uint8Array(r.result), f.name); r.readAsArrayBuffer(f); });
+}
+async function gunzipB64(b64) {
+  const bin = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (typeof DecompressionStream === "undefined") throw new Error("this browser cannot unpack the sample; choose disk.img from the lab zip instead");
+  const ds = new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip")));
+  return new Uint8Array(await ds.arrayBuffer());
+}
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+function initPage() {
+  $$(".tabset").forEach(tabs);
+  $$("[data-copy]").forEach(btn => { const src = document.getElementById(btn.dataset.copy); const b = copyBtn(() => src.textContent); btn.replaceWith(b); });
+}
+document.addEventListener("DOMContentLoaded", initPage);
+root.L = { $, $$, el, esc, tabs, copyBtn, hex, readFile, gunzipB64, b64bytes };
+})(window);
+
+</script>
+<script>
+/* tools.js - small, tested calculators used by the interactive labs (Lectures 1, 7-15).
+   Every constant comes from the Linux v6.8 source or the C/x86-64 ABI; see the lab pages for the files. */
+(function (root) {
+"use strict";
+const T = {};
+const hx = (v, w = 0) => (typeof v === "bigint" ? BigInt.asUintN(64, v) : BigInt(v >>> 0)).toString(16).padStart(w, "0");
+T.hx = hx;
+
+/* ---------------- Lecture 1: C types in memory (x86-64, LP64, little-endian) ---------------- */
+T.CTYPES = {
+  "char": { size: 1, signed: true, int: true }, "unsigned char": { size: 1, signed: false, int: true },
+  "short": { size: 2, signed: true, int: true }, "unsigned short": { size: 2, signed: false, int: true },
+  "int": { size: 4, signed: true, int: true }, "unsigned int": { size: 4, signed: false, int: true },
+  "long": { size: 8, signed: true, int: true }, "unsigned long": { size: 8, signed: false, int: true },
+  "float": { size: 4, int: false }, "double": { size: 8, int: false }, "pointer (void *)": { size: 8, signed: false, int: true }
+};
+/* bytes as C would store the value (integers wrap modulo 2^bits, like a conversion to that type) */
+T.cBytes = function (text, type) {
+  const t = T.CTYPES[type]; const n = t.size; const bytes = new Uint8Array(n);
+  let note = "";
+  if (t.int) {
+    let v;
+    const s = String(text).trim();
+    if (/^'.'$/.test(s)) v = BigInt(s.charCodeAt(1));
+    else if (/^[-+]?(0x[0-9a-f]+|\d+)$/i.test(s)) { const neg = s.startsWith("-"); v = BigInt(s.replace(/^[-+]/, "")); if (neg) v = -v; }
+    else throw new Error("type an integer, e.g. 1000, -1, 0x7f or 'A'");
+    const bits = BigInt(8 * n);
+    const u = BigInt.asUintN(8 * n, v);
+    const back = t.signed ? BigInt.asIntN(8 * n, v) : u;
+    if (back !== v) note = `does not fit in ${type}: C keeps the low ${8 * n} bits, so the variable holds ${back}`;
+    for (let i = 0; i < n; i++) bytes[i] = Number((u >> BigInt(8 * i)) & 0xffn);
+    return { bytes, value: back.toString(), note, bits: Number(bits) };
+  }
+  const x = Number(text);
+  if (String(text).trim() === "" || Number.isNaN(x) && !/^nan$/i.test(String(text).trim())) throw new Error("type a number, e.g. 3.5 or -0.1");
+  const dv = new DataView(new ArrayBuffer(8));
+  if (n === 4) { dv.setFloat32(0, x, true); for (let i = 0; i < 4; i++) bytes[i] = dv.getUint8(i); const back = dv.getFloat32(0, true); if (back !== x && !Number.isNaN(x)) note = `float cannot hold ${x} exactly: it stores ${back}`; return { bytes, value: String(back), note, bits: 32 }; }
+  dv.setFloat64(0, x, true); for (let i = 0; i < 8; i++) bytes[i] = dv.getUint8(i); return { bytes, value: String(dv.getFloat64(0, true)), note, bits: 64 };
+};
+T.ieee = function (bytes) {   // little-endian bytes of a float (4) or double (8)
+  const n = bytes.length; let bits = 0n;
+  for (let i = n - 1; i >= 0; i--) bits = (bits << 8n) | BigInt(bytes[i]);
+  const eb = n === 4 ? 8 : 11, mb = n === 4 ? 23 : 52, bias = n === 4 ? 127 : 1023;
+  const sign = Number(bits >> BigInt(eb + mb)), exp = Number((bits >> BigInt(mb)) & ((1n << BigInt(eb)) - 1n)), man = bits & ((1n << BigInt(mb)) - 1n);
+  return { sign, exp, expUnbiased: exp - bias, man, eb, mb, bias, kind: exp === 0 ? (man === 0n ? "zero" : "subnormal") : (exp === (1 << eb) - 1 ? (man === 0n ? "infinity" : "NaN") : "normal") };
+};
+
+/* ---------------- Lecture 7: /proc/<pid>/stat and process flags ---------------- */
+T.STAT_FIELDS = ["pid", "comm", "state", "ppid", "pgrp", "session", "tty_nr", "tpgid", "flags", "minflt", "cminflt", "majflt", "cmajflt", "utime", "stime", "cutime", "cstime", "priority", "nice", "num_threads", "itrealvalue", "starttime", "vsize", "rss", "rsslim", "startcode", "endcode", "startstack", "kstkesp", "kstkeip", "signal", "blocked", "sigignore", "sigcatch", "wchan", "nswap", "cnswap", "exit_signal", "processor", "rt_priority", "policy", "delayacct_blkio_ticks", "guest_time", "cguest_time", "start_data", "end_data", "start_brk", "arg_start", "arg_end", "env_start", "env_end", "exit_code"];
+T.STAT_HELP = { pid: "process ID", comm: "program name (in parentheses; may contain spaces)", state: "R running, S sleeping, D disk sleep, Z zombie, T stopped, I idle kernel thread", ppid: "parent's PID",
+  flags: "PF_* bits from include/linux/sched.h (decoded below)", minflt: "minor page faults", majflt: "major page faults (needed the disk)", utime: "CPU time in user mode, in clock ticks (usually 1/100 s)",
+  stime: "CPU time in kernel mode, in clock ticks", priority: "kernel priority (20 + nice for normal tasks)", nice: "nice value, -20 .. 19", num_threads: "threads in this process", starttime: "start time after boot, in clock ticks",
+  vsize: "virtual memory size in bytes", rss: "resident set size in pages", processor: "CPU it last ran on", policy: "0 SCHED_OTHER (CFS), 1 FIFO, 2 RR, 3 BATCH, 5 IDLE" };
+T.PF = [[0x1, "PF_VCPU"], [0x2, "PF_IDLE"], [0x4, "PF_EXITING"], [0x8, "PF_POSTCOREDUMP"], [0x10, "PF_IO_WORKER"], [0x20, "PF_WQ_WORKER"], [0x40, "PF_FORKNOEXEC"], [0x80, "PF_MCE_PROCESS"], [0x100, "PF_SUPERPRIV"], [0x200, "PF_DUMPCORE"], [0x400, "PF_SIGNALED"], [0x800, "PF_MEMALLOC"], [0x1000, "PF_NPROC_EXCEEDED"], [0x2000, "PF_USED_MATH"], [0x4000, "PF_USER_WORKER"], [0x8000, "PF_NOFREEZE"], [0x20000, "PF_KSWAPD"], [0x40000, "PF_MEMALLOC_NOFS"], [0x80000, "PF_MEMALLOC_NOIO"], [0x100000, "PF_LOCAL_THROTTLE"], [0x200000, "PF_KTHREAD"], [0x400000, "PF_RANDOMIZE"], [0x4000000, "PF_NO_SETAFFINITY"], [0x8000000, "PF_MCE_EARLY"], [0x10000000, "PF_MEMALLOC_PIN"], [0x80000000, "PF_SUSPEND_TASK"]];
+T.parseStat = function (line) {
+  line = line.trim();
+  const a = line.indexOf("("), b = line.lastIndexOf(")");
+  if (a < 0 || b < a) throw new Error("a /proc/<pid>/stat line looks like: 1 (systemd) S 0 1 1 0 -1 4194560 …");
+  const head = line.slice(0, a).trim(), comm = line.slice(a + 1, b), rest = line.slice(b + 1).trim().split(/\s+/);
+  const vals = [head, comm, ...rest];
+  const fields = vals.map((v, i) => ({ n: i + 1, name: T.STAT_FIELDS[i] || "field " + (i + 1), value: v, help: T.STAT_HELP[T.STAT_FIELDS[i]] || "" }));
+  const flags = Number(vals[8] || 0) >>> 0;
+  return { fields, flags, flagNames: T.PF.filter(([bit]) => (flags & bit) >>> 0).map(([, n]) => n), kthread: !!(flags & 0x200000) };
+};
+T.parseMeminfo = function (text) {
+  const m = {}; for (const l of text.split(/\n/)) { const r = l.match(/^(\w[\w()]*):\s+(\d+)/); if (r) m[r[1]] = Number(r[2]); }
+  return m;
+};
+
+/* ---------------- Lecture 8: fork trees and the CFS share ---------------- */
+T.forkTree = function (pattern, n) {
+  // pattern "loop": for (i = 0; i < n; i++) fork();     every process continues the loop
+  // "child": for (...) if (fork() != 0) break;   only the child goes on: a chain
+  // "parent": for (...) if (fork() == 0) break;  only the parent goes on: a fan
+  let next = 1; const nodes = [{ id: 1, parent: 0, born: -1 }];
+  function run(id, from) {
+    for (let i = from; i < n; i++) {
+      const child = ++next; nodes.push({ id: child, parent: id, born: i });
+      if (pattern === "loop") run(child, i + 1);
+      else if (pattern === "child") { run(child, i + 1); return; }
+      else if (pattern === "parent") { /* child breaks out of the loop */ }
+    }
+  }
+  run(1, 0);
+  return nodes;
+};
+T.WEIGHT = [88761, 71755, 56483, 46273, 36291, 29154, 23254, 18705, 14949, 11916, 9548, 7620, 6100, 4904, 3906, 3121, 2501, 1991, 1586, 1277, 1024, 820, 655, 526, 423, 335, 272, 215, 172, 137, 110, 87, 70, 56, 45, 36, 29, 23, 18, 15];
+T.weightOf = nice => T.WEIGHT[nice + 20];
+/* a simplified CFS on one CPU: run the task with the smallest vruntime for one tick (ms);
+   vruntime grows by tick * 1024 / weight. Returns the timeline and CPU shares. */
+T.cfs = function (tasks, ms) {
+  const st = tasks.map((t, i) => ({ ...t, i, vr: 0, ran: 0 }));
+  const timeline = [];
+  for (let t = 0; t < ms; t++) {
+    const ready = st.filter(x => (x.arrive || 0) <= t && (x.work === undefined || x.ran < x.work));
+    if (!ready.length) { timeline.push(-1); continue; }
+    const minv = Math.min(...ready.map(x => x.vr));
+    for (const x of st) if ((x.arrive || 0) === t && t > 0) x.vr = Math.max(x.vr, minv);   // a newcomer starts at the current minimum
+    let best = ready[0]; for (const x of ready) if (x.vr < best.vr - 1e-12) best = x;
+    best.vr += 1024 / T.weightOf(best.nice); best.ran++; timeline.push(best.i);
+  }
+  const total = st.reduce((s, x) => s + x.ran, 0) || 1;
+  return { timeline, tasks: st.map(x => ({ name: x.name, nice: x.nice, weight: T.weightOf(x.nice), ran: x.ran, share: x.ran / total, vr: x.vr })) };
+};
+
+/* ---------------- Lecture 9: system calls ---------------- */
+T.parseTbl = function (text) {
+  const rows = [];
+  for (const l of text.split("\n")) { const m = l.match(/^(\d+)\s+(\w+)\s+(\w+)(?:\s+(\S+))?/); if (m) rows.push({ nr: Number(m[1]), abi: m[2], name: m[3], entry: m[4] || "" }); }
+  return rows;
+};
+T.ARGREGS = ["rdi", "rsi", "rdx", "r10", "r8", "r9"];
+T.splitArgs = function (s) { const out = []; let cur = "", q = false, d = 0; for (let i = 0; i < s.length; i++) { const c = s[i]; if (c === '"' && s[i - 1] !== "\\") q = !q; if (!q && (c === "(" || c === "[" || c === "{")) d++; if (!q && (c === ")" || c === "]" || c === "}")) d--; if (c === "," && !q && d === 0) { out.push(cur.trim()); cur = ""; } else cur += c; } if (cur.trim()) out.push(cur.trim()); return out; };
+T.parseStrace = function (line, table, errnos) {
+  const m = line.trim().match(/^(?:\[pid\s+\d+\]\s+)?(?:\d+\s+)?(\w+)\((.*)\)\s*=\s*(-?\w+|\?)(?:\s+(\w+)\s+\((.*)\))?/);
+  if (!m) throw new Error('paste one strace line, e.g.  write(1, "hi\\n", 3) = 3');
+  const [, name, args, ret, errName, errText] = m;
+  const row = table.find(r => r.name === name && r.abi !== "x32");
+  const a = T.splitArgs(args);
+  const regs = a.slice(0, 6).map((v, i) => ({ reg: T.ARGREGS[i], value: v }));
+  let rax;
+  if (ret === "?") rax = "(the call did not return)";
+  else if (ret === "-1" && errName) { const e = errnos.find(x => x.name === errName); rax = e ? `-${e.nr}  (the kernel returned −${errName}; libc stores ${e.nr} in errno and returns -1)` : "-1"; }
+  else rax = ret;
+  return { name, nr: row ? row.nr : null, abi: row ? row.abi : null, entry: row ? row.entry : "", regs, ret: rax, errName, errText };
+};
+
+/* ---------------- Lecture 10: pipes and signals ---------------- */
+T.SIGNALS = [[1, "SIGHUP", "terminate", "terminal hung up"], [2, "SIGINT", "terminate", "Ctrl-C"], [3, "SIGQUIT", "core", "Ctrl-\\"], [4, "SIGILL", "core", "illegal instruction"], [5, "SIGTRAP", "core", "breakpoint"], [6, "SIGABRT", "core", "abort()"], [7, "SIGBUS", "core", "bus error"], [8, "SIGFPE", "core", "divide by zero"], [9, "SIGKILL", "terminate", "cannot be caught, blocked or ignored"], [10, "SIGUSR1", "terminate", "for your programs"], [11, "SIGSEGV", "core", "bad memory access"], [12, "SIGUSR2", "terminate", "for your programs"], [13, "SIGPIPE", "terminate", "write to a pipe nobody reads"], [14, "SIGALRM", "terminate", "alarm()"], [15, "SIGTERM", "terminate", "kill's default"], [16, "SIGSTKFLT", "terminate", "unused"], [17, "SIGCHLD", "ignore", "a child stopped or exited"], [18, "SIGCONT", "continue", "continue a stopped process"], [19, "SIGSTOP", "stop", "cannot be caught, blocked or ignored"], [20, "SIGTSTP", "stop", "Ctrl-Z"], [21, "SIGTTIN", "stop", "background read from terminal"], [22, "SIGTTOU", "stop", "background write to terminal"], [23, "SIGURG", "ignore", "urgent socket data"], [24, "SIGXCPU", "core", "CPU time limit"], [25, "SIGXFSZ", "core", "file size limit"], [26, "SIGVTALRM", "terminate", "virtual timer"], [27, "SIGPROF", "terminate", "profiling timer"], [28, "SIGWINCH", "ignore", "window size changed"], [29, "SIGIO", "terminate", "I/O possible"], [30, "SIGPWR", "terminate", "power failure"], [31, "SIGSYS", "core", "bad system call"]];
+/* one step-based pipe: capacity bytes, a writer that wants `write` bytes per step, a reader `read` per step */
+T.pipeSim = function ({ capacity = 65536, total = 200000, wchunk = 4096, rchunk = 1024, rdelay = 0, closeReader = -1, steps = 400 }) {
+  let inPipe = 0, written = 0, readBytes = 0, wDone = false, rClosed = false; const log = [];
+  for (let t = 0; t < steps; t++) {
+    let w = "", r = "";
+    if (t === closeReader) { rClosed = true; r = "reader closes its end"; }
+    if (!wDone) {
+      if (rClosed) { w = "write() → SIGPIPE: the writer is killed (or gets EPIPE)"; wDone = true; }
+      else { const want = Math.min(wchunk, total - written), room = capacity - inPipe; if (room === 0) w = "write() blocks: pipe full"; else { const n = Math.min(want, room); inPipe += n; written += n; w = n < want ? `wrote ${n} of ${want} (pipe filled up)` : `wrote ${n}`; if (written >= total) { wDone = true; w += "; writer closes its end"; } } }
+    }
+    if (!rClosed && t >= rdelay) {
+      if (inPipe > 0) { const n = Math.min(rchunk, inPipe); inPipe -= n; readBytes += n; r = `read ${n}`; }
+      else if (wDone) { r = "read() returns 0: end of file"; rClosed = true; }
+      else r = "read() blocks: pipe empty";
+    }
+    log.push({ t, inPipe, written, read: readBytes, w, r });
+    if (wDone && rClosed) break;
+  }
+  return log;
+};
+
+/* ---------------- Lecture 11: addresses, pagemap, a heap ---------------- */
+T.splitVA = function (vaText) {
+  const s = vaText.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type a hex address, e.g. 0x7ffd3c2a1b40");
+  const va = BigInt("0x" + s);
+  if (va >> 64n) throw new Error("more than 64 bits");
+  const top = va >> 47n; const canonical = top === 0n || top === (1n << 17n) - 1n;
+  const idx = k => Number((va >> BigInt(12 + 9 * k)) & 511n);
+  return { va, canonical, half: (va >> 63n) ? "kernel half" : "user half", pml4: idx(3), pdpt: idx(2), pd: idx(1), pt: idx(0), off: Number(va & 4095n), vpn: va >> 12n, pagemapOffset: (va >> 12n) * 8n };
+};
+T.pagemap = function (text) {
+  const s = text.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]+$/i.test(s)) throw new Error("type the 64-bit entry in hex, e.g. 0x8600000000123456");
+  const e = BigInt("0x" + s);
+  const bit = n => Number((e >> BigInt(n)) & 1n);
+  return { present: bit(63), swapped: bit(62), filePage: bit(61), exclusive: bit(56), softDirty: bit(55), pfn: e & ((1n << 55n) - 1n) };
+};
+/* the Lab 11.2 allocator (header 32 bytes, first fit, split, merge with next), on a simulated sbrk heap */
+T.Heap = class {
+  constructor(base = 0x5000) { this.base = base; this.brk = base; this.blocks = []; this.log = []; }
+  align16(n) { return (n + 15) & ~15; }
+  malloc(n) {
+    if (n <= 0) return null; n = this.align16(n);
+    let h = this.blocks.find(b => b.free && b.size >= n);
+    if (h) { h.free = false; this.split(h, n); this.log.push(`malloc: first fit reuses the block at +${h.addr - this.base}`); }
+    else { h = { addr: this.brk, size: n, free: false }; this.brk += 32 + n; this.blocks.push(h); this.log.push(`malloc: nothing fits → sbrk(${32 + n}), program break now +${this.brk - this.base}`); }
+    return h.addr + 32;
+  }
+  split(h, n) { if (h.size >= n + 32 + 32) { const rest = { addr: h.addr + 32 + n, size: h.size - n - 32, free: true }; this.blocks.splice(this.blocks.indexOf(h) + 1, 0, rest); h.size = n; this.log.push(`split: the unused ${rest.size} bytes become a new free block`); } }
+  free(p) {
+    const h = this.blocks.find(b => b.addr + 32 === p); if (!h) throw new Error("free() of a pointer that malloc did not return"); if (h.free) throw new Error("double free");
+    h.free = true; let i = this.blocks.indexOf(h);
+    while (i + 1 < this.blocks.length) { const nx = this.blocks[i + 1]; if (nx.free && nx.addr === h.addr + 32 + h.size) { h.size += 32 + nx.size; this.blocks.splice(i + 1, 1); this.log.push(`free: merged with the next free block, now ${h.size} bytes`); } else break; }
+  }
+};
+
+/* ---------------- Lecture 12: ext2 ---------------- */
+T.modeString = function (mode) {
+  const t = { 0o140000: "s", 0o120000: "l", 0o100000: "-", 0o060000: "b", 0o040000: "d", 0o020000: "c", 0o010000: "p" }[mode & 0o170000] || "?";
+  const r = (m, s) => ((mode & m) ? s : "-");
+  let p = r(0o400, "r") + r(0o200, "w") + ((mode & 0o4000) ? ((mode & 0o100) ? "s" : "S") : r(0o100, "x"));
+  p += r(0o40, "r") + r(0o20, "w") + ((mode & 0o2000) ? ((mode & 0o10) ? "s" : "S") : r(0o10, "x"));
+  p += r(0o4, "r") + r(0o2, "w") + ((mode & 0o1000) ? ((mode & 0o1) ? "t" : "T") : r(0o1, "x"));
+  return t + p;
+};
+T.blockPath = function (lblock, blockSize) {   // which pointer of the inode holds logical block lblock
+  const P = blockSize / 4;
+  if (lblock < 12) return { level: 0, path: [lblock], text: `i_block[${lblock}] (direct)` };
+  lblock -= 12;
+  if (lblock < P) return { level: 1, path: [12, lblock], text: `i_block[12] (single indirect) → entry ${lblock}` };
+  lblock -= P;
+  if (lblock < P * P) return { level: 2, path: [13, Math.floor(lblock / P), lblock % P], text: `i_block[13] (double indirect) → entry ${Math.floor(lblock / P)} → entry ${lblock % P}` };
+  lblock -= P * P;
+  return { level: 3, path: [14, Math.floor(lblock / (P * P)), Math.floor(lblock / P) % P, lblock % P], text: `i_block[14] (triple indirect) → ${Math.floor(lblock / (P * P))} → ${Math.floor(lblock / P) % P} → ${lblock % P}` };
+};
+T.fileBlocks = function (size, blockSize) {   // data blocks and pointer blocks a file of `size` bytes needs
+  const P = blockSize / 4, n = Math.ceil(size / blockSize);
+  let ind = 0; let rest = n - 12;
+  if (rest > 0) { ind += 1; rest -= P; }
+  if (rest > 0) { const k = Math.min(Math.ceil(rest / P), P); ind += 1 + k; rest -= P * P; }
+  if (rest > 0) { const k2 = Math.ceil(rest / P); ind += 1 + Math.ceil(k2 / P) + k2; }
+  return { data: n, pointer: ind, total: n + ind, maxDirect: 12 * blockSize, maxSingle: (12 + P) * blockSize, maxDouble: (12 + P + P * P) * blockSize };
+};
+T.Ext2 = class {
+  constructor(bytes) {
+    this.b = bytes; this.dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const d = this.dv, o = 1024;
+    if (bytes.length < 2048 || d.getUint16(o + 56, true) !== 0xEF53) throw new Error("not an ext2/3/4 image (no magic EF53 at byte 1080)");
+    this.sb = { inodes: d.getUint32(o, true), blocks: d.getUint32(o + 4, true), firstData: d.getUint32(o + 20, true), logBlock: d.getUint32(o + 24, true), blocksPerGroup: d.getUint32(o + 32, true), inodesPerGroup: d.getUint32(o + 40, true), magic: 0xEF53, rev: d.getUint32(o + 76, true), inodeSize: d.getUint32(o + 76, true) >= 1 ? d.getUint16(o + 88, true) : 128, freeBlocks: d.getUint32(o + 12, true), freeInodes: d.getUint32(o + 16, true), featIncompat: d.getUint32(o + 96, true) };
+    this.bs = 1024 << this.sb.logBlock;
+    this.groups = Math.ceil((this.sb.blocks - this.sb.firstData) / this.sb.blocksPerGroup);
+    this.gdt = (this.sb.firstData + 1) * this.bs;
+  }
+  u32(o) { return this.dv.getUint32(o, true); } u16(o) { return this.dv.getUint16(o, true); }
+  group(g) { const o = this.gdt + 32 * g; return { blockBitmap: this.u32(o), inodeBitmap: this.u32(o + 4), inodeTable: this.u32(o + 8), freeBlocks: this.u16(o + 12), freeInodes: this.u16(o + 14), dirs: this.u16(o + 16) }; }
+  inodeLoc(ino) { const g = Math.floor((ino - 1) / this.sb.inodesPerGroup), idx = (ino - 1) % this.sb.inodesPerGroup; const gd = this.group(g); const off = gd.inodeTable * this.bs + idx * this.sb.inodeSize; return { group: g, index: idx, table: gd.inodeTable, block: gd.inodeTable + Math.floor(idx * this.sb.inodeSize / this.bs), offset: off }; }
+  inode(ino) {
+    const L = this.inodeLoc(ino), o = L.offset;
+    const blocks = []; for (let i = 0; i < 15; i++) blocks.push(this.u32(o + 40 + 4 * i));
+    return { ino, loc: L, mode: this.u16(o), uid: this.u16(o + 2), size: this.u32(o + 4), links: this.u16(o + 26), sectors: this.u32(o + 28), flags: this.u32(o + 32), block: blocks, mtime: this.u32(o + 16) };
+  }
+  dataBlocks(inode, limit = 1 << 20) {   // logical order, follows indirect blocks
+    if (this.isFastSymlink(inode)) return { data: [], meta: [] };
+    const P = this.bs / 4, out = [], meta = [];
+    const need = Math.ceil(inode.size / this.bs);
+    const walk = (blk, level) => { if (out.length >= need || out.length >= limit) return; if (!blk) { return; } if (level === 0) { out.push(blk); return; } meta.push({ blk, level }); for (let i = 0; i < P && out.length < need; i++) walk(this.u32(blk * this.bs + 4 * i), level - 1); };
+    for (let i = 0; i < 12 && out.length < need; i++) walk(inode.block[i], 0);
+    walk(inode.block[12], 1); walk(inode.block[13], 2); walk(inode.block[14], 3);
+    return { data: out, meta };
+  }
+  isFastSymlink(inode) { return (inode.mode & 0o170000) === 0o120000 && inode.sectors === 0 && inode.size < 60; }
+  readlink(inode) { const o = inode.loc.offset + 40; return String.fromCharCode(...this.b.subarray(o, o + inode.size)); }
+  read(inode) { if (this.isFastSymlink(inode)) return new TextEncoder().encode(this.readlink(inode)); const { data } = this.dataBlocks(inode); const res = new Uint8Array(inode.size); data.forEach((blk, i) => { const n = Math.min(this.bs, inode.size - i * this.bs); res.set(this.b.subarray(blk * this.bs, blk * this.bs + n), i * this.bs); }); return res; }
+  dir(inode) {
+    const bytes = this.read(inode), dv = new DataView(bytes.buffer), out = [];
+    for (let o = 0; o + 8 <= bytes.length;) { const ino = dv.getUint32(o, true), rec = dv.getUint16(o + 4, true), nl = bytes[o + 6], ft = bytes[o + 7]; if (rec < 8) break; if (ino) out.push({ ino, name: String.fromCharCode(...bytes.subarray(o + 8, o + 8 + nl)), type: ft, rec, at: o }); o += rec; }
+    return out;
+  }
+  lookup(path) {
+    let ino = 2; const steps = [{ name: "/", ino: 2 }];
+    for (const part of path.split("/").filter(Boolean)) {
+      const ent = this.dir(this.inode(ino)).find(e => e.name === part);
+      if (!ent) throw new Error(`"${part}" not found in directory inode ${ino}`);
+      ino = ent.ino; steps.push({ name: part, ino });
+    }
+    return { ino, steps };
+  }
+};
+
+/* ---------------- Lecture 13: page-fault error code, /proc/interrupts ---------------- */
+T.PF_BITS = [[0, "P", "1: protection violation on a present page / 0: the page is not present"], [1, "W", "1: write access / 0: read access"], [2, "U", "1: user mode / 0: kernel (supervisor) mode"], [3, "RSVD", "a reserved bit was set in a page-table entry"], [4, "I", "instruction fetch"], [5, "PK", "protection-key violation"], [6, "SS", "shadow-stack access"], [15, "SGX", "SGX violation"]];
+T.decodePF = function (code) { return T.PF_BITS.map(([b, n, d]) => ({ bit: b, name: n, on: !!(code & (1 << b)), help: d })); };
+T.describePF = function (code) {
+  const p = code & 1, w = code & 2, u = code & 4, i = code & 16;
+  return `${u ? "user" : "kernel (supervisor)"} ${i ? "instruction fetch" : (w ? "write" : "read")} of ${p ? "a present page it may not access (protection)" : "a page that is not present"}`;
+};
+T.VECTORS = ["#DE divide error", "#DB debug", "NMI non-maskable interrupt", "#BP breakpoint (int3)", "#OF overflow", "#BR bound range", "#UD invalid opcode", "#NM device not available (FPU)", "#DF double fault", "coprocessor segment overrun (old)", "#TS invalid TSS", "#NP segment not present", "#SS stack segment fault", "#GP general protection", "#PF page fault", "(reserved)", "#MF x87 floating-point error", "#AC alignment check", "#MC machine check", "#XM SIMD floating-point", "#VE virtualization exception", "#CP control protection"];
+T.parseInterrupts = function (text) {
+  const lines = text.split("\n").filter(l => l.trim()); if (!lines.length) return { cpus: 0, rows: [] };
+  const cpus = (lines[0].match(/CPU\d+/g) || []).length; const rows = [];
+  for (const l of lines.slice(1)) {
+    const m = l.match(/^\s*([^:]+):\s*(.*)$/); if (!m) continue;
+    const parts = m[2].trim().split(/\s+/); const nums = [];
+    while (nums.length < cpus && parts.length && /^\d+$/.test(parts[0])) nums.push(Number(parts.shift()));
+    rows.push({ id: m[1].trim(), sum: nums.reduce((a, b) => a + b, 0), name: parts.join(" ") });
+  }
+  return { cpus, rows };
+};
+T.diffInterrupts = function (a, b, seconds) {
+  const A = T.parseInterrupts(a), B = T.parseInterrupts(b); const map = new Map(A.rows.map(r => [r.id, r]));
+  return B.rows.map(r => ({ ...r, delta: r.sum - (map.get(r.id) ? map.get(r.id).sum : 0), rate: (r.sum - (map.get(r.id) ? map.get(r.id).sum : 0)) / seconds })).filter(r => r.delta > 0).sort((x, y) => y.delta - x.delta);
+};
+
+/* ---------------- Lecture 14: relocation and taint ---------------- */
+T.reloc = function (S, A, P) {   // R_X86_64_PC32 / PLT32: the 32-bit value S + A - P
+  const v = BigInt.asUintN(64, S + A - P); const signed = BigInt.asIntN(64, S + A - P);
+  const fits = signed >= -(1n << 31n) && signed < (1n << 31n);
+  const v32 = BigInt.asUintN(32, signed); const bytes = []; for (let i = 0; i < 4; i++) bytes.push(Number((v32 >> BigInt(8 * i)) & 0xffn));
+  return { value: signed, v32, bytes, fits, target: P + 4n + BigInt.asIntN(32, v32) };
+};
+T.TAINT = [["P", "proprietary module loaded (G if all GPL)"], ["F", "module force-loaded"], ["S", "CPU out of specification"], ["R", "module force-removed"], ["M", "machine check exception"], ["B", "bad page"], ["U", "user asked for taint"], ["D", "kernel died (oops)"], ["A", "ACPI table overridden"], ["W", "a WARN() happened"], ["C", "staging driver loaded"], ["I", "firmware workaround"], ["O", "out-of-tree module loaded"], ["E", "unsigned module loaded"], ["L", "soft lockup"], ["K", "live patched"], ["X", "auxiliary taint (distribution)"], ["T", "built with randstruct"], ["N", "test module loaded"]];
+T.decodeTaint = function (v) { v = Number(v); return T.TAINT.map(([c, d], bit) => ({ bit, letter: (bit === 0 && !(v & 1)) ? "G" : c, on: !!(Math.floor(v / Math.pow(2, bit)) % 2), help: d })); };
+
+/* ---------------- Lecture 15: ioctl numbers, dev_t, open flags, sectors, USB ---------------- */
+T.ioctl = function (dir, type, nr, size) { return (((dir << 30) | (size << 16) | (type << 8) | nr) >>> 0); };
+T.ioctlDecode = function (n) { n = n >>> 0; const dir = n >>> 30; return { dir, dirName: ["_IO (none)", "_IOW (write: user → driver)", "_IOR (read: driver → user)", "_IOWR (both)"][dir], size: (n >>> 16) & 0x3fff, type: (n >>> 8) & 0xff, nr: n & 0xff }; };
+T.mkdev = (ma, mi) => (((ma << 20) | mi) >>> 0);
+T.OFLAGS = [[0o100, "O_CREAT"], [0o200, "O_EXCL"], [0o400, "O_NOCTTY"], [0o1000, "O_TRUNC"], [0o2000, "O_APPEND"], [0o4000, "O_NONBLOCK"], [0o10000, "O_DSYNC"], [0o20000, "O_ASYNC"], [0o40000, "O_DIRECT"], [0o100000, "O_LARGEFILE"], [0o200000, "O_DIRECTORY"], [0o400000, "O_NOFOLLOW"], [0o1000000, "O_NOATIME"], [0o2000000, "O_CLOEXEC"], [0o4010000, "O_SYNC"], [0o10000000, "O_PATH"], [0o20200000, "O_TMPFILE"]];
+T.openFlags = function (v) {
+  v = v >>> 0; const acc = ["O_RDONLY", "O_WRONLY", "O_RDWR", "(3: invalid)"][v & 3]; const names = [acc]; let rest = v & ~3;
+  for (const [bit, n] of T.OFLAGS.slice().sort((a, b) => b[0] - a[0])) if ((rest & bit) === bit && bit) { names.push(n); rest &= ~bit; }
+  if (rest) names.push("0x" + rest.toString(16) + " (unknown)");
+  return names;
+};
+T.sectors = function (offset, length) { return { first: Math.floor(offset / 512), count: Math.ceil((offset % 512 + length) / 512), aligned: offset % 512 === 0 && length % 512 === 0, page: Math.floor(offset / 4096) }; };
+T.USAGE = (() => { const m = { 0x28: "Enter", 0x29: "Esc", 0x2a: "Backspace", 0x2b: "Tab", 0x2c: "Space", 0x2d: "-", 0x2e: "=", 0x2f: "[", 0x30: "]", 0x31: "\\", 0x33: ";", 0x34: "'", 0x35: "`", 0x36: ",", 0x37: ".", 0x38: "/", 0x39: "CapsLock", 0x4f: "Right", 0x50: "Left", 0x51: "Down", 0x52: "Up" }; for (let i = 0; i < 26; i++) m[4 + i] = String.fromCharCode(97 + i); for (let i = 0; i < 9; i++) m[0x1e + i] = String(i + 1); m[0x27] = "0"; for (let i = 0; i < 12; i++) m[0x3a + i] = "F" + (i + 1); return m; })();
+T.MODS = ["Left Ctrl", "Left Shift", "Left Alt", "Left GUI", "Right Ctrl", "Right Shift", "Right Alt", "Right GUI"];
+T.kbdReport = function (bytes) {
+  const mods = T.MODS.filter((_, i) => bytes[0] & (1 << i)); const keys = bytes.slice(2, 8).filter(k => k);
+  return { mods, keys: keys.map(k => ({ code: k, name: k === 1 ? "ErrorRollOver" : (T.USAGE[k] || "usage 0x" + k.toString(16)) })) };
+};
+T.mouseReport = function (bytes) { const s = v => (v & 0x80 ? v - 256 : v); return { left: !!(bytes[0] & 1), right: !!(bytes[0] & 2), middle: !!(bytes[0] & 4), dx: s(bytes[1] || 0), dy: s(bytes[2] || 0), wheel: s(bytes[3] || 0) }; };
+T.modalias = function (s) {
+  const m = s.trim().match(/^usb:v([0-9A-F]{4})p([0-9A-F]{4})d([0-9A-F]{4})dc([0-9A-F]{2})dsc([0-9A-F]{2})dp([0-9A-F]{2})ic([0-9A-F]{2})isc([0-9A-F]{2})ip([0-9A-F]{2})in([0-9A-F]{2})$/i);
+  if (!m) throw new Error("a USB modalias looks like usb:v0627p0001d0000dc00dsc00dp00ic03isc01ip01in00");
+  const k = ["vendor", "product", "bcdDevice", "devClass", "devSubClass", "devProtocol", "ifClass", "ifSubClass", "ifProtocol", "ifNumber"]; const o = {}; k.forEach((n, i) => { o[n] = m[i + 1].toUpperCase(); }); return o;
+};
+T.USBCLASS = { "00": "defined per interface", "01": "audio", "02": "communications", "03": "HID (keyboard, mouse …)", "07": "printer", "08": "mass storage", "09": "hub", "0A": "CDC data", "0E": "video", "E0": "wireless", "EF": "miscellaneous", "FF": "vendor specific" };
+
+if (typeof module !== "undefined" && module.exports) module.exports = T; else root.TOOLS = T;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+const DATA = JSON.parse(document.getElementById("data").textContent);
+const TOOLS_UI = [];
+/* Lab 10: a pipe as a bounded buffer, and the signal table with a mask calculator */
+TOOLS_UI.push({
+  id: "pipe", title: "Pipe simulator",
+  build(p) {
+    const { el } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">A writer and a reader share one pipe. Each step the writer tries to <code>write()</code> a chunk and the reader tries to <code>read()</code> one. Watch when they block, and what happens at the end.</p>
+<div class="grid2"><div class="row" style="align-items:flex-start;flex-direction:column;gap:6px">
+<label>pipe capacity <select id="cap10"><option value="4096">4 KiB</option><option value="65536" selected>64 KiB (Linux default)</option></select></label>
+<label>writer sends in total <select id="tot10"><option value="20000">20 000 bytes</option><option value="200000" selected>200 000 bytes</option></select></label>
+<label>write() chunk <input type="range" id="wc10" min="512" max="16384" step="512" value="4096"> <b class="mono" id="wcv10"></b></label>
+<label>read() chunk <input type="range" id="rc10" min="512" max="16384" step="512" value="1024"> <b class="mono" id="rcv10"></b></label>
+<label>reader starts at step <input type="range" id="rd10" min="0" max="40" value="0"> <b class="mono" id="rdv10"></b></label>
+<label>reader closes its end at step <input type="range" id="cl10" min="-1" max="80" value="-1"> <b class="mono" id="clv10"></b></label>
+</div><div><svg id="ch10" viewBox="0 0 400 160" style="width:100%;height:auto" role="img" aria-label="bytes in the pipe over time"></svg><p class="small dim">Bytes waiting in the pipe at each step (the line on top is the capacity).</p><p id="end10"></p></div></div>
+<div class="scroll" style="max-height:320px;overflow:auto;margin-top:10px"><table class="t" id="lg10"></table></div>
+<p class="note small">A writer to a full pipe sleeps; a reader of an empty pipe sleeps. <code>read()</code> returns 0 (end of file) only when the pipe is empty <b>and</b> every write end is closed: that is why mysh must close both ends in the parent, or <code>wc</code> waits forever.</p>`;
+    const $ = s => p.querySelector(s);
+    function go() {
+      const o = { capacity: +$("#cap10").value, total: +$("#tot10").value, wchunk: +$("#wc10").value, rchunk: +$("#rc10").value, rdelay: +$("#rd10").value, closeReader: +$("#cl10").value, steps: 600 };
+      $("#wcv10").textContent = o.wchunk; $("#rcv10").textContent = o.rchunk; $("#rdv10").textContent = o.rdelay; $("#clv10").textContent = o.closeReader < 0 ? "never" : o.closeReader;
+      const log = T.pipeSim(o);
+      const W = 400, H = 150, n = log.length, x = i => 4 + (W - 8) * i / Math.max(1, n - 1), y = v => H - 4 - (H - 14) * v / o.capacity;
+      let d = log.map((r, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(r.inPipe).toFixed(1)}`).join("");
+      $("#ch10").innerHTML = `<line x1="4" x2="${W - 4}" y1="${y(o.capacity)}" y2="${y(o.capacity)}" stroke="var(--dim)" stroke-dasharray="4 3"/><line x1="4" x2="${W - 4}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="2"/>`;
+      const last = log[log.length - 1];
+      $("#end10").innerHTML = `After ${n} steps: written ${last.written}, read ${last.read}. ${log.some(r => /SIGPIPE/.test(r.w)) ? '<span class="err">The writer got SIGPIPE.</span>' : log.some(r => /end of file/.test(r.r)) ? '<span class="ok">The reader saw end of file.</span>' : ""}`;
+      const t = $("#lg10"); t.innerHTML = "<tr><th>step</th><th>writer</th><th>reader</th><th>in pipe</th></tr>";
+      log.slice(0, 200).forEach(r => t.appendChild(el("tr", { class: /block|SIGPIPE|end of file/.test(r.w + r.r) ? "cur" : "" }, el("td", { text: String(r.t) }), el("td", { class: "small", text: r.w }), el("td", { class: "small", text: r.r }), el("td", { class: "mono", text: String(r.inPipe) }))));
+    }
+    p.querySelectorAll("input,select").forEach(i => i.addEventListener("input", go)); go();
+  }
+});
+TOOLS_UI.push({
+  id: "signals", title: "Signals and masks",
+  build(p) {
+    const { el } = L, T = TOOLS;
+    p.innerHTML = `<p class="small">Every process has signal masks in <code>/proc/PID/status</code>: <code>SigBlk</code> (blocked), <code>SigIgn</code> (ignored), <code>SigCgt</code> (caught by a handler). Each is 64 bits in hex; bit <i>n−1</i> stands for signal <i>n</i>. Paste one, or tick signals to build it.</p>
+<div class="row"><label>mask <input id="mk10" class="mono" value="0000000000002000" size="18"></label><span class="small dim">e.g. SigCgt of mytimeout after TODO 1: only SIGALRM (14) → 0x2000</span></div>
+<p id="mke10" class="err"></p>
+<div class="scroll"><table class="t" id="sg10"></table></div>
+<p class="note small">SIGKILL (9) and SIGSTOP (19) can never be caught, blocked or ignored: the kernel removes them from any mask you set. That is why mytimeout sends SIGTERM first (the program may clean up) and SIGKILL second (it cannot refuse).</p>`;
+    const $ = s => p.querySelector(s);
+    let mask = 0n;
+    function table() {
+      const t = $("#sg10"); t.innerHTML = "<tr><th>in mask</th><th>nr</th><th>name</th><th>default action</th><th>usual cause</th></tr>";
+      T.SIGNALS.forEach(([n, name, act, why]) => {
+        const cb = el("input", { type: "checkbox", "aria-label": name }); cb.checked = !!((mask >> BigInt(n - 1)) & 1n);
+        cb.addEventListener("change", () => { mask ^= 1n << BigInt(n - 1); $("#mk10").value = mask.toString(16).padStart(16, "0"); table(); });
+        t.appendChild(el("tr", { class: cb.checked ? "cur" : "" }, el("td", {}, cb), el("td", { text: String(n) }), el("td", { class: "mono", text: name }), el("td", { text: act }), el("td", { class: "small", text: why })));
+      });
+    }
+    function parse() { $("#mke10").textContent = ""; const s = $("#mk10").value.trim().replace(/^0x/i, ""); if (!/^[0-9a-f]{1,16}$/i.test(s)) { $("#mke10").textContent = "type up to 16 hex digits"; return; } mask = BigInt("0x" + s); table(); }
+    $("#mk10").addEventListener("input", parse); parse();
+  }
+});
+
+(function () {
+  const { $, el } = L;
+  /* tools: one tab each */
+  const root = $("#tools");
+  const bar = el("div", { class: "tabs", role: "tablist" });
+  root.appendChild(bar);
+  TOOLS_UI.forEach((t, i) => {
+    bar.appendChild(el("button", { type: "button", role: "tab", "data-id": "tool-" + t.id, text: t.title }));
+    const p = el("div", { class: "panel", role: "tabpanel", id: "tool-" + t.id });
+    root.appendChild(p);
+    try { t.build(p, DATA); } catch (err) { p.appendChild(el("p", { class: "err", text: "This tool failed to start: " + err.message })); console.error(err); }
+  });
+  /* files */
+  const names = Object.keys(DATA.files);
+  const list = $("#flist"), fname = $("#fname"), fbody = $("#fbody");
+  const btns = names.map(n => { const b = el("button", { type: "button", text: n }); b.addEventListener("click", () => show(n)); list.appendChild(el("li", {}, b)); return b; });
+  function show(n) { fname.textContent = n; fbody.textContent = DATA.files[n]; btns.forEach(b => b.setAttribute("aria-current", b.textContent === n ? "true" : "false")); }
+  $("#fcopy").appendChild(L.copyBtn(() => fbody.textContent));
+  show(names.includes("README.txt") ? "README.txt" : names[0]);
+  const bin = "";
+  if (bin) $("#binnote").textContent = "Binary files (only in the zip): " + bin;
+})();
+</script>
+</body>
+</html>
