@@ -1,0 +1,70 @@
+CSE 4105 System Programming - course materials
+Copyright (c) 2026 Md Mahbub E Noor, Department of Computer Science and Engineering, University of Barishal
+
+This repository contains three kinds of material under three licences.
+
+1. Teaching content: CC BY-NC-SA 4.0
+   Applies to: slides/ (PDF), decks/ (PowerPoint), videos/, the slide images and text in present/*.html,
+   index.html, README.md, and all explanatory text, figures and README files inside labs/ (including the
+   text of the interactive pages labs/labNN.html).
+   License: Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
+   You may share and adapt this material for non-commercial purposes, if you give appropriate credit
+   ("CSE 4105 System Programming, Md Mahbub E Noor, University of Barishal"), link to the licence, say
+   whether you changed it, and distribute your adaptation under the same licence.
+   Summary: https://creativecommons.org/licenses/by-nc-sa/4.0/
+   Full legal code: LICENSES/CC-BY-NC-SA-4.0.txt
+
+2. Lab source code: MIT
+   Applies to: the source code, scripts and Makefiles inside labs/*.zip (starter programs, test programs,
+   demo programs, shell scripts), and the JavaScript inside present/*.html and labs/*.html (the slide viewer
+   and the browser tools), except the files listed in 3 and 4 below. A lab file shown inside labs/labNN.html
+   keeps the licence it has in the zip.
+   You may use, copy, modify and redistribute this code, including in your own projects, under the
+   MIT License: LICENSES/MIT.txt (text reproduced below).
+
+3. Linux kernel modules: GPL-2.0
+   Applies to: every source file inside labs/lab14_files.zip and labs/lab15_files.zip that starts with
+   "SPDX-License-Identifier: GPL-2.0" (the kernel modules and their starters). Kernel modules that use the
+   kernel's GPL-only interfaces must be GPL-licensed.
+   License: GNU General Public License, version 2 only: LICENSES/GPL-2.0-only.txt
+
+4. Third-party files (not written by the author; their own licences apply)
+   - labs/lab14_files.zip and labs/lab15_files.zip: guest/busybox, a static BusyBox 1.36.1 binary from
+     Ubuntu 24.04 (package busybox-static, version 1:1.36.1-6ubuntu3.1). License: GPL-2.0-only.
+     Corresponding source: https://launchpad.net/ubuntu/+source/busybox (Ubuntu) and https://busybox.net (upstream).
+   - labs/lab09_files.zip: tables/syscall_32.tbl, tables/syscall_64.tbl, tables/asm-generic_unistd.h,
+     copied from the Linux kernel source (v6.8). License: GPL-2.0 (the header: GPL-2.0 WITH Linux-syscall-note,
+     as stated in its SPDX line). Source: https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+   - labs/lab09.html embeds the same syscall_64.tbl, and the errno names, numbers and comments from the
+     Linux UAPI headers asm-generic/errno-base.h and asm-generic/errno.h (GPL-2.0 WITH Linux-syscall-note).
+   - assets/fonts/: IBM Plex Sans and IBM Plex Mono, Copyright IBM Corp. License: SIL Open Font License 1.1
+     (assets/fonts/OFL.txt).
+   - Short excerpts of Linux kernel source code quoted on the slides (with file names and line numbers,
+     Linux v6.8) remain under the kernel's licence, GPL-2.0.
+   - Book titles and section numbers are cited for reference only; no book content is reproduced.
+
+No warranty: the materials are provided "as is", without warranty of any kind. Run kernel code only in a
+virtual machine, as the labs instruct.
+
+------------------------------------------------------------------------------------------------------------
+MIT License
+
+Copyright (c) 2026 Md Mahbub E Noor, University of Barishal
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

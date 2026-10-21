@@ -1,0 +1,57 @@
+/* CSE 4105 slide viewer: one top bar (course, lectures, lab, slide counter, notes, full screen, help) over a 16:9 slide */
+:root{--bar:#16233A;--bar2:#21334F;--edge:#2E4566;--ink:#F3F6FA;--dim:#9FB0C4;--accent:#F28C38;--lab:#C2410C;--labedge:#E0742F;--bg:#0B121C;
+--sans:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;--mono:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden}
+body{font-family:var(--sans);color:var(--ink)}
+a{color:inherit}
+/* ---------- top bar ---------- */
+#bar{position:fixed;left:0;right:0;top:0;height:52px;display:flex;align-items:center;gap:8px;padding:0 max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));background:var(--bar);z-index:20;border-bottom:1px solid #0A1220;transition:transform .25s ease}
+body.fs.idle #bar{transform:translateY(-100%)}
+#bar a,#bar button,#bar select{font:600 14px var(--sans);color:var(--ink);background:var(--bar2);border:1px solid var(--edge);border-radius:8px;height:34px;padding:0 12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;cursor:pointer;white-space:nowrap}
+#bar a:hover,#bar button:hover,#bar select:hover{border-color:var(--accent)}
+#bar :focus-visible{outline:3px solid var(--accent);outline-offset:1px}
+#bar .lab{background:var(--lab);border-color:var(--labedge)}
+#bar .dis{opacity:.35;pointer-events:none}
+#bar .on{background:var(--accent);border-color:var(--accent);color:#1A0E05}
+#bar select{max-width:330px;min-width:60px;flex:0 1 auto;padding-right:8px}
+#bar .count{font:600 14px var(--mono);color:var(--dim);min-width:84px;text-align:center;font-variant-numeric:tabular-nums}
+#bar .count small{display:block;font-size:11px;line-height:1;color:var(--accent)}
+#bar .sp{flex:1}
+#bar .grp{display:flex;gap:6px;align-items:center}
+#prog{position:fixed;left:0;top:52px;height:3px;background:var(--accent);z-index:21;transition:width .2s,top .25s}
+body.fs.idle #prog{top:0}
+/* ---------- slide ---------- */
+#view{position:fixed;left:0;right:0;top:52px;bottom:0;display:flex;align-items:center;justify-content:center;padding:12px}
+body.fs #view{top:0;padding:0}
+.frame{position:relative;aspect-ratio:16/9;width:min(100%,calc((100vh - 76px) * 16 / 9));background:#fff;box-shadow:0 8px 40px rgba(0,0,0,.45);touch-action:pan-y}
+body.fs .frame{width:min(100vw,calc(100vh * 16 / 9))}
+.frame img{display:block;width:100%;height:100%;user-select:none;-webkit-user-drag:none;cursor:pointer}
+.frame video{position:absolute;background:#000;display:none}
+.labgo{position:absolute;right:1.6%;top:2.2%;display:none;background:var(--lab);color:#fff;font-weight:700;padding:.7em 1.1em;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.3);font-size:clamp(11px,1.5vw,17px);text-decoration:none}
+/* ---------- panels ---------- */
+#notes{position:fixed;left:12px;right:12px;bottom:12px;max-height:36vh;overflow:auto;background:rgba(11,18,28,.96);border:1px solid var(--edge);border-radius:12px;padding:14px 18px;font-size:16px;line-height:1.55;white-space:pre-wrap;z-index:25;color:#E6ECF3}
+#notes b{color:var(--accent);display:block;margin-bottom:6px;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+#help{position:fixed;right:12px;top:64px;z-index:26;background:#F7F4EE;color:#14202E;border-radius:12px;padding:16px 20px;font-size:14px;line-height:1.75;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:calc(100vw - 24px)}
+#help kbd{font:600 12px var(--mono);background:#E8EDF3;border:1px solid #CFD7E0;border-radius:4px;padding:1px 6px}
+#drawer{position:fixed;inset:52px auto 0 0;width:min(380px,90vw);background:var(--bar);border-right:1px solid var(--edge);transform:translateX(-102%);transition:transform .2s;z-index:24;display:flex;flex-direction:column}
+#drawer.open{transform:none}
+#drawer h2{font-size:14px;margin:0;padding:12px 16px;border-bottom:1px solid var(--edge);color:var(--dim);font-weight:600}
+#drawer ol{list-style:none;margin:0;padding:6px 0;overflow:auto}
+#drawer li button{all:unset;display:flex;gap:10px;width:100%;box-sizing:border-box;padding:7px 16px;cursor:pointer;color:var(--ink);font-size:14px}
+#drawer li button:hover,#drawer li button.cur{background:#1F2F47}
+#drawer li button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+#drawer .n{color:var(--dim);font:500 13px var(--mono);min-width:2.4em;text-align:right;padding-top:1px}
+#endcard{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,14,20,.72);z-index:30}
+#endcard>div{background:#F7F4EE;color:#14202E;border-radius:16px;padding:28px 32px;max-width:560px;width:calc(100% - 32px);display:flex;flex-direction:column;gap:14px}
+#endcard h2{margin:0;font-size:24px;color:#16233A}
+#endcard p{margin:0;color:#5B6B7C}
+#endcard .row{display:flex;gap:10px;flex-wrap:wrap}
+#endcard a,#endcard button{font:600 15px var(--sans);padding:10px 16px;border-radius:10px;border:1px solid #CFD7E0;background:#E8EDF3;color:#14202E;text-decoration:none;cursor:pointer}
+#endcard a.go{background:var(--lab);color:#fff;border-color:var(--lab)}
+.rotate{position:fixed;left:0;right:0;bottom:8px;text-align:center;color:var(--dim);font-size:13px;display:none}
+@media (orientation:portrait) and (max-width:640px){.rotate{display:block}}
+@media (max-width:980px){#bar .wide{display:none}#bar select{max-width:200px}}
+@media (max-width:640px){#bar .mid{display:none}#bar{gap:4px;padding:0 6px}#bar select{max-width:120px}#bar a,#bar button{padding:0 9px}#bar .count{min-width:58px;font-size:12px}}
+@media (max-height:500px){#bar{height:44px}#bar a,#bar button,#bar select{height:30px}#view,#drawer{top:44px}#prog{top:44px}.frame{width:min(100%,calc((100vh - 64px) * 16 / 9))}#view{padding:6px}}
+@media (prefers-reduced-motion:reduce){#bar,#drawer,#prog{transition:none}}
