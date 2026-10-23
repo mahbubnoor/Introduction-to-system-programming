@@ -7,7 +7,7 @@ The course follows one C program, `hello.c`, all the way down: how an assembler,
 source code into a running program, how the ELF format describes it, how the Linux kernel boots and runs it, and how the
 kernel talks to hardware through interrupts, modules and device drivers.
 
-**Website:** open `index.html` (or [click here](https://mahbubnoor.github.io/Introduction-to-system-programming/ ) for the same material as a web page with
+**Website:** open `index.html` or [click here](https://mahbubnoor.github.io/Introduction-to-system-programming/ ) for the same material as a web page with
 the videos playing in the browser.
 
 ## How to study with these materials
